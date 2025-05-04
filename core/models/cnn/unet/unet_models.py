@@ -58,11 +58,3 @@ class UnetCNN(nn.Module):
             x = blk(x_ram[self.depth - i - 1], x)
 
         return self.out_conv(x)
-
-
-"""
-model = UnetCNN(3, 1, 64, 4)
-print(model)
-X = torch.randn(size=(10, 3, 256, 256))
-print(model(X).shape)
-"""

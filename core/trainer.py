@@ -118,7 +118,7 @@ class Trainer(Generic[T_args, T_model], ABC):
     @abstractmethod
     def step(self, batch) -> Dict:
         # TODO: implement this function
-        raise NotImplementedError
+        ...
 
     def step_info(self, result: Dict) -> None:
         # TODO: implement this function
