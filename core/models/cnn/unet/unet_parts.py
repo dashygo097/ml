@@ -68,11 +68,3 @@ class UnetUpBlock(nn.Module):
         x = torch.concat((x_0, x), dim=1)
 
         return self.conv(x)
-
-
-"""
-blk = UnetUpBlock(1024, 512)
-X = torch.randn(size=(10, 1024, 28, 28))
-X_0 = torch.randn(size=(10, 512, 64, 64))
-print(blk(X_0, X).shape)
-"""

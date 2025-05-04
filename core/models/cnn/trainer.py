@@ -2,15 +2,15 @@ from typing import Dict
 
 import torch.nn as nn
 
-from ....trainer import Trainer, TrainerArgs
+from ...trainer import Trainer, TrainerArgs
 
 
-class UnetTrainArgs(TrainerArgs):
+class BasicCNNTrainArgs(TrainerArgs):
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
 
-class UnetTrainer(Trainer):
+class BasicCNNTrainer(Trainer):
     def __init__(
         self, model: nn.Module, dataset, criterion, args: TrainerArgs, optimizer=None
     ) -> None:
@@ -19,6 +19,10 @@ class UnetTrainer(Trainer):
     def step(self, batch):
         self.optimizer.zero_grad()
         inputs, targets = batch
+
+        inputs = inputs.to(self.device)
+        targets = targets.to(self.device)
+
         outputs = self.model(inputs)
         loss = self.criterion(outputs, targets)
         loss.backward()

@@ -25,4 +25,5 @@ class LeNet(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x.unsqueeze(1)
         return self.seq(x)
