@@ -6,11 +6,11 @@ import torch.nn.functional as F
 
 
 def token2tensor(
-    tokenizer, inputs, max_length: int = 512, padfing: bool = True
+    tokenizer, inputs, max_length: int = 512, padding: bool = True
 ) -> torch.Tensor:
     "turn huggingface tokenizered tokens into torch.Tensors (without other params)"
     outputs = []
-    if padfing:
+    if padding:
         for i in inputs:
             encoded_i = tokenizer.encode(i, max_length=max_length, truncation=True)
 

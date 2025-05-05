@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from ....utils import pad_listed_2Dtensors
+from .functional import pad_listed_2Dtensors
 
 
 class LengthRegulator(nn.Module):
