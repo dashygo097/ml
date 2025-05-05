@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CURRENT_DIR=$(pwd)
-SCRIPT_DIR="$CURRENT_DIR/test"
+SCRIPT_DIR="$CURRENT_DIR/benchmark"
 
 run_test() {
 	printf "\e[1;31m[NOTE] Enter JUST AN ENTER to quit FZF.\n\e[0m"

@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import matplotlib.pyplot as plt
 from torch import nn
@@ -7,7 +7,7 @@ from torch.fx import GraphModule, symbolic_trace
 
 class Tracer:
     def __init__(self, model: nn.Module):
-        self.model: nn.Module = model
+        self.model = model
         self.trace()
 
     def trace(self):
@@ -18,6 +18,12 @@ class Tracer:
             raise ValueError("Model has not been traced yet.")
 
         print(self.graph)
+
+    def parse(self, folder: str = "edited", module_name: Optional[str] = None) -> None:
+        if module_name is None:
+            self.graph.to_folder(folder, "Traced" + self.model.__class__.__name__)
+        else:
+            self.graph.to_folder(folder, module_name)
 
     def replace_typed(
         self, old_type: type, new_constructor: Callable[[], nn.Module]
