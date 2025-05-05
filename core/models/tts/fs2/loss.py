@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from ....utils import align_melspec
+from .functional import align_melspec
 
 
 class FastSpeechMelSpecLoss(nn.Module):

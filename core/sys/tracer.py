@@ -1,5 +1,6 @@
 from typing import Callable
 
+import matplotlib.pyplot as plt
 from torch import nn
 from torch.fx import GraphModule, symbolic_trace
 
@@ -52,3 +53,31 @@ class Tracer:
 
         self.graph.recompile()
         return replaced
+
+    def draw_weight_distribution(self, bins=256, count_nonzero_only=False):
+        fig, axes = plt.subplots(3, 3, figsize=(10, 6))
+        axes = axes.ravel()
+        plot_index = 0
+        for name, param in self.model.named_parameters():
+            if param.dim() > 1:
+                ax = axes[plot_index]
+                if count_nonzero_only:
+                    param_cpu = param.detach().view(-1).cpu()
+                    param_cpu = param_cpu[param_cpu != 0].view(-1)
+                    ax.hist(param_cpu, bins=bins, density=True, color="blue", alpha=0.5)
+                else:
+                    param_cpu = param.detach().view(-1).cpu()
+                    ax.hist(
+                        param_cpu,
+                        bins=bins,
+                        density=True,
+                        color="blue",
+                        alpha=0.5,
+                    )
+                ax.set_xlabel(name)
+                ax.set_ylabel("density")
+                plot_index += 1
+        fig.suptitle("Histogram of Weights")
+        fig.tight_layout()
+        fig.subplots_adjust(top=0.925)
+        plt.show()
