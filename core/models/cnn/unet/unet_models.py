@@ -29,7 +29,7 @@ class UnetCNN(nn.Module):
             in_channels = unet_channels * 2**i
             out_channels = in_channels * 2
             self.down_sampler.add_module(
-                "DownSampler" + str(i),
+                "downsampler_" + str(i),
                 UnetDownBlock(
                     in_channels,
                     out_channels,
@@ -39,7 +39,7 @@ class UnetCNN(nn.Module):
             in_channels = unet_channels * 2 ** (depth - i)
             out_channels = in_channels // 2
             self.up_sampler.add_module(
-                "UpSampler" + str(i),
+                "upsampler_" + str(i),
                 UnetUpBlock(
                     in_channels,
                     out_channels,
