@@ -1,6 +1,7 @@
 from typing import Callable, Dict, List, Optional, overload
 
 import matplotlib.pyplot as plt
+import torch
 from torch import nn
 from torch.fx import GraphModule, symbolic_trace
 from torch.fx.node import Node
