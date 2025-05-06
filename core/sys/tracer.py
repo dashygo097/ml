@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, overload
+from typing import Callable, Dict, List, Optional, overload
 
 import matplotlib.pyplot as plt
 from torch import nn
@@ -35,11 +35,11 @@ class Tracer:
         return self.fetch(target)
 
     @overload
-    def fetch_neighbors(self, target: Optional[Node] | Optional[str]) -> List[Node]:
+    def fetch_neighbors(self, target: Optional[Node] | Optional[str]) -> Dict:
         return self.fetch_neighbors(target)
 
     @overload
-    def fetch_neighbors(self, target: nn.Module) -> List[Node]:
+    def fetch_neighbors(self, target: nn.Module) -> Dict:
         return self.fetch_neighbors(target)
 
     @overload
@@ -123,16 +123,17 @@ class Tracer:
         return target_node
 
     def fetch_neighbors(
-        self, target: Optional[Node] | Optional[str] | nn.Module
-    ) -> List[Node]:
+        self,
+        target: Optional[Node] | Optional[str] | nn.Module,
+    ) -> Dict:
         if self.graph is None:
             raise ValueError("Model has not been traced yet.")
 
         target_node = self.fetch(target)
         if target_node is None:
-            return []
+            return {}
 
-        connected_submodules = []
+        connected_submodules = {"input": [], "output": []}
 
         if target is None:
             raise ValueError("Target cannot be None.")
@@ -140,9 +141,9 @@ class Tracer:
         for node in self.graph.graph.nodes:
             if node.op == "call_module" and node != target_node:
                 if any(n == target_node for n in node.all_input_nodes):
-                    connected_submodules.append(node)
+                    connected_submodules["output"].append(node)
                 elif any(n == node for n in target_node.all_input_nodes):
-                    connected_submodules.append(node)
+                    connected_submodules["input"].append(node)
 
         return connected_submodules
 
