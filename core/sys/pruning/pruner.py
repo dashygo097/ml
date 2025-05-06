@@ -11,7 +11,7 @@ from .utils import has_multi_dim
 
 
 class Pruner(Tracer):
-    def __init__(self, model: nn.Module):
+    def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 
     def parse(self, folder: str = "edited", module_name: Optional[str] = None) -> None:
@@ -91,7 +91,6 @@ class Pruner(Tracer):
                     prune.ln_structured(
                         module, name="weight", amount=amount, n=n, dim=0
                     )
-                    prune.remove(module, "weight")
                     weight_importance = torch.norm(module.weight, p=n, dim=1)
                     num_to_keep = int(module.weight.size(0) * (1 - amount))
                     _, indices = torch.topk(weight_importance, num_to_keep)
@@ -102,6 +101,7 @@ class Pruner(Tracer):
 
                     self._shrink_linear_node(target, mask, is_prune=True)
                     self.update(target, mask)
+                    prune.remove(module, "weight")
 
         self.graph.recompile()
         return pruned_output
@@ -116,7 +116,6 @@ class Pruner(Tracer):
                     prune.ln_structured(
                         module, name="weight", amount=amount, n=n, dim=0
                     )
-                    prune.remove(module, "weight")
                     weight_importance = torch.norm(module.weight, p=n, dim=1)
                     num_to_keep = int(module.weight.size(0) * (1 - amount))
                     _, indices = torch.topk(weight_importance, num_to_keep)
@@ -129,6 +128,8 @@ class Pruner(Tracer):
                         if self.fetch_neighbors(node)["output"]:
                             self._shrink_linear_node(node, mask, is_prune=True)
                             self.update(node, mask)
+                    prune.remove(module, "weight")
+
         self.graph.recompile()
         return pruned_output
 
@@ -142,7 +143,6 @@ class Pruner(Tracer):
                     prune.ln_structured(
                         module, name="weight", amount=amount, n=n, dim=0
                     )
-                    prune.remove(module, "weight")
 
                     weight_importance = torch.norm(module.weight, p=n, dim=1)
                     num_to_keep = int(module.weight.size(0) * (1 - amount))
@@ -156,6 +156,7 @@ class Pruner(Tracer):
                         if self.fetch_neighbors(node)["output"]:
                             self._shrink_linear_node(node, mask, is_prune=True)
                             self.update(node, mask)
+                    prune.remove(module, "weight")
 
         self.graph.recompile()
         return pruned_output
