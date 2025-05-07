@@ -19,7 +19,7 @@ class LeNet(nn.Module):
                 ("conv2d_1", nn.Conv2d(6, 16, kernel_size=5)),
                 ("bn2d_1", nn.BatchNorm2d(16)),
                 ("relu_1", nn.ReLU(inplace=True)),
-                ("pool2d_1", nn.AvgPool2d(kernel_size=2, stride=2)),
+                ("avgpool2d_1", nn.AvgPool2d(kernel_size=2, stride=2)),
                 ("flatten", nn.Flatten()),
                 ("linear_0", nn.Linear(16 * 5 * 5, 120)),
                 ("bn1d_0", nn.BatchNorm1d(120)),

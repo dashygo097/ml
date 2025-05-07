@@ -2,6 +2,7 @@ from typing import Dict, List, Tuple
 
 import torch
 import torch.nn as nn
+from termcolor import colored
 
 from ...trainer import Trainer, TrainerArgs
 
@@ -120,4 +121,11 @@ class GANTrainer(Trainer):
         )
         self.logger[f"epoch {self.n_epochs}"]["d_loss"] /= (
             len(self.data_loader) * self.args.batch_size
+        )
+        print(
+            f"(Epoch {self.n_epochs}) "
+            + colored("g_loss", "yellow")
+            + f": {self.logger[f'epoch {self.n_epochs}']['g_loss']}, "
+            + colored("d_loss", "yellow")
+            + f": {self.logger[f'epoch {self.n_epochs}']['d_loss']}"
         )
