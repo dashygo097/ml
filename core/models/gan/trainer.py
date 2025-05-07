@@ -23,12 +23,14 @@ class GANTrainer(Trainer):
         model: nn.Module,
         dataset,
         args: GANTrainerArgs,
-        optimizer=None,
         criterion=None,
+        optimizer=None,
+        scheduler=None,
     ):
-        super().__init__(model, dataset, criterion, args, optimizer)
-        self.set_optimizer(optimizer)
+        super().__init__(model, dataset, criterion, args, optimizer, scheduler)
         self.set_criterion(criterion)
+        self.set_optimizer(optimizer)
+        self.set_scheduler(scheduler)
 
     def set_optimizer(self, optimizer=None):
         if optimizer is None:
@@ -48,6 +50,21 @@ class GANTrainer(Trainer):
 
         else:
             raise ValueError("Invalid optimizer")
+
+    def set_scheduler(self, scheduler=None):
+        if scheduler is None:
+            self.scheduler_G = torch.optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer_G, T_max=self.args.n_epochs
+            )
+            self.scheduler_D = torch.optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer_D, T_max=self.args.n_epochs
+            )
+
+        elif isinstance(scheduler, List):
+            self.scheduler_G = scheduler[0]
+            self.scheduler_D = scheduler[1]
+        else:
+            raise ValueError("Invalid scheduler")
 
     def set_criterion(self, criterion=None):
         if criterion is None:

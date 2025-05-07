@@ -46,15 +46,17 @@ class Trainer(Generic[T_args, T_model], ABC):
         criterion,
         args: T_args,
         optimizer=None,
+        scheduler=None,
     ) -> None:
         self.model = model
         self.criterion = criterion
         self.args = args
 
         self.set_device(args.device)
-        self.set_optimizer(optimizer)
         self.set_model(model)
         self.set_dataset(dataset)
+        self.set_optimizer(optimizer)
+        self.set_scheduler(scheduler)
 
         self.n_steps: int = 0
         self.n_epochs: int = 0
@@ -81,6 +83,16 @@ class Trainer(Generic[T_args, T_model], ABC):
 
         else:
             raise ValueError("Invalid optimizer")
+
+    def set_scheduler(self, scheduler) -> None:
+        if scheduler is None:
+            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                self.optimizer, T_max=self.args.n_epochs
+            )
+        elif isinstance(scheduler, torch.optim.lr_scheduler._LRScheduler):
+            self.scheduler = scheduler
+        else:
+            raise ValueError("Invalid scheduler")
 
     def set_model(self, model) -> None:
         self.model = model.to(self.device)

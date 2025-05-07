@@ -14,11 +14,18 @@ class Tracer:
     def trace(self):
         self.graph: GraphModule = symbolic_trace(self.model)
 
+    def numal(self, info: bool = False) -> int:
+        num_params = sum(p.numel() for p in self.model.parameters())
+        if info:
+            print(f"Number of parameters: {num_params}")
+        return num_params
+
     def summary(self) -> None:
         if self.graph is None:
             raise ValueError("Model has not been traced yet.")
 
         print(self.graph)
+        self.numal(info=True)
 
     def parse(self, folder: str = "edited", module_name: Optional[str] = None) -> None:
         if module_name is None:
