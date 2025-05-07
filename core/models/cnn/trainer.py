@@ -1,6 +1,7 @@
 from typing import Dict
 
 import torch.nn as nn
+from termcolor import colored
 
 from ...trainer import Trainer, TrainerArgs
 
@@ -34,9 +35,12 @@ class BasicCNNTrainer(Trainer):
             self.logger[f"epoch {self.n_epochs}"] = {}
             self.logger[f"epoch {self.n_epochs}"]["loss"] = 0.0
 
-        self.logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"])
+        self.logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"].sum())
 
     def epoch_info(self) -> None:
-        self.logger[f"epoch {self.n_epochs}"]["loss"] /= (
-            len(self.data_loader) * self.args.batch_size
+        self.logger[f"epoch {self.n_epochs}"]["loss"] /= len(self.data_loader)
+        print(
+            f"(Epoch {self.n_epochs}) "
+            + colored("loss", "yellow")
+            + f": {self.logger[f'epoch {self.n_epochs}']['loss']}"
         )
