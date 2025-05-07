@@ -117,19 +117,19 @@ class Trainer(Generic[T_args, T_model], ABC):
 
     @abstractmethod
     def step(self, batch) -> Dict:
-        # TODO: implement this function
+        # TODO: impl this function
         ...
 
     def step_info(self, result: Dict) -> None:
-        # TODO: implement this function
-        pass
+        # TODO: impl this function
+        ...
 
     def epoch_info(self) -> None:
-        # TODO: implement this function
-        pass
+        # TODO: impl this function
+        ...
 
     def log2plot(self) -> None:
-        # NOTE: You can reimplment this function if you want
+        # NOTE: Can be reimpled this function if you want
         plt.style.use("ggplot")
         plot_titles = []
         datareg = {}
@@ -156,7 +156,7 @@ class Trainer(Generic[T_args, T_model], ABC):
             plt.clf()
 
     def train(self) -> None:
-        # NOTE: You can reimplment this function if you want
+        # NOTE: Can be reimpled this function if want
         for epoch in range(self.args.n_epochs):
             for i, batch in enumerate(
                 tqdm(

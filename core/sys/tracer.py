@@ -27,32 +27,30 @@ class Tracer:
             self.graph.to_folder(folder, module_name)
 
     @overload
-    def fetch(self, target: Optional[Node] | Optional[str]) -> Optional[Node]:
+    def fetch(self, target: Optional[Node]) -> Optional[Node]:
         return self.fetch(target)
 
     @overload
-    def fetch(self, target: nn.Module) -> Optional[Node]:
+    def fetch(self, target: Optional[str]) -> Optional[Node]:
         return self.fetch(target)
 
     @overload
-    def fetch_neighbors(self, target: Optional[Node] | Optional[str]) -> Dict:
-        return self.fetch_neighbors(target)
+    def fetch_neighbors(
+        self, target: Optional[Node], follow_operators: bool = True
+    ) -> Dict:
+        return self.fetch_neighbors(target, follow_operators)
 
     @overload
-    def fetch_neighbors(self, target: nn.Module) -> Dict:
-        return self.fetch_neighbors(target)
+    def fetch_neighbors(
+        self, target: Optional[str], follow_operators: bool = True
+    ) -> Dict:
+        return self.fetch_neighbors(target, follow_operators)
 
     @overload
     def replace(
         self,
         target: Optional[Node] | Optional[str],
         new_constructor: Callable[[], nn.Module],
-    ) -> List[Node]:
-        return self.replace(target, new_constructor)
-
-    @overload
-    def replace(
-        self, target: nn.Module, new_constructor: Callable[[], nn.Module]
     ) -> List[Node]:
         return self.replace(target, new_constructor)
 
@@ -90,7 +88,7 @@ class Tracer:
         fig.subplots_adjust(top=0.925)
         plt.show()
 
-    def fetch(self, target: Optional[Node] | Optional[str] | nn.Module):
+    def fetch(self, target: Optional[Node] | Optional[str]):
         if self.graph is None:
             raise ValueError("Model has not been traced yet.")
 
@@ -111,20 +109,12 @@ class Tracer:
                     target_node = node
                     break
 
-        elif isinstance(target, nn.Module):
-            # NOTE: Return the first one if there are multiple matches
-            for node in self.graph.graph.nodes:
-                if node.op == "call_module":
-                    submod = self.graph.get_submodule(node.target)
-                    if submod is target:
-                        target_node = node
-                        break
-
         return target_node
 
     def fetch_neighbors(
         self,
-        target: Optional[Node] | Optional[str] | nn.Module,
+        target: Optional[Node] | Optional[str],
+        follow_operators: bool = True,
     ) -> Dict:
         if self.graph is None:
             raise ValueError("Model has not been traced yet.")
@@ -138,12 +128,23 @@ class Tracer:
         if target is None:
             raise ValueError("Target cannot be None.")
 
-        for node in self.graph.graph.nodes:
-            if node.op == "call_module" and node != target_node:
-                if any(n == target_node for n in node.all_input_nodes):
-                    connected_submodules["output"].append(node)
-                elif any(n == node for n in target_node.all_input_nodes):
-                    connected_submodules["input"].append(node)
+        for input_node in target_node.all_input_nodes:
+            if input_node.op == "call_module":
+                connected_submodules["input"].append(input_node)
+
+        def find_downstream_modules(node, depth=0):
+            for other_node in self.graph.graph.nodes:
+                if node in other_node.all_input_nodes:
+                    if other_node.op == "call_module":
+                        if other_node not in connected_submodules["output"]:
+                            connected_submodules["output"].append(other_node)
+                    elif follow_operators and other_node.op in [
+                        "call_function",
+                        "call_method",
+                    ]:
+                        find_downstream_modules(other_node, depth + 1)
+
+        find_downstream_modules(target_node)
 
         return connected_submodules
 
@@ -200,7 +201,7 @@ class Tracer:
         replaced = []
         for node in self.graph.graph.nodes:
             if node.op == "call_module":
-                submod = self.graph.get_submodule(node.target)
+                submod = self.graph.get_submodule(str(node.target))
                 if submod is old_module:
                     new_mod = new_constructor()
                     self.graph.add_submodule(node.target, new_mod)
@@ -218,7 +219,7 @@ class Tracer:
         replaced = []
         for node in self.graph.graph.nodes:
             if node.op == "call_module":
-                submod = self.graph.get_submodule(node.target)
+                submod = self.graph.get_submodule(str(node.target))
                 if isinstance(submod, old_type):
                     self.graph.add_submodule(node.target, new_constructor())
                     replaced.append(node.target)
