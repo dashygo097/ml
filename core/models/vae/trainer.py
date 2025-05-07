@@ -30,7 +30,7 @@ class VAETrainer(Trainer):
 
         loss.backward()
 
-        self.optimizer.step()
+        self.scheduler.step()
 
         return {"loss": loss}
 

@@ -13,9 +13,15 @@ class BasicCNNTrainArgs(TrainerArgs):
 
 class BasicCNNTrainer(Trainer):
     def __init__(
-        self, model: nn.Module, dataset, criterion, args: TrainerArgs, optimizer=None
+        self,
+        model: nn.Module,
+        dataset,
+        criterion,
+        args: TrainerArgs,
+        optimizer=None,
+        scheduler=None,
     ) -> None:
-        super().__init__(model, dataset, criterion, args, optimizer)
+        super().__init__(model, dataset, criterion, args, optimizer, scheduler)
 
     def step(self, batch):
         self.optimizer.zero_grad()
@@ -27,7 +33,7 @@ class BasicCNNTrainer(Trainer):
         outputs = self.model(inputs)
         loss = self.criterion(outputs, targets)
         loss.backward()
-        self.optimizer.step()
+        self.scheduler.step()
         return {"loss": loss}
 
     def step_info(self, result: Dict) -> None:
