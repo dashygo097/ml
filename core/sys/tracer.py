@@ -128,9 +128,16 @@ class Tracer:
         if target is None:
             raise ValueError("Target cannot be None.")
 
-        for input_node in target_node.all_input_nodes:
-            if input_node.op == "call_module":
-                connected_submodules["input"].append(input_node)
+        def find_upstream_modules(node, depth=0):
+            for other_node in node.all_input_nodes:
+                if other_node.op == "call_module":
+                    if other_node not in connected_submodules["input"]:
+                        connected_submodules["input"].append(other_node)
+                elif follow_operators and other_node.op in [
+                    "call_function",
+                    "call_method",
+                ]:
+                    find_upstream_modules(other_node, depth + 1)
 
         def find_downstream_modules(node, depth=0):
             for other_node in self.graph.graph.nodes:
@@ -144,6 +151,7 @@ class Tracer:
                     ]:
                         find_downstream_modules(other_node, depth + 1)
 
+        find_upstream_modules(target_node)
         find_downstream_modules(target_node)
 
         return connected_submodules
