@@ -32,8 +32,14 @@ def resnet34(in_channels: int, n_classes: int, pretrained: bool = False, **kwarg
     return model
 
 
-def resnet50(n_classes=10, pretrained=False, **kwargs):
-    model = ResNet(block=Bottleneck, layers=[3, 4, 6, 3], n_classes=n_classes, **kwargs)
+def resnet50(in_channels: int, n_classes: int, pretrained: bool = False, **kwargs):
+    model = ResNet(
+        block=Bottleneck,
+        layers=[3, 4, 6, 3],
+        in_channels=in_channels,
+        n_classes=n_classes,
+        **kwargs,
+    )
     if pretrained:
         raise NotImplementedError(
             "Pretrained weights are not available for this model."

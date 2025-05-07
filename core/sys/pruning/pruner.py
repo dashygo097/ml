@@ -41,16 +41,11 @@ class Pruner(Tracer):
         return visited
 
     @overload
-    def prune(
-        self,
-        target: Optional[str] | Optional[Node],
-        amount: float = 0.2,
-        n: int = 2,
-    ) -> Dict:
+    def prune(self, target: Optional[Node], amount: float = 0.2, n: int = 2) -> Dict:
         return self.prune(target, amount, n)
 
     @overload
-    def prune(self, target: nn.Module, amount: float = 0.2, n: int = 2) -> Dict:
+    def prune(self, target: Optional[str], amount: float = 0.2, n: int = 2) -> Dict:
         return self.prune(target, amount, n)
 
     @overload
@@ -59,7 +54,7 @@ class Pruner(Tracer):
 
     def prune(
         self,
-        target: Optional[Node] | Optional[str] | nn.Module | type,
+        target: Optional[Node] | Optional[str] | type,
         amount: float = 0.2,
         n: int = 2,
     ) -> Dict:
@@ -67,12 +62,10 @@ class Pruner(Tracer):
 
         if target is None:
             raise ValueError("Target cannot be None.")
-        elif isinstance(target, str):
-            pruned_output = self.prune_node(target, amount, n)
         elif isinstance(target, Node):
             pruned_output = self.prune_node(target, amount, n)
-        elif isinstance(target, nn.Module):
-            pruned_output = self.prune_module(target, amount, n)
+        elif isinstance(target, str):
+            pruned_output = self.prune_node(target, amount, n)
         elif isinstance(target, type):
             pruned_output = self.prune_typed(target, amount, n)
 
@@ -81,10 +74,11 @@ class Pruner(Tracer):
     def prune_node(
         self, target: Optional[Node] | Optional[str], amount: float = 0.2, n: int = 2
     ) -> Dict:
-        pruned_output = {}
+        pruned_output = {"visited": []}
         target = self.fetch(target)
+
         if isinstance(target, Node):
-            module = self.graph.get_submodule(target.target)
+            module = self.graph.get_submodule(str(target.target))
             if not self.fetch_neighbors(target)["output"]:
                 return pruned_output
 
@@ -92,38 +86,20 @@ class Pruner(Tracer):
             pruned_output[target] = torch.where(mask, 1, 0)
 
             self._shirink_prunable_node(target, mask)
-            self.update(target, mask)
+            visited = self.update(target, mask)
+            pruned_output["visited"].extend(visited)
+
             prune.remove(module, "weight")
 
         self.graph.recompile()
         return pruned_output
 
-    def prune_module(self, target: nn.Module, amount: float = 0.2, n: int = 2) -> Dict:
-        pruned_output = {}
-
-        for node in self.graph.graph.nodes:
-            if node.op == "call_module":
-                module = self.graph.get_submodule(node.target)
-                if module is target:
-                    if not self.fetch_neighbors(node)["output"]:
-                        return pruned_output
-
-                    mask = self._get_mask(module, amount, n)
-                    pruned_output[node] = torch.where(mask, 1, 0)
-
-                    self._shirink_prunable_node(node, mask)
-                    self.update(node, mask)
-                    prune.remove(module, "weight")
-
-        self.graph.recompile()
-        return pruned_output
-
     def prune_typed(self, target: type, amount: float = 0.2, n: int = 2) -> Dict:
-        pruned_output = {}
+        pruned_output = {"visited": []}
 
         for node in self.graph.graph.nodes:
             if node.op == "call_module":
-                module = self.graph.get_submodule(node.target)
+                module = self.graph.get_submodule(str(node.target))
                 if isinstance(module, target):
                     if not self.fetch_neighbors(node)["output"]:
                         return pruned_output
@@ -132,7 +108,8 @@ class Pruner(Tracer):
                     pruned_output[node] = torch.where(mask, 1, 0)
 
                     self._shirink_prunable_node(node, mask)
-                    self.update(node, mask)
+                    visited = self.update(node, mask)
+                    pruned_output["visited"].extend(visited)
                     prune.remove(module, "weight")
 
         self.graph.recompile()
@@ -159,14 +136,14 @@ class Pruner(Tracer):
         return mask
 
     def _shirink_prunable_node(self, target: Node, mask: torch.Tensor) -> None:
-        current_module = self.graph.get_submodule(target.target)
+        current_module = self.graph.get_submodule(str(target.target))
         if isinstance(current_module, nn.Linear):
             self._shrink_linear_node(target, mask, is_prune=True)
         elif isinstance(current_module, nn.Conv2d):
             self._shrink_conv2d_node(target, mask, is_prune=True)
 
     def _update_node(self, target: Node, mask: torch.Tensor) -> None:
-        current_module = self.graph.get_submodule(target.target)
+        current_module = self.graph.get_submodule(str(target.target))
         if isinstance(current_module, nn.Linear):
             self._shrink_linear_node(target, mask, is_prune=False)
         elif isinstance(current_module, nn.Conv2d):
@@ -179,7 +156,7 @@ class Pruner(Tracer):
     def _shrink_linear_node(
         self, target: Node, mask: torch.Tensor, is_prune: bool
     ) -> None:
-        target_module = self.graph.get_submodule(target.target)
+        target_module = self.graph.get_submodule(str(target.target))
         leftover = torch.where(mask, 1, 0).sum()
         if isinstance(target_module, nn.Linear):
             new_layer = nn.Linear(
@@ -212,7 +189,7 @@ class Pruner(Tracer):
     def _shrink_conv2d_node(
         self, target: Node, mask: torch.Tensor, is_prune: bool
     ) -> None:
-        target_module = self.graph.get_submodule(target.target)
+        target_module = self.graph.get_submodule(str(target.target))
         leftover = torch.where(mask, 1, 0).sum()
         if isinstance(target_module, nn.Conv2d):
             new_layer = nn.Conv2d(
@@ -243,7 +220,7 @@ class Pruner(Tracer):
                 self.replace(target, lambda: new_layer)
 
     def _shrink_bn_node(self, target: Node, mask: torch.Tensor, is_prune: bool) -> None:
-        target_module = self.graph.get_submodule(target.target)
+        target_module = self.graph.get_submodule(str(target.target))
         leftover = torch.where(mask, 1, 0).sum()
         if isinstance(target_module, nn.BatchNorm1d):
             new_layer = nn.BatchNorm1d(num_features=int(leftover))

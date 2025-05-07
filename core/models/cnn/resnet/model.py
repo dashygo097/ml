@@ -16,7 +16,7 @@ class ResNet(nn.Module):
         in_channels: int = 1,
         n_classes: int = 10,
     ):
-        super(ResNet, self).__init__()
+        super().__init__()
 
         self.in_channels = base_width
 
@@ -57,11 +57,12 @@ class ResNet(nn.Module):
         self.avgpool2d_0 = nn.AdaptiveAvgPool2d((1, 1))
         self.flatten = nn.Flatten()
         self.fc = nn.Linear(self.in_channels, n_classes)
+        self.dropout = nn.Dropout(0.5)
 
     def _make_layer(
         self,
         block: type[Union[BasicBlock, Bottleneck]],
-        blocks: int,
+        n_layers: int,
         out_channels: int,
         stride: int = 1,
         base_width: int = 64,
@@ -103,7 +104,7 @@ class ResNet(nn.Module):
         )
 
         self.in_channels = out_channels * block.expansion
-        for i in range(1, blocks):
+        for i in range(1, n_layers):
             layers.append(
                 (
                     f"blk_{i}",
@@ -123,5 +124,5 @@ class ResNet(nn.Module):
         x = self.seq(x)
         x = self.avgpool2d_0(x)
         x = self.flatten(x)
-        x = self.fc(x)
+        x = self.dropout(self.fc(x))
         return x
