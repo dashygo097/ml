@@ -1,7 +1,9 @@
+import os
 import warnings
 from collections import deque
-from typing import Dict, List, Optional, overload
+from typing import Dict, List, Optional, Tuple, overload
 
+import matplotlib.pyplot as plt
 import torch
 from torch import nn
 from torch.fx import Node
@@ -15,7 +17,10 @@ class Pruner(Tracer):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 
-    def parse(self, folder: str = "edited", module_name: Optional[str] = None) -> None:
+    def parse(
+        self, folder: str = "output/pruned", module_name: Optional[str] = None
+    ) -> None:
+        os.makedirs(folder, exist_ok=True)
         if module_name is None:
             self.graph.to_folder(folder, "Pruned" + self.model.__class__.__name__)
         else:
@@ -51,6 +56,55 @@ class Pruner(Tracer):
     @overload
     def prune(self, target: type, amount: float = 0.2, n: int = 2) -> Dict:
         return self.prune(target, amount, n)
+
+    def plot_sensitivity(
+        self,
+        target: Optional[Node] | Optional[str],
+        dataloader,
+        dim: int = 0,
+        n: int = 2,
+        arrange: Tuple[float, float] = (0.0, 1.0),
+        steps: int = 10,
+        save_folder: str = "./analysis/pruning",
+    ) -> None:
+        target = self.fetch(target)
+        module = self.graph.get_submodule(str(target.target))
+
+        self.model.eval()
+        acc = []
+
+        for i in range(steps):
+            amount = arrange[0] + (arrange[1] - arrange[0]) * (i / steps)
+            prune.ln_structured(module, name="weight", amount=amount, n=n, dim=dim)
+
+            accuracy = 0
+            for features, labels in dataloader:
+                output = self.model(features)
+                accuracy += (output.argmax(dim=1) == labels).float().mean().item()
+            accuracy /= len(dataloader)
+            acc.append(accuracy)
+
+        plt.style.use("ggplot")
+        fig, ax = plt.subplots(figsize=(8, 8))
+        ax.plot(
+            [i / steps for i in range(steps)],
+            acc,
+            marker="o",
+            markersize=5,
+            label=f"{str(target)}",
+        )
+        ax.set_title("Sensitivity Analysis")
+        ax.set_xlabel("Pruning Amount")
+        ax.set_ylabel("Accuracy")
+        ax.set_xlim(arrange[0], arrange[1])
+        ax.set_ylim(0, 1)
+        ax.set_xticks(
+            [i / 10 for i in range(int(arrange[0] * 10), int(arrange[1] * 10) + 1)]
+        )
+        ax.set_yticks([i / 10 for i in range(0, 11)])
+        ax.legend()
+        os.makedirs(save_folder, exist_ok=True)
+        plt.savefig(f"{save_folder}/sensitivity_{str(target)}.png")
 
     def prune(
         self,

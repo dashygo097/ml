@@ -86,14 +86,3 @@ def align_one_hot(data: torch.Tensor, out_dim: int = -1) -> torch.Tensor:
         raise ValueError("data.dim() should be 1 or 2")
 
     return one_hot
-
-
-def mirror_padding(img: np.ndarray, pad: int):
-    w, h, c = img.shape
-    new_img = np.zeros((w + 2 * pad, h + 2 * pad, c), dtype=np.float32)
-    new_img[pad : w + pad, pad : h + pad] = img
-    new_img[:pad, pad : h + pad] = img[pad - 1 :: -1, :]
-    new_img[w + pad :, pad : h + pad] = img[w - 1 : w - pad - 1 : -1, :]
-    new_img[:, :pad] = new_img[:, pad : 2 * pad][:, ::-1]
-    new_img[:, h + pad :] = new_img[:, h - 1 : h - pad - 1 : -1]
-    return new_img

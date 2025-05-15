@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
@@ -14,7 +14,10 @@ class GANTrainerArgs(TrainerArgs):
         self.beta_2: float = self.args.get("betas", 0.999)
         self.betas = (self.beta_1, self.beta_2)
 
-        self.noise_stddev: float = self.args.get("noise_stddev", 0.05)
+        self.instance_noise_stddev: float = self.args.get("instance_noise_stddev", 0.05)
+        self.latent_noise_stddev: float = self.args.get("latent_noise_stddev", 0.05)
+        self.label_smoothing: float = self.args.get("label_smoothing", 0.1)
+        self.flip_chance: float = self.args.get("flip_chance", 0.05)
 
 
 class GANTrainer(Trainer):
@@ -30,7 +33,7 @@ class GANTrainer(Trainer):
         super().__init__(model, dataset, criterion, args, optimizer, scheduler)
         self.set_criterion(criterion)
         self.set_optimizer(optimizer)
-        self.set_scheduler(scheduler)
+        self.set_schedulers(scheduler)
 
     def set_optimizer(self, optimizer=None):
         if optimizer is None:
@@ -51,20 +54,21 @@ class GANTrainer(Trainer):
         else:
             raise ValueError("Invalid optimizer")
 
-    def set_scheduler(self, scheduler=None):
-        if scheduler is None:
-            self.scheduler_G = torch.optim.lr_scheduler.CosineAnnealingLR(
+    def set_schedulers(self, schedulers: Optional[Union[List, Tuple]]):
+        if schedulers is None:
+            scheduler_G = torch.optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer_G, T_max=self.args.n_epochs
             )
-            self.scheduler_D = torch.optim.lr_scheduler.CosineAnnealingLR(
+            scheduler_D = torch.optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer_D, T_max=self.args.n_epochs
             )
+            self.schedulers = [scheduler_G, scheduler_D]
 
-        elif isinstance(scheduler, List):
-            self.scheduler_G = scheduler[0]
-            self.scheduler_D = scheduler[1]
-        else:
-            raise ValueError("Invalid scheduler")
+        elif isinstance(schedulers, List):
+            self.schedulers = schedulers
+
+        elif isinstance(schedulers, Tuple):
+            self.schedulers = list(schedulers)
 
     def set_criterion(self, criterion=None):
         if criterion is None:
@@ -92,9 +96,21 @@ class GANTrainer(Trainer):
             )
             .to(self.device)
         )
+        batch += torch.randn_like(batch) * self.args.instance_noise_stddev
 
-        r_labels = torch.ones(B, dtype=torch.float32, device=self.device) - 0.1
-        f_labels = torch.zeros(B, dtype=torch.float32, device=self.device) + 0.1
+        r_labels = (
+            torch.ones(B, dtype=torch.float32, device=self.device)
+            - self.args.label_smoothing
+        )
+        flip_mask = torch.rand(B, device=self.device) < self.args.flip_chance
+        r_labels[flip_mask] = 1 - r_labels[flip_mask]
+
+        f_labels = (
+            torch.zeros(B, dtype=torch.float32, device=self.device)
+            + self.args.label_smoothing
+        )
+        flip_mask = torch.rand(B, device=self.device) < self.args.flip_chance
+        f_labels[flip_mask] = 1 - f_labels[flip_mask]
 
         self.optimizer_D.zero_grad()
         r_preds = self.model.discriminate(batch)
@@ -106,6 +122,8 @@ class GANTrainer(Trainer):
             self.model.config.latent_dim,
             device=self.device,
         )
+        z += torch.randn_like(z) * self.args.latent_noise_stddev
+
         f_images = self.model.generate(z)
         f_preds = self.model.discriminate(f_images.detach())
         fake_loss = self.criterion_D(f_preds, f_labels)
@@ -124,25 +142,27 @@ class GANTrainer(Trainer):
         return {"g_loss": d_loss.item(), "d_loss": g_loss.item()}
 
     def step_info(self, result: Dict) -> None:
+        epoch_logger = self.logger["epoch"]
         if f"epoch {self.n_epochs}" not in self.logger:
-            self.logger[f"epoch {self.n_epochs}"] = {}
-            self.logger[f"epoch {self.n_epochs}"]["g_loss"] = 0.0
-            self.logger[f"epoch {self.n_epochs}"]["d_loss"] = 0.0
+            epoch_logger[f"epoch {self.n_epochs}"] = {}
+            epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] = 0.0
+            epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] = 0.0
 
-        self.logger[f"epoch {self.n_epochs}"]["g_loss"] += float(result["g_loss"])
-        self.logger[f"epoch {self.n_epochs}"]["d_loss"] += float(result["d_loss"])
+        epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] += float(result["g_loss"])
+        epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] += float(result["d_loss"])
 
     def epoch_info(self) -> None:
-        self.logger[f"epoch {self.n_epochs}"]["g_loss"] /= (
+        epoch_logger = self.logger["epoch"]
+        epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] /= (
             len(self.data_loader) * self.args.batch_size
         )
-        self.logger[f"epoch {self.n_epochs}"]["d_loss"] /= (
+        epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] /= (
             len(self.data_loader) * self.args.batch_size
         )
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("g_loss", "yellow")
-            + f": {self.logger[f'epoch {self.n_epochs}']['g_loss']}, "
+            + f": {epoch_logger[f'epoch {self.n_epochs}']['g_loss']}, "
             + colored("d_loss", "yellow")
-            + f": {self.logger[f'epoch {self.n_epochs}']['d_loss']}"
+            + f": {epoch_logger[f'epoch {self.n_epochs}']['d_loss']}"
         )

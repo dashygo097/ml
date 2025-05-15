@@ -64,7 +64,7 @@ class GANGenerator(nn.Module):
 
         self.seq = nn.Sequential(OrderedDict(module_list))
 
-    def forward(self, z):
+    def forward(self, z: torch.Tensor) -> torch.Tensor:
         B, C, L_dim = z.shape
 
         z = self.seq(z)

@@ -1,6 +1,10 @@
-from typing import Callable, Dict, List, Optional, overload
+import os
+import warnings
+from typing import Callable, Dict, List, Optional, Tuple, overload
 
 import matplotlib.pyplot as plt
+from ptflops import get_model_complexity_info
+from termcolor import colored
 from torch import nn
 from torch.fx import GraphModule, symbolic_trace
 from torch.fx.node import Node
@@ -15,10 +19,39 @@ class Tracer:
         self.graph: GraphModule = symbolic_trace(self.model)
 
     def numal(self, info: bool = False) -> int:
-        num_params = sum(p.numel() for p in self.model.parameters())
+        num_params = 0
+        for node in self.graph.graph.nodes:
+            if node.op == "call_module":
+                submod = self.graph.get_submodule(str(node.target))
+                num_params += sum(p.numel() for p in submod.parameters())
+
         if info:
-            print(f"Number of parameters: {num_params}")
+            print(
+                colored(f"Number of parameters: {num_params}", "blue", attrs=["bold"])
+            )
         return num_params
+
+    def get_details(self, input_shape: Tuple, info: bool = False) -> Tuple[str, str]:
+        warnings.warn(
+            colored(
+                "[WARN] Method `get_details` only returns the parmas of THE ORIGINAL MODEL`",
+                "yellow",
+                attrs=["bold"],
+            )
+        )
+        macs, params = get_model_complexity_info(
+            self.model,
+            input_shape,
+            as_strings=True,
+            print_per_layer_stat=info,
+            verbose=info,
+        )
+
+        if info:
+            print(colored(f"MACs: {macs}", "blue", attrs=["bold"]))
+            print(colored(f"Parameters: {params}", "blue", attrs=["bold"]))
+
+        return str(macs), str(params)
 
     def summary(self) -> None:
         if self.graph is None:
@@ -27,7 +60,10 @@ class Tracer:
         print(self.graph)
         self.numal(info=True)
 
-    def parse(self, folder: str = "edited", module_name: Optional[str] = None) -> None:
+    def parse(
+        self, folder: str = "output/traced", module_name: Optional[str] = None
+    ) -> None:
+        os.makedirs(folder, exist_ok=True)
         if module_name is None:
             self.graph.to_folder(folder, "Traced" + self.model.__class__.__name__)
         else:
@@ -102,7 +138,9 @@ class Tracer:
         target_node = None
 
         if target is None:
-            raise ValueError("Target cannot be None.")
+            raise ValueError(
+                colored("[ERROR] Target cannot be None.", "red", attrs=["bold"])
+            )
 
         elif isinstance(target, Node):
             for node in self.graph.graph.nodes:
@@ -133,7 +171,9 @@ class Tracer:
         connected_submodules = {"input": [], "output": []}
 
         if target is None:
-            raise ValueError("Target cannot be None.")
+            raise ValueError(
+                colored("[ERROR] Target cannot be None.", "red", attrs=["bold"])
+            )
 
         def find_upstream_modules(node, depth=0):
             for other_node in node.all_input_nodes:
@@ -173,7 +213,7 @@ class Tracer:
 
         replaced = []
         if target is None:
-            raise ValueError("Target cannot be None.")
+            raise ValueError(colored("Target cannot be None.", "red", attrs=["bold"]))
 
         elif isinstance(target, Node):
             replaced = self.replace_node(target, new_constructor)
@@ -200,7 +240,7 @@ class Tracer:
         for node in self.graph.graph.nodes:
             if node.op == "call_module" and node == old_node:
                 new_mod = new_constructor()
-                self.graph.add_submodule(node.target, new_mod)
+                self.graph.add_submodule(str(node.target), new_mod)
                 replaced.append(node.target)
                 break
 
@@ -219,7 +259,7 @@ class Tracer:
                 submod = self.graph.get_submodule(str(node.target))
                 if submod is old_module:
                     new_mod = new_constructor()
-                    self.graph.add_submodule(node.target, new_mod)
+                    self.graph.add_submodule(str(node.target), new_mod)
                     replaced.append(node.target)
 
         self.graph.recompile()
@@ -236,7 +276,7 @@ class Tracer:
             if node.op == "call_module":
                 submod = self.graph.get_submodule(str(node.target))
                 if isinstance(submod, old_type):
-                    self.graph.add_submodule(node.target, new_constructor())
+                    self.graph.add_submodule(str(node.target), new_constructor())
                     replaced.append(node.target)
 
         self.graph.recompile()
