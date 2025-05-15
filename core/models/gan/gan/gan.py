@@ -26,7 +26,6 @@ class GAN(nn.Module):
 class GANGenerator(nn.Module):
     def __init__(self, config: GANConfig) -> None:
         super().__init__()
-
         self.config = config
 
         module_list = []
