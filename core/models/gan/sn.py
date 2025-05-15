@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 import torch
@@ -30,6 +31,7 @@ class SNWrapper(Tracer):
     def parse(
         self, folder: str = "output/sn", module_name: Optional[str] = None
     ) -> None:
+        os.makedirs(folder, exist_ok=True)
         if module_name is None:
             self.graph.to_folder(folder, self.model.__class__.__name__ + "_SN")
         else:

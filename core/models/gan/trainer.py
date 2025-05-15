@@ -1,3 +1,5 @@
+import copy
+import os
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
@@ -13,6 +15,9 @@ class GANTrainerArgs(TrainerArgs):
         self.beta_1: float = self.args.get("betas", 0.5)
         self.beta_2: float = self.args.get("betas", 0.999)
         self.betas = (self.beta_1, self.beta_2)
+
+        self.enable_ema: bool = self.args["ema"].get("enable", False)
+        self.ema_decay: float = self.args["ema"].get("decay", 0.999)
 
         self.instance_noise_stddev: float = self.args.get("instance_noise_stddev", 0.05)
         self.latent_noise_stddev: float = self.args.get("latent_noise_stddev", 0.05)
@@ -34,6 +39,11 @@ class GANTrainer(Trainer):
         self.set_criterion(criterion)
         self.set_optimizer(optimizer)
         self.set_schedulers(scheduler)
+
+        if self.args.enable_ema:
+            self.ema_model = copy.deepcopy(self.model.generator)
+            for param in self.ema_model.parameters():
+                param.requires_grad = False
 
     def set_optimizer(self, optimizer=None):
         if optimizer is None:
@@ -83,6 +93,37 @@ class GANTrainer(Trainer):
 
         else:
             raise ValueError("Invalid criterion")
+
+    def save(self) -> None:
+        os.makedirs(self.args.save_dict, exist_ok=True)
+        path = self.args.save_dict + "/checkpoint_" + str(self.n_steps) + ".pt"
+        torch.save(self.model.state_dict(), path)
+        print(
+            "[INFO] Model saved at: "
+            + colored(path, "light_green", attrs=["underline"])
+            + "!"
+        )
+
+        if self.args.enable_ema:
+            ema_path = (
+                self.args.save_dict + "/ema_checkpoint_" + str(self.n_steps) + ".pt"
+            )
+            torch.save(self.ema_model.state_dict(), ema_path)
+            print(
+                "[INFO] EMA Model saved at: "
+                + colored(ema_path, "light_green", attrs=["underline"])
+                + "!"
+            )
+
+    def update_ema(self) -> None:
+        if self.args.enable_ema:
+            for ema_param, model_param in zip(
+                self.ema_model.parameters(), self.model.parameters()
+            ):
+                ema_param.data = (
+                    self.args.ema_decay * ema_param.data
+                    + (1 - self.args.ema_decay) * model_param.data
+                )
 
     def step(self, batch: Tuple | List) -> Dict:
         B, Total = batch[0].shape
@@ -138,6 +179,9 @@ class GANTrainer(Trainer):
         g_loss = self.criterion_G(f_preds, r_labels)
         g_loss.backward()
         self.optimizer_G.step()
+
+        if self.args.enable_ema:
+            self.update_ema()
 
         return {"g_loss": d_loss.item(), "d_loss": g_loss.item()}
 
