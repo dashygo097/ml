@@ -159,7 +159,6 @@ class GANTrainer(Trainer):
 
         z = torch.randn(
             B,
-            self.model.config.n_channels,
             self.model.config.latent_dim,
             device=self.device,
         )
@@ -183,11 +182,11 @@ class GANTrainer(Trainer):
         if self.args.enable_ema:
             self.update_ema()
 
-        return {"g_loss": d_loss.item(), "d_loss": g_loss.item()}
+        return {"g_loss": g_loss.item(), "d_loss": d_loss.item()}
 
     def step_info(self, result: Dict) -> None:
         epoch_logger = self.logger["epoch"]
-        if f"epoch {self.n_epochs}" not in self.logger:
+        if f"epoch {self.n_epochs}" not in epoch_logger:
             epoch_logger[f"epoch {self.n_epochs}"] = {}
             epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] = 0.0
             epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] = 0.0

@@ -46,12 +46,12 @@ class GANGenerator(nn.Module):
                 [
                     ("linear_" + str(index + 1), nn.Linear(in_dim, in_dim * 2)),
                     (
-                        "batchnorm_" + str(index),
-                        nn.BatchNorm1d(config.n_channels, eps=1e-5),
+                        "bn1d_" + str(index),
+                        nn.BatchNorm1d(in_dim * 2, 0.8),
                     ),
                     (
                         "leaky_relu_" + str(index + 1),
-                        nn.LeakyReLU(0.1, inplace=True),
+                        nn.LeakyReLU(0.2, inplace=True),
                     ),
                     ("dropout_" + str(index + 1), nn.Dropout(self.config.dis_dropout)),
                 ],
@@ -66,11 +66,24 @@ class GANGenerator(nn.Module):
 
         self.seq = nn.Sequential(OrderedDict(module_list))
 
+        self.apply(self.init_weights)
+
+    def init_weights(self, m: nn.Module) -> None:
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_uniform_(m.weight)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
     def forward(self, z: torch.Tensor) -> torch.Tensor:
-        B, C, L_dim = z.shape
+        B, L_dim = z.shape
 
         z = self.seq(z)
-        z = z.view(B, C, self.config.img_shape[0], self.config.img_shape[1])
+        z = z.view(
+            B,
+            self.config.n_channels,
+            self.config.img_shape[0],
+            self.config.img_shape[1],
+        )
         return z
 
 
@@ -89,8 +102,7 @@ class GANDiscriminator(nn.Module):
                         config.io_dim * config.n_channels, self.config.dis_hidden_dim
                     ),
                 ),
-                ("leaky_relu_0", nn.LeakyReLU(0.1, inplace=True)),
-                ("dropout_0", nn.Dropout(self.config.dis_dropout)),
+                ("leaky_relu_0", nn.LeakyReLU(0.2, inplace=True)),
             ]
         )
 
@@ -100,7 +112,6 @@ class GANDiscriminator(nn.Module):
                 [
                     ("linear_" + str(index + 1), nn.Linear(in_dim, in_dim // 2)),
                     ("leaky_relu_" + str(index + 1), nn.LeakyReLU(0.1, inplace=True)),
-                    ("dropout_" + str(index + 1), nn.Dropout(self.config.dis_dropout)),
                 ]
             )
 
@@ -113,6 +124,14 @@ class GANDiscriminator(nn.Module):
         )
 
         self.seq = nn.Sequential(OrderedDict(module_list))
+
+        self.apply(self.init_weights)
+
+    def init_weights(self, m: nn.Module) -> None:
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_uniform_(m.weight)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
 
     def forward(self, x):
         B, C, W, H = x.shape
