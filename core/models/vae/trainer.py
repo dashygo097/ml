@@ -30,23 +30,25 @@ class VAETrainer(Trainer):
 
         loss.backward()
 
-        self.scheduler.step()
+        self.optimizer.step()
 
         return {"loss": loss}
 
     def step_info(self, result: Dict) -> None:
-        if f"epoch {self.n_epochs}" not in self.logger:
-            self.logger[f"epoch {self.n_epochs}"] = {}
-            self.logger[f"epoch {self.n_epochs}"]["loss"] = 0.0
+        epoch_logger = self.logger["epoch"]
+        if f"epoch {self.n_epochs}" not in epoch_logger:
+            epoch_logger[f"epoch {self.n_epochs}"] = {}
+            epoch_logger[f"epoch {self.n_epochs}"]["loss"] = 0.0
 
-        self.logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"].sum())
+        epoch_logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"].sum())
 
     def epoch_info(self) -> None:
-        self.logger[f"epoch {self.n_epochs}"]["loss"] /= (
+        epoch_logger = self.logger["epoch"]
+        epoch_logger[f"epoch {self.n_epochs}"]["loss"] /= (
             len(self.data_loader) * self.args.batch_size
         )
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {self.logger[f'epoch {self.n_epochs}']['loss']}"
+            + f": {epoch_logger[f'epoch {self.n_epochs}']['loss']}"
         )

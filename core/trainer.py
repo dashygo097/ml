@@ -1,7 +1,7 @@
 import json
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, TypeVar
+from typing import Dict, Generic, List, TypeVar
 
 import matplotlib.pyplot as plt
 import torch
@@ -31,7 +31,8 @@ class TrainerArgs:
         else:
             self.log_dict: str = self.args["info"]["log_dict"]
 
-        self.is_draw: bool = self.args["info"]["is_draw"]
+        self.drawing_list: List[str] = self.args["info"].get("drawing_list", [])
+        self.is_draw: bool = self.args["info"].get("is_draw", False)
 
 
 T_args = TypeVar("T_args", bound=TrainerArgs)
@@ -56,11 +57,11 @@ class Trainer(Generic[T_args, T_model], ABC):
         self.set_model(model)
         self.set_dataset(dataset)
         self.set_optimizer(optimizer)
-        self.set_scheduler(scheduler)
+        self.set_schedulers(scheduler)
 
         self.n_steps: int = 0
         self.n_epochs: int = 0
-        self.logger: Dict = {}
+        self.logger: Dict = {"epoch": {}, "step": {}}
 
     def set_device(self, device) -> None:
         if device is None:
@@ -84,17 +85,17 @@ class Trainer(Generic[T_args, T_model], ABC):
         else:
             raise ValueError("Invalid optimizer")
 
-    def set_scheduler(self, scheduler) -> None:
-        if scheduler is None:
-            self.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                self.optimizer, T_max=self.args.n_epochs
-            )
-        elif isinstance(scheduler, torch.optim.lr_scheduler._LRScheduler):
-            self.scheduler = scheduler
+    def set_schedulers(self, schedulers) -> None:
+        if schedulers is None:
+            self.schedulers = [
+                torch.optim.lr_scheduler.CosineAnnealingLR(
+                    self.optimizer, T_max=self.args.n_epochs
+                )
+            ]
         else:
-            raise ValueError("Invalid scheduler")
+            self.schedulers = [schedulers]
 
-    def set_model(self, model) -> None:
+    def set_model(self, model: nn.Module) -> None:
         self.model = model.to(self.device)
 
     def set_dataset(self, dataset) -> None:
@@ -140,13 +141,16 @@ class Trainer(Generic[T_args, T_model], ABC):
         # TODO: impl this function
         ...
 
-    def log2plot(self) -> None:
+    def log2plot(self, key: str) -> None:
         # NOTE: Can be reimpled this function if you want
         plt.style.use("ggplot")
         plot_titles = []
         datareg = {}
-        for obj in self.logger.keys():
-            for record in self.logger[obj]:
+
+        logger = self.logger[key]
+
+        for obj in logger.keys():
+            for record in logger[obj]:
                 plot_titles.append(record)
             break
 
@@ -154,17 +158,17 @@ class Trainer(Generic[T_args, T_model], ABC):
             datareg[record] = []
 
         for record in plot_titles:
-            for obj in self.logger.keys():
-                datareg[record].append(self.logger[obj][record])
+            for obj in logger.keys():
+                datareg[record].append(logger[obj][record])
 
         for data in datareg.keys():
             plt.plot(datareg[data], label=data)
-            plt.title(f"{data} vs Epochs")
-            plt.xticks(range(0, self.n_epochs, int(self.n_epochs / 10 + 0.5)))
-            plt.xlabel("Epochs")
+            plt.title(f"{data} vs {key}s")
+            plt.xticks(range(0, self.n_epochs, max(int(self.n_epochs / 10 + 0.5), 1)))
+            plt.xlabel(f"{key}")
             plt.ylabel(data)
             plt.legend()
-            plt.savefig(self.args.log_dict + "/" + data + ".png")
+            plt.savefig(self.args.log_dict + "/" + data + "-" + f"{key}.png")
             plt.clf()
 
     def train(self) -> None:
@@ -182,10 +186,18 @@ class Trainer(Generic[T_args, T_model], ABC):
                 self.step_info(step_result)
                 self.n_steps += 1
 
+            for scheduler in self.schedulers:
+                scheduler.step()
             self.epoch_info()
             self.n_epochs += 1
 
         self.save()
         self.save_log()
         if self.args.is_draw:
-            self.log2plot()
+            for key in self.logger.keys():
+                self.args.drawing_list.append(key)
+                self.log2plot(key)
+
+        else:
+            for key in self.args.drawing_list:
+                self.log2plot(key)
