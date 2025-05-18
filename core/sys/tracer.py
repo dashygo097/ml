@@ -1,8 +1,11 @@
 import os
+import time
 import warnings
+from collections import defaultdict
 from typing import Callable, Dict, List, Optional, Tuple, overload
 
 import matplotlib.pyplot as plt
+import torch
 from ptflops import get_model_complexity_info
 from termcolor import colored
 from torch import nn
@@ -11,11 +14,11 @@ from torch.fx.node import Node
 
 
 class Tracer:
-    def __init__(self, model: nn.Module):
+    def __init__(self, model: nn.Module) -> None:
         self.model = model
         self.trace()
 
-    def trace(self):
+    def trace(self) -> None:
         self.graph: GraphModule = symbolic_trace(self.model)
 
     def numal(self, info: bool = False) -> int:
@@ -68,6 +71,94 @@ class Tracer:
             self.graph.to_folder(folder, "Traced" + self.model.__class__.__name__)
         else:
             self.graph.to_folder(folder, module_name)
+
+    def layer_latency(
+        self,
+        input_shape: Tuple[int, ...],
+        device: str = "cpu",
+        info: bool = False,
+    ) -> Dict:
+        records = defaultdict(float)
+        handles = []
+        curr_device = next(self.model.parameters()).device
+        input = torch.randn(input_shape).to(device)
+
+        def sync():
+            if device == "cuda":
+                torch.cuda.synchronize()
+            elif device == "mps":
+                torch.mps.synchronize()
+
+        def time_layer(name):
+            def hook(module, input, output):
+                sync()
+                start = time.perf_counter()
+
+                sync()
+                end = time.perf_counter()
+                records[name] += end - start
+
+            return hook
+
+        self.model.to(device)
+        self.model.eval()
+        for name, module in self.model.named_modules():
+            if isinstance(module, nn.Module):
+                handle = module.register_forward_hook(time_layer(name))
+                handles.append(handle)
+
+        with torch.no_grad():
+            self.model(input)
+
+        for handle in handles:
+            handle.remove()
+
+        if info:
+            for name, t in records.items():
+                if name:
+                    print(f"{name}: {t * 1e6:.3f} µs")
+            print(
+                colored(
+                    f"\nTotal: {sum(records.values()) * 1e6:.3f} µs",
+                    "light_yellow",
+                    attrs=["bold"],
+                )
+            )
+
+        self.model.to(curr_device)
+
+        return records
+
+    def io_latency(
+        self,
+        input_shape: Tuple[int, ...],
+        device: str = "cpu",
+        info: bool = False,
+    ) -> float:
+        curr_device = next(self.model.parameters()).device
+        input = torch.randn(input_shape).to(device)
+
+        model = self.model.to(device)
+        model.eval()
+
+        with torch.no_grad():
+            start = time.perf_counter()
+            model(input)
+            end = time.perf_counter()
+
+        perf_time = end - start
+        if info:
+            print(
+                colored(
+                    f"Latency: {perf_time * 1e3:.3f} ms",
+                    "light_yellow",
+                    attrs=["bold"],
+                )
+            )
+
+        model.to(curr_device)
+
+        return perf_time * 1e3
 
     @overload
     def fetch(self, target: Optional[Node]) -> Optional[Node]:
