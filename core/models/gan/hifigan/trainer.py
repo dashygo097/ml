@@ -2,11 +2,11 @@ from typing import Dict, List, Tuple
 
 import torch.nn.functional as F
 
-from ..trainer import GANTrainer, GANTrainerArgs
+from ..trainer import GANTrainArgs, GANTrainer
 from .hifigan import HiFiGAN
 
 
-class HiFiGANTrainerArgs(GANTrainerArgs):
+class HiFiGANTrainArgs(GANTrainArgs):
     def __init__(self, path: str):
         super().__init__(path)
 
@@ -16,7 +16,7 @@ class HiFiGANTrainer(GANTrainer):
         self,
         model: HiFiGAN,
         dataset,
-        args: HiFiGANTrainerArgs,
+        args: HiFiGANTrainArgs,
         optimizer=None,
         criterion=None,
     ):

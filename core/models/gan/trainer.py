@@ -6,10 +6,10 @@ import torch
 import torch.nn as nn
 from termcolor import colored
 
-from ...trainer import Trainer, TrainerArgs
+from ...trainer import TrainArgs, Trainer
 
 
-class GANTrainerArgs(TrainerArgs):
+class GANTrainArgs(TrainArgs):
     def __init__(self, path: str):
         super().__init__(path)
         self.beta_1: float = self.args.get("betas", 0.5)
@@ -30,7 +30,7 @@ class GANTrainer(Trainer):
         self,
         model: nn.Module,
         dataset,
-        args: GANTrainerArgs,
+        args: GANTrainArgs,
         criterion=None,
         optimizer=None,
         scheduler=None,

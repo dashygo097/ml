@@ -2,10 +2,10 @@ from typing import Dict
 
 import torch.nn as nn
 
-from ...trainer import Trainer, TrainerArgs
+from ...trainer import TrainArgs, Trainer
 
 
-class GPTrainerArgs(TrainerArgs):
+class GPTrainArgs(TrainArgs):
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
@@ -16,7 +16,7 @@ class GPTrainer(Trainer):
         model: nn.Module,
         dataset,
         criterion,
-        args: GPTrainerArgs,
+        args: GPTrainArgs,
         optimizer=None,
     ) -> None:
         super().__init__(model, dataset, criterion, args, optimizer)

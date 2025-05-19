@@ -12,7 +12,7 @@ from tqdm.rich import tqdm
 from .utils import load_yaml
 
 
-class TrainerArgs:
+class TrainArgs:
     def __init__(self, path: str) -> None:
         self.args: Dict = load_yaml(path)
         self.device: str = self.args["device"]
