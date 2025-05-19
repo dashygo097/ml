@@ -10,7 +10,6 @@ class GANConfig:
         self.config: Dict = load_yaml(config_path)
 
         # Overall settings
-        self.model: str = self.config["model"]
         self.latent_dim: int = self.config["latent_dim"]
 
         # Generator

@@ -3,10 +3,10 @@ from typing import Dict
 import torch.nn as nn
 from termcolor import colored
 
-from ...trainer import Trainer, TrainerArgs
+from ...trainer import TrainArgs, Trainer
 
 
-class BasicCNNTrainArgs(TrainerArgs):
+class BasicCNNTrainArgs(TrainArgs):
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
@@ -17,7 +17,7 @@ class BasicCNNTrainer(Trainer):
         model: nn.Module,
         dataset,
         criterion,
-        args: TrainerArgs,
+        args: TrainArgs,
         optimizer=None,
         scheduler=None,
     ) -> None:
@@ -60,7 +60,7 @@ class BasicCNNFinetuner(BasicCNNTrainer):
         model: nn.Module,
         dataset,
         criterion,
-        args: TrainerArgs,
+        args: TrainArgs,
         optimizer=None,
         scheduler=None,
     ) -> None:

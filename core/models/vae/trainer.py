@@ -2,12 +2,12 @@ from typing import Dict, List, Tuple
 
 from termcolor import colored
 
-from ...trainer import Trainer, TrainerArgs
+from ...trainer import TrainArgs, Trainer
 
 
-class VAETrainerArgs(TrainerArgs):
+class VAETrainArgs(TrainArgs):
     def __init__(self, path: str):
-        super(VAETrainerArgs, self).__init__(path)
+        super(VAETrainArgs, self).__init__(path)
 
 
 class VAETrainer(Trainer):
