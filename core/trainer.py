@@ -118,15 +118,16 @@ class Trainer(Generic[T_args, T_model], ABC):
     def load(self, path: str) -> None:
         self.model.load_state_dict(torch.load(path))
 
-    def save_log(self) -> None:
+    def save_log(self, info: bool = False) -> None:
         os.makedirs(self.args.log_dict, exist_ok=True)
         path = self.args.log_dict + "/datalogs" + ".json"
         json.dump(self.logger, open(path, "w"))
-        print(
-            "[INFO] Log saved at: "
-            + colored(path, "light_green", attrs=["underline"])
-            + "!"
-        )
+        if info:
+            print(
+                "[INFO] Log saved at: "
+                + colored(path, "light_green", attrs=["underline"])
+                + "!"
+            )
 
     @abstractmethod
     def step(self, batch) -> Dict:
@@ -192,7 +193,7 @@ class Trainer(Generic[T_args, T_model], ABC):
             self.n_epochs += 1
 
         self.save()
-        self.save_log()
+        self.save_log(info=True)
         if self.args.is_draw:
             for key in self.logger.keys():
                 self.args.drawing_list.append(key)
