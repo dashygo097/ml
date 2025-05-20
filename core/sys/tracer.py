@@ -72,6 +72,40 @@ class Tracer:
         else:
             self.graph.to_folder(folder, module_name)
 
+    def layer_output(
+        self,
+        input_shape: Tuple[int, ...],
+        device: str = "cpu",
+        info: bool = False,
+    ) -> Dict:
+        records = defaultdict(list)
+        handles = []
+        curr_device = next(self.model.parameters()).device
+        input = torch.randn(input_shape).to(device)
+
+        def time_layer(name):
+            def hook(module, input, output):
+                records[name].append(output.shape)
+
+            return hook
+
+        self.model.to(device)
+        self.model.eval()
+        for name, module in self.model.named_modules():
+            if isinstance(module, nn.Module):
+                handle = module.register_forward_hook(time_layer(name))
+                handles.append(handle)
+        with torch.no_grad():
+            self.model(input)
+        for handle in handles:
+            handle.remove()
+        if info:
+            for name, t in records.items():
+                if name:
+                    print(f"{name}: {t}")
+        self.model.to(curr_device)
+        return records
+
     def layer_latency(
         self,
         input_shape: Tuple[int, ...],

@@ -54,6 +54,11 @@ class CNNTrainer(Trainer):
             + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['loss']}"
         )
 
+        if self.n_epochs % 20 == 0 and self.n_epochs > 0:
+            self.save()
+
+        self.save_log(info=False)
+
 
 class CNNFinetuner(CNNTrainer):
     def __init__(

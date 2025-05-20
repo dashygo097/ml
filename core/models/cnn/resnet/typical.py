@@ -1,8 +1,18 @@
+from typing import Optional
+
+import torch
+
 from .backbone import BasicBlock, Bottleneck
 from .model import ResNet
 
 
-def resnet18(in_channels: int, n_classes: int, pretrained: bool = False, **kwargs):
+def resnet18(
+    in_channels: int,
+    n_classes: int,
+    checkpoint: Optional[str] = None,
+    device: str = "cpu",
+    **kwargs,
+):
     model = ResNet(
         block=BasicBlock,
         layers=[2, 2, 2, 2],
@@ -10,14 +20,19 @@ def resnet18(in_channels: int, n_classes: int, pretrained: bool = False, **kwarg
         n_classes=n_classes,
         **kwargs,
     )
-    if pretrained:
-        raise NotImplementedError(
-            "Pretrained weights are not available for this model."
-        )
+    if checkpoint is not None:
+        model.load_state_dict(torch.load(checkpoint, map_location=device))
+
     return model
 
 
-def resnet34(in_channels: int, n_classes: int, pretrained: bool = False, **kwargs):
+def resnet34(
+    in_channels: int,
+    n_classes: int,
+    checkpoint: Optional[str] = None,
+    device: str = "cpu",
+    **kwargs,
+):
     model = ResNet(
         block=BasicBlock,
         layers=[3, 4, 6, 3],
@@ -25,14 +40,18 @@ def resnet34(in_channels: int, n_classes: int, pretrained: bool = False, **kwarg
         n_classes=n_classes,
         **kwargs,
     )
-    if pretrained:
-        raise NotImplementedError(
-            "Pretrained weights are not available for this model."
-        )
+    if checkpoint is not None:
+        model.load_state_dict(torch.load(checkpoint, map_location=device))
     return model
 
 
-def resnet50(in_channels: int, n_classes: int, pretrained: bool = False, **kwargs):
+def resnet50(
+    in_channels: int,
+    n_classes: int,
+    checkpoint: Optional[str] = None,
+    device: str = "cpu",
+    **kwargs,
+):
     model = ResNet(
         block=Bottleneck,
         layers=[3, 4, 6, 3],
@@ -40,14 +59,18 @@ def resnet50(in_channels: int, n_classes: int, pretrained: bool = False, **kwarg
         n_classes=n_classes,
         **kwargs,
     )
-    if pretrained:
-        raise NotImplementedError(
-            "Pretrained weights are not available for this model."
-        )
+    if checkpoint is not None:
+        model.load_state_dict(torch.load(checkpoint, map_location=device))
     return model
 
 
-def resnet101(in_channels: int, n_classes: int, pretrained: bool = False, **kwargs):
+def resetnet101(
+    in_channels: int,
+    n_classes: int,
+    checkpoint: Optional[str] = None,
+    device: str = "cpu",
+    **kwargs,
+):
     model = ResNet(
         block=Bottleneck,
         layers=[3, 4, 23, 3],
@@ -55,14 +78,18 @@ def resnet101(in_channels: int, n_classes: int, pretrained: bool = False, **kwar
         n_classes=n_classes,
         **kwargs,
     )
-    if pretrained:
-        raise NotImplementedError(
-            "Pretrained weights are not available for this model."
-        )
+    if checkpoint is not None:
+        model.load_state_dict(torch.load(checkpoint, map_location=device))
     return model
 
 
-def resnet152(in_channels: int, n_classes: int, pretrained: bool = False, **kwargs):
+def resnet152(
+    in_channels: int,
+    n_classes: int,
+    checkpoint: Optional[str] = None,
+    device: str = "cpu",
+    **kwargs,
+):
     model = ResNet(
         block=Bottleneck,
         layers=[3, 8, 36, 3],
@@ -70,8 +97,6 @@ def resnet152(in_channels: int, n_classes: int, pretrained: bool = False, **kwar
         n_classes=n_classes,
         **kwargs,
     )
-    if pretrained:
-        raise NotImplementedError(
-            "Pretrained weights are not available for this model."
-        )
+    if checkpoint is not None:
+        model.load_state_dict(torch.load(checkpoint, map_location=device))
     return model
