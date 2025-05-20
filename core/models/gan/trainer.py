@@ -40,20 +40,23 @@ class GANTrainer(Trainer):
         self.set_optimizer(optimizer)
         self.set_schedulers(scheduler)
 
+        self.generator: nn.Module = model.generator
+        self.discriminator: nn.Module = model.discriminator
+
         if self.args.enable_ema:
-            self.ema_model = copy.deepcopy(self.model.generator)
+            self.ema_model = copy.deepcopy(self.generator)
             for param in self.ema_model.parameters():
                 param.requires_grad = False
 
     def set_optimizer(self, optimizer=None):
         if optimizer is None:
             self.optimizer_G = torch.optim.Adam(
-                self.model.generator.parameters(),
+                self.generator.parameters(),
                 lr=self.args.lr,
                 betas=self.args.betas,
             )
             self.optimizer_D = torch.optim.Adam(
-                self.model.discriminator.parameters(),
+                self.discriminator.parameters(),
                 lr=self.args.lr * 2,
                 betas=self.args.betas,
             )
@@ -125,9 +128,9 @@ class GANTrainer(Trainer):
                     + (1 - self.args.ema_decay) * model_param.data
                 )
 
-    def step(self, batch: Tuple | List) -> Dict:
+    def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
         B, Total = batch[0].shape
-        batch = (
+        batched = (
             batch[0]
             .reshape(
                 B,
@@ -137,7 +140,7 @@ class GANTrainer(Trainer):
             )
             .to(self.device)
         )
-        batch += torch.randn_like(batch) * self.args.instance_noise_stddev
+        batched += torch.randn_like(batched) * self.args.instance_noise_stddev
 
         r_labels = (
             torch.ones(B, dtype=torch.float32, device=self.device)
@@ -154,7 +157,7 @@ class GANTrainer(Trainer):
         f_labels[flip_mask] = 1 - f_labels[flip_mask]
 
         self.optimizer_D.zero_grad()
-        r_preds = self.model.discriminate(batch)
+        r_preds = self.discriminator(batched)
         r_loss = self.criterion_D(r_preds, r_labels)
 
         z = torch.randn(
@@ -164,8 +167,8 @@ class GANTrainer(Trainer):
         )
         z += torch.randn_like(z) * self.args.latent_noise_stddev
 
-        f_images = self.model.generate(z)
-        f_preds = self.model.discriminate(f_images.detach())
+        f_images = self.generator(z)
+        f_preds = self.discriminator(f_images.detach())
         fake_loss = self.criterion_D(f_preds, f_labels)
 
         d_loss = r_loss + fake_loss
@@ -174,7 +177,7 @@ class GANTrainer(Trainer):
 
         self.optimizer_G.zero_grad()
 
-        f_preds = self.model.discriminate(f_images)
+        f_preds = self.discriminator(f_images)
         g_loss = self.criterion_G(f_preds, r_labels)
         g_loss.backward()
         self.optimizer_G.step()

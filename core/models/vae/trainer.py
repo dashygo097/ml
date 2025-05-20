@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple
 
+import torch
 from termcolor import colored
 
 from ...trainer import TrainArgs, Trainer
@@ -14,19 +15,17 @@ class VAETrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super(VAETrainer, self).__init__(*args, **kwargs)
 
-    def step(self, batch) -> Dict:
+    def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
         self.optimizer.zero_grad()
-        if isinstance(batch, Tuple | List):
-            batch = batch[0]
-        input = batch.to(self.device)
+        batched = batch[0].to(self.device)
 
-        output, mean, var = self.model(input)
+        output, mean, var = self.model(batched)
         output, mean, var = (
             output.to(self.device),
             mean.to(self.device),
             var.to(self.device),
         )
-        loss = self.criterion(input, output, mean, var)
+        loss = self.criterion(batched, output, mean, var)
 
         loss.backward()
 

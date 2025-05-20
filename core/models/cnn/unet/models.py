@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from .unet_parts import UnetConv, UnetDownBlock, UnetUpBlock
+from .parts import UnetConv, UnetDownBlock, UnetUpBlock
 
 
 class UnetCNN(nn.Module):

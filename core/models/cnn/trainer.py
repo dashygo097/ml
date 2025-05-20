@@ -1,17 +1,18 @@
-from typing import Dict
+from typing import Dict, List, Tuple
 
+import torch
 import torch.nn as nn
 from termcolor import colored
 
 from ...trainer import TrainArgs, Trainer
 
 
-class BasicCNNTrainArgs(TrainArgs):
+class CNNTrainArgs(TrainArgs):
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
 
-class BasicCNNTrainer(Trainer):
+class CNNTrainer(Trainer):
     def __init__(
         self,
         model: nn.Module,
@@ -23,7 +24,7 @@ class BasicCNNTrainer(Trainer):
     ) -> None:
         super().__init__(model, dataset, criterion, args, optimizer, scheduler)
 
-    def step(self, batch):
+    def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
         self.optimizer.zero_grad()
         inputs, targets = batch
 
@@ -54,7 +55,7 @@ class BasicCNNTrainer(Trainer):
         )
 
 
-class BasicCNNFinetuner(BasicCNNTrainer):
+class CNNFinetuner(CNNTrainer):
     def __init__(
         self,
         model: nn.Module,

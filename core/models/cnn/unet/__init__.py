@@ -1,2 +1,2 @@
-from .unet_models import *
-from .unet_parts import *
+from .models import *
+from .parts import *
