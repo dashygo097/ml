@@ -19,6 +19,9 @@ class GAN(nn.Module):
     def discriminate(self, x: torch.Tensor) -> torch.Tensor:
         return self.discriminator(x)
 
+    def set_generator(self, generator: nn.Module) -> None:
+        self.generator = generator
+
     def set_discriminator(self, discriminator: nn.Module) -> None:
         self.discriminator = discriminator
 

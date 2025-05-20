@@ -35,7 +35,7 @@ class TrainArgs:
         self.is_draw: bool = self.args["info"].get("is_draw", False)
 
 
-T_args = TypeVar("T_args", bound=TrainerArgs)
+T_args = TypeVar("T_args", bound=TrainArgs)
 T_model = TypeVar("T_model", bound=nn.Module)
 
 

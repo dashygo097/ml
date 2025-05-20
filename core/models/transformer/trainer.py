@@ -1,5 +1,6 @@
-from typing import Dict
+from typing import Dict, List, Tuple
 
+import torch
 import torch.nn as nn
 
 from ...trainer import TrainArgs, Trainer

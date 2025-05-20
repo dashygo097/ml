@@ -1,6 +1,7 @@
 from typing import Dict, List, Tuple
 
 import torch.nn.functional as F
+from torch import nn
 
 from ..trainer import GANTrainArgs, GANTrainer
 from .hifigan import HiFiGAN
@@ -26,7 +27,7 @@ class HiFiGANTrainer(GANTrainer):
         y = batch[0].to(self.device)
         y_mel = batch[1].to(self.device)
 
-        y_gen = self.model.generate(batch)
+        y_gen = self.generator(batch)
         y_gen_mel = self.model.get_mel_spec(y_gen)
 
         self.optimizer_D.zero_grad()
@@ -61,7 +62,7 @@ class HiFiGANTrainer(GANTrainer):
         return {d_loss: d_loss.item(), g_loss: g_loss.item()}
 
     def step_info(self, result: Dict) -> None:
-        pass
+        super().step_info(result)
 
     def epoch_info(self) -> None:
-        pass
+        super().epoch_info()
