@@ -9,11 +9,11 @@ from torch import nn
 from torch.fx import Node
 from torch.nn.utils import prune
 
-from ..tracer import Tracer
+from ..editor import Editor
 from .utils import should_pass
 
 
-class Pruner(Tracer):
+class Pruner(Editor):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 

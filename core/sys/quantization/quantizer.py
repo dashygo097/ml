@@ -4,10 +4,10 @@ from typing import Optional, overload
 from torch import nn
 from torch.fx.node import Node
 
-from ..tracer import Tracer
+from ..editor import Editor
 
 
-class Quantizer(Tracer):
+class Quantizer(Editor):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 
