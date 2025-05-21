@@ -1,8 +1,7 @@
-import os
 import time
 import warnings
 from collections import defaultdict
-from typing import Callable, Dict, List, Optional, Tuple, overload
+from typing import Dict, Optional, Tuple, overload
 
 import matplotlib.pyplot as plt
 import torch
@@ -20,6 +19,33 @@ class Tracer:
 
     def trace(self) -> None:
         self.graph: GraphModule = symbolic_trace(self.model)
+
+    def summary(self) -> None:
+        if self.graph is None:
+            raise ValueError("Model has not been traced yet.")
+
+        print(self.graph)
+        self.numal(info=True)
+
+    @overload
+    def fetch(self, target: Optional[Node]) -> Optional[Node]:
+        return self.fetch(target)
+
+    @overload
+    def fetch(self, target: Optional[str]) -> Optional[Node]:
+        return self.fetch(target)
+
+    @overload
+    def fetch_neighbors(
+        self, target: Optional[Node], follow_operators: bool = True
+    ) -> Dict:
+        return self.fetch_neighbors(target, follow_operators)
+
+    @overload
+    def fetch_neighbors(
+        self, target: Optional[str], follow_operators: bool = True
+    ) -> Dict:
+        return self.fetch_neighbors(target, follow_operators)
 
     def numal(self, info: bool = False) -> int:
         num_params = 0
@@ -55,22 +81,6 @@ class Tracer:
             print(colored(f"Parameters: {params}", "blue", attrs=["bold"]))
 
         return str(macs), str(params)
-
-    def summary(self) -> None:
-        if self.graph is None:
-            raise ValueError("Model has not been traced yet.")
-
-        print(self.graph)
-        self.numal(info=True)
-
-    def parse(
-        self, folder: str = "output/traced", module_name: Optional[str] = None
-    ) -> None:
-        os.makedirs(folder, exist_ok=True)
-        if module_name is None:
-            self.graph.to_folder(folder, "Traced" + self.model.__class__.__name__)
-        else:
-            self.graph.to_folder(folder, module_name)
 
     def layer_output(
         self,
@@ -194,40 +204,6 @@ class Tracer:
 
         return perf_time * 1e3
 
-    @overload
-    def fetch(self, target: Optional[Node]) -> Optional[Node]:
-        return self.fetch(target)
-
-    @overload
-    def fetch(self, target: Optional[str]) -> Optional[Node]:
-        return self.fetch(target)
-
-    @overload
-    def fetch_neighbors(
-        self, target: Optional[Node], follow_operators: bool = True
-    ) -> Dict:
-        return self.fetch_neighbors(target, follow_operators)
-
-    @overload
-    def fetch_neighbors(
-        self, target: Optional[str], follow_operators: bool = True
-    ) -> Dict:
-        return self.fetch_neighbors(target, follow_operators)
-
-    @overload
-    def replace(
-        self,
-        target: Optional[Node] | Optional[str],
-        new_constructor: Callable[[], nn.Module],
-    ) -> List[Node]:
-        return self.replace(target, new_constructor)
-
-    @overload
-    def replace(
-        self, target: type, new_constructor: Callable[[], nn.Module]
-    ) -> List[Node]:
-        return self.replace(target, new_constructor)
-
     def draw_weight_distribution(self, bins=256, count_nonzero_only=False):
         fig, axes = plt.subplots(3, 3, figsize=(10, 6))
         axes = axes.ravel()
@@ -327,82 +303,3 @@ class Tracer:
         find_downstream_modules(target_node)
 
         return connected_submodules
-
-    def replace(
-        self,
-        target: Optional[Node] | Optional[str] | nn.Module | type,
-        new_constructor: Callable[[], nn.Module],
-    ) -> List[Node]:
-        if self.graph is None:
-            raise ValueError("Model has not been traced yet.")
-
-        replaced = []
-        if target is None:
-            raise ValueError(colored("Target cannot be None.", "red", attrs=["bold"]))
-
-        elif isinstance(target, Node):
-            replaced = self.replace_node(target, new_constructor)
-
-        elif isinstance(target, str):
-            target = self.fetch(target)
-            replaced = self.replace_node(target, new_constructor)
-
-        elif isinstance(target, nn.Module):
-            replaced = self.replace_module(target, new_constructor)
-
-        else:
-            replaced = self.replace_typed(target, new_constructor)
-
-        return replaced
-
-    def replace_node(
-        self, old_node: Optional[Node], new_constructor: Callable[[], nn.Module]
-    ) -> List[Node]:
-        if self.graph is None:
-            raise ValueError("Model has not been traced yet.")
-
-        replaced = []
-        for node in self.graph.graph.nodes:
-            if node.op == "call_module" and node == old_node:
-                new_mod = new_constructor()
-                self.graph.add_submodule(str(node.target), new_mod)
-                replaced.append(node.target)
-                break
-
-        self.graph.recompile()
-        return replaced
-
-    def replace_module(
-        self, old_module: nn.Module, new_constructor: Callable[[], nn.Module]
-    ) -> List[Node]:
-        if self.graph is None:
-            raise ValueError("Model has not been traced yet.")
-
-        replaced = []
-        for node in self.graph.graph.nodes:
-            if node.op == "call_module":
-                submod = self.graph.get_submodule(str(node.target))
-                if submod is old_module:
-                    new_mod = new_constructor()
-                    self.graph.add_submodule(str(node.target), new_mod)
-                    replaced.append(node.target)
-
-        self.graph.recompile()
-        return replaced
-
-    def replace_typed(
-        self, old_type: type, new_constructor: Callable[[], nn.Module]
-    ) -> List[Node]:
-        if self.graph is None:
-            raise ValueError("Model has not been traced yet.")
-
-        replaced = []
-        for node in self.graph.graph.nodes:
-            if node.op == "call_module":
-                submod = self.graph.get_submodule(str(node.target))
-                if isinstance(submod, old_type):
-                    self.graph.add_submodule(str(node.target), new_constructor())
-                    replaced.append(node.target)
-
-        self.graph.recompile()
-        return replaced
