@@ -1,5 +1,4 @@
 import os
-import re
 from typing import Callable, List, Optional, overload
 
 from termcolor import colored
