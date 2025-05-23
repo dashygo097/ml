@@ -65,7 +65,13 @@ class Trainer(Generic[T_args, T_model], ABC):
 
     def set_device(self, device) -> None:
         if device is None:
-            self.device = torch.device("mps" if torch.mps.is_available() else "cpu")
+            self.device = torch.device(
+                "mps"
+                if torch.mps.is_available()
+                else "cuda"
+                if torch.cuda.is_available()
+                else "cpu"
+            )
         elif isinstance(device, str):
             self.device = torch.device(device)
 
