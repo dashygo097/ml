@@ -13,8 +13,10 @@ from .utils import load_yaml
 
 
 class TrainArgs:
-    def __init__(self, path: str) -> None:
-        self.args: Dict = load_yaml(path)
+    def __init__(self, path_or_dict: str | Dict) -> None:
+        self.args: Dict = (
+            load_yaml(path_or_dict) if isinstance(path_or_dict, str) else path_or_dict
+        )
         self.device: str = self.args["device"]
         self.batch_size: int = self.args["batch_size"]
         self.n_epochs: int = self.args["n_epochs"]

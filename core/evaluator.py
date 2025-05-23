@@ -8,9 +8,9 @@ from tqdm import tqdm
 from .utils import load_yaml
 
 
-class EvaluateArgs:
-    def __init__(self, path: str):
-        self.args = load_yaml(path)
+class EvalArgs:
+    def __init__(self, path: str | Dict):
+        self.args = load_yaml(path) if isinstance(path, str) else path
         self.batch_size = self.args.get("batch_size", 16)
         self.is_shuffle = self.args.get("is_shuffle", False)
 
@@ -18,20 +18,21 @@ class EvaluateArgs:
 class Evaluator(ABC):
     def __init__(
         self,
-        model: nn.Module,
         ds,
         criterion,
         device: str,
-        args: EvaluateArgs,
+        args: EvalArgs,
     ):
-        self.model = model
         self.criterion = criterion
         self.args = args
 
-        self.logger = {}
-
         self.set_dataset(ds)
         self.set_device(device)
+
+        self.logger = {"step": {}}
+
+    def set_model(self, model: nn.Module) -> None:
+        self.model = model
 
     def set_dataset(self, dataset) -> None:
         self.data_loader = torch.utils.data.DataLoader(
@@ -62,8 +63,10 @@ class Evaluator(ABC):
     def step(self, batch) -> Dict: ...
     def step_info(self, result: Dict) -> None: ...
 
-    def evaluate(self) -> None:
+    def evaluate(self, model: nn.Module) -> None:
+        self.set_model(model)
         self.model.eval()
+
         with torch.no_grad():
             for i, batch in enumerate(
                 tqdm(
