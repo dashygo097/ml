@@ -69,7 +69,6 @@ class CNNTrainer(Trainer):
         correct = 0
 
         if self.valid_data_loader is None:
-            print("No validation dataset provided.")
             return
 
         for batch in self.valid_data_loader:
