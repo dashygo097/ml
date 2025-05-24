@@ -2,7 +2,7 @@ from typing import Dict, List, Tuple
 
 import torch
 from termcolor import colored
-from torch import ne, nn
+from torch import nn
 
 from .trainer import CNNTrainArgs, CNNTrainer
 

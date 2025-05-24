@@ -41,10 +41,14 @@ def benchmark_wikitext(model_name, device):
     gc.collect()
     if device == "cuda" and torch.cuda.is_available():
         torch.cuda.empty_cache()
+    elif device == "mps":
+        torch.mps.empty_cache()
     # Evaluate
     nll = evaluate(model, tokenizer)
     # Clear cache
     gc.collect()
     if device == "cuda" and torch.cuda.is_available():
         torch.cuda.empty_cache()
+    elif device == "mps":
+        torch.mps.empty_cache()
     return nll.item()

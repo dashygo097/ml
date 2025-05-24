@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -21,8 +21,11 @@ class CNNTrainer(Trainer):
         args: TrainArgs,
         optimizer=None,
         scheduler=None,
+        valid_ds=None,
     ) -> None:
-        super().__init__(model, dataset, criterion, args, optimizer, scheduler)
+        super().__init__(
+            model, dataset, criterion, args, optimizer, scheduler, valid_ds
+        )
 
     def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
         self.optimizer.zero_grad()
@@ -58,6 +61,45 @@ class CNNTrainer(Trainer):
             self.save()
 
         self.save_log(info=False)
+
+    def validate(self) -> None:
+        self.model.eval()
+        total = 0
+        total_loss = 0.0
+        correct = 0
+
+        if self.valid_data_loader is None:
+            print("No validation dataset provided.")
+            return
+
+        for batch in self.valid_data_loader:
+            inputs, labels = batch
+            inputs = inputs.to(self.device)
+            labels = labels.to(self.device)
+            with torch.no_grad():
+                outputs = self.model(inputs)
+                loss = self.criterion(outputs, labels)
+
+                _, predicted = torch.max(outputs.data, 1)
+                predicted = predicted.to(self.device)
+
+                total += labels.size(0)
+                total_loss += loss.item() * labels.size(0)
+
+                correct += (predicted == labels).sum().item()
+
+        avg_loss = total_loss / total
+        accuracy = correct / total
+        self.logger["valid"][f"epoch {self.n_epochs}"] = {
+            "loss": avg_loss,
+            "accuracy": accuracy,
+        }
+        print(
+            f"(Validation {self.n_epochs}) "
+            + colored("loss", "yellow")
+            + f": {avg_loss}"
+            + f", {colored('accuracy', 'green')}: {accuracy:.4f}"
+        )
 
 
 class CNNFinetuner(CNNTrainer):
