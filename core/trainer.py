@@ -1,5 +1,6 @@
 import json
 import os
+import threading
 from abc import ABC, abstractmethod
 from typing import Dict, Generic, List, TypeVar
 
@@ -7,7 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 from termcolor import colored
 from torch import nn
-from tqdm.rich import tqdm
+from tqdm import tqdm
 
 from .utils import load_yaml
 
@@ -199,8 +200,19 @@ class Trainer(Generic[T_args, T_model], ABC):
             plt.clf()
 
     def train(self) -> None:
+        # Initialization
         self.model.train()
-        # NOTE: Can be reimpled this function if want
+        threading.Thread(target=self._keyboard_listener, daemon=True).start()
+
+        if self.valid_data_loader is None:
+            print(
+                colored(
+                    "[WARN] No validation dataset provided, skipping validation.",
+                    "yellow",
+                )
+            )
+
+        # Main training loop
         for epoch in range(self.args.n_epochs):
             for i, batch in enumerate(
                 tqdm(
@@ -219,6 +231,7 @@ class Trainer(Generic[T_args, T_model], ABC):
 
             self.epoch_info()
 
+            # Validation
             self.model.eval()
             if self.n_epochs % self.args.epochs_per_validation == 0:
                 self.validate()
@@ -226,6 +239,7 @@ class Trainer(Generic[T_args, T_model], ABC):
 
             self.n_epochs += 1
 
+        # Finalization
         self.save()
         self.save_log(info=True)
         if self.args.is_draw:
@@ -236,3 +250,19 @@ class Trainer(Generic[T_args, T_model], ABC):
         else:
             for key in self.args.drawing_list:
                 self.log2plot(key)
+
+    def _keyboard_listener(self) -> None:
+        while True:
+            user_cmd = input()
+            if user_cmd.lower() == "q":
+                print(
+                    colored(
+                        "Keyboard interrupt detected, exiting...",
+                        "red",
+                        attrs=["bold"],
+                    )
+                )
+                os._exit(0)
+            elif user_cmd.lower() == "s":
+                print(colored("Saving model...", "light_green"))
+                self.save()
