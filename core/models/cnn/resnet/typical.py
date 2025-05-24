@@ -12,7 +12,7 @@ def resnet18(
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
-):
+) -> ResNet:
     model = ResNet(
         block=BasicBlock,
         layers=[2, 2, 2, 2],
@@ -32,7 +32,7 @@ def resnet34(
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
-):
+) -> ResNet:
     model = ResNet(
         block=BasicBlock,
         layers=[3, 4, 6, 3],
@@ -51,7 +51,7 @@ def resnet50(
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
-):
+) -> ResNet:
     model = ResNet(
         block=Bottleneck,
         layers=[3, 4, 6, 3],
@@ -70,7 +70,7 @@ def resetnet101(
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
-):
+) -> ResNet:
     model = ResNet(
         block=Bottleneck,
         layers=[3, 4, 23, 3],
@@ -89,7 +89,7 @@ def resnet152(
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
-):
+) -> ResNet:
     model = ResNet(
         block=Bottleneck,
         layers=[3, 8, 36, 3],

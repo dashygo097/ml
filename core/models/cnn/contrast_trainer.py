@@ -6,15 +6,16 @@ import torch
 from termcolor import colored
 from torch import nn
 from torch.utils.data import Dataset
+from torchvision import transforms
 
 from .trainer import CNNTrainArgs, CNNTrainer
 
 
 class TripletDataset(Dataset):
-    def __init__(self, ds, transforms=None) -> None:
+    def __init__(self, ds, transform=None) -> None:
         super().__init__()
         self.ds = ds
-        self.transforms = transforms
+        self.transform = transform if transform is not None else transforms.ToTensor()
 
         self.class_to_indices = defaultdict(list)
         for idx, (_, label) in enumerate(self.ds):
@@ -31,18 +32,17 @@ class TripletDataset(Dataset):
         positive_idx = idx
         while positive_idx == idx:
             positive_idx = random.choice(self.class_to_indices[label])
-        positive = self.ds[positive_idx]
+        positive, _ = self.ds[positive_idx]
 
         negetive_label = random.choice(
             [_label for _label in self.classes if _label != label]
         )
         negative_idx = random.choice(self.class_to_indices[negetive_label])
-        negative = self.ds[negative_idx]
+        negative, _ = self.ds[negative_idx]
 
-        if self.transforms is not None:
-            anchor = self.transforms(anchor)
-            positive = self.transforms(positive)
-            negative = self.transforms(negative)
+        anchor = self.transform(anchor)
+        positive = self.transform(positive)
+        negative = self.transform(negative)
 
         return anchor, positive, negative
 
