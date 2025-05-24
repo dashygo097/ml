@@ -25,6 +25,8 @@ class TrainArgs:
         self.is_shuffle: bool = self.args.get("is_shuffle", False)
         self.save_dict: str = self.args.get("save_dict", "./checkpoints")
 
+        self.epochs_per_validation: int = self.args.get("epochs_per_validation", 1)
+
         if "log_dict" not in self.args["info"].keys():
             self.log_dict: str = "./train_logs"
             if self.log_dict.endswith("/"):
@@ -50,6 +52,7 @@ class Trainer(Generic[T_args, T_model], ABC):
         args: T_args,
         optimizer=None,
         scheduler=None,
+        valid_ds=None,
     ) -> None:
         self.model = model
         self.criterion = criterion
@@ -60,10 +63,11 @@ class Trainer(Generic[T_args, T_model], ABC):
         self.set_dataset(dataset)
         self.set_optimizer(optimizer)
         self.set_schedulers(scheduler)
+        self.set_valid_ds(valid_ds)
 
         self.n_steps: int = 0
         self.n_epochs: int = 0
-        self.logger: Dict = {"epoch": {}, "step": {}}
+        self.logger: Dict = {"epoch": {}, "step": {}, "valid": {}}
 
     def set_device(self, device) -> None:
         if device is None:
@@ -113,6 +117,16 @@ class Trainer(Generic[T_args, T_model], ABC):
             shuffle=self.args.is_shuffle,
         )
 
+    def set_valid_ds(self, valid_ds) -> None:
+        if valid_ds is None:
+            self.valid_data_loader = None
+        else:
+            self.valid_data_loader = torch.utils.data.DataLoader(
+                valid_ds,
+                batch_size=self.args.batch_size,
+                shuffle=False,
+            )
+
     def save(self) -> None:
         os.makedirs(self.args.save_dict, exist_ok=True)
         path = self.args.save_dict + "/checkpoint_" + str(self.n_steps) + ".pt"
@@ -150,6 +164,10 @@ class Trainer(Generic[T_args, T_model], ABC):
         # TODO: impl this function
         ...
 
+    def validate(self) -> None:
+        # TODO: impl this function
+        ...
+
     def log2plot(self, key: str) -> None:
         # NOTE: Can be reimpled this function if you want
         plt.style.use("ggplot")
@@ -181,6 +199,7 @@ class Trainer(Generic[T_args, T_model], ABC):
             plt.clf()
 
     def train(self) -> None:
+        self.model.train()
         # NOTE: Can be reimpled this function if want
         for epoch in range(self.args.n_epochs):
             for i, batch in enumerate(
@@ -197,7 +216,14 @@ class Trainer(Generic[T_args, T_model], ABC):
 
             for scheduler in self.schedulers:
                 scheduler.step()
+
             self.epoch_info()
+
+            self.model.eval()
+            if self.n_epochs % self.args.epochs_per_validation == 0:
+                self.validate()
+            self.model.train()
+
             self.n_epochs += 1
 
         self.save()
