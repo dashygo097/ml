@@ -69,6 +69,9 @@ class SimCLRTrainer(CNNTrainer):
 
     def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
         anchored, positive, negative = batch
+        anchored = anchored.to(self.device, dtype=torch.float32)
+        positive = positive.to(self.device, dtype=torch.float32)
+        negative = negative.to(self.device, dtype=torch.float32)
 
         self.optimizer.zero_grad()
 
@@ -76,15 +79,7 @@ class SimCLRTrainer(CNNTrainer):
         positive_out = self.model(positive).view(positive.shape[0], -1)
         negative_out = self.model(negative).view(negative.shape[0], -1)
 
-        anchor_positive = torch.cosine_similarity(anchor_out, positive_out)
-        anchor_negative = torch.cosine_similarity(anchor_out, negative_out)
-
-        loss = self.criterion(
-            anchor_positive,
-            anchor_negative,
-            self.args.contrast_margin,
-            self.args.contrast_weight,
-        )
+        loss = self.criterion(anchor_out, positive_out, negative_out)
 
         loss.backward()
 
@@ -92,8 +87,8 @@ class SimCLRTrainer(CNNTrainer):
 
         return {
             "loss": loss.item(),
-            "anchor_positive": anchor_positive.item(),
-            "anchor_negative": anchor_negative.item(),
+            "anchor_positive": torch.tensor([0.0]),
+            "anchor_negative": torch.tensor([0.0]),
         }
 
     def step_info(self, result: Dict) -> None:
@@ -106,10 +101,10 @@ class SimCLRTrainer(CNNTrainer):
 
         epoch_logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"].sum())
         epoch_logger[f"epoch {self.n_epochs}"]["anchor_positive"] += float(
-            result["anchor_positive"].sum()
+            result["anchor_positive"]
         )
         epoch_logger[f"epoch {self.n_epochs}"]["anchor_negative"] += float(
-            result["anchor_negative"].sum()
+            result["anchor_negative"]
         )
         self.logger["epoch"] = epoch_logger
 
@@ -126,6 +121,7 @@ class SimCLRTrainer(CNNTrainer):
             + colored("loss", "yellow")
             + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['loss']}\n"
             + colored("anchor_positive", "yellow")
-            + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['anchor_positive']} "
-            + colored("anchor_negative", "yellow")
+            + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['anchor_positive']}"
+            + colored(", anchor_negative", "yellow")
+            + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['anchor_negative']}"
         )
