@@ -21,6 +21,7 @@ class TrainArgs:
         self.device: str = self.args["device"]
         self.batch_size: int = self.args["batch_size"]
         self.n_epochs: int = self.args["n_epochs"]
+        self.num_workers: int = self.args.get("num_workers", 8)
         self.lr: float = self.args["lr"]
 
         self.is_shuffle: bool = self.args.get("is_shuffle", False)
@@ -116,6 +117,7 @@ class Trainer(Generic[T_args, T_model], ABC):
             dataset,
             batch_size=self.args.batch_size,
             shuffle=self.args.is_shuffle,
+            num_workers=self.args.num_workers,
         )
 
     def set_valid_ds(self, valid_ds) -> None:

@@ -87,8 +87,8 @@ class SimCLRTrainer(CNNTrainer):
 
         return {
             "loss": loss.item(),
-            "anchor_positive": torch.tensor([0.0]),
-            "anchor_negative": torch.tensor([0.0]),
+            "anchor_positive": 0.0,
+            "anchor_negative": 0.0,
         }
 
     def step_info(self, result: Dict) -> None:
@@ -99,7 +99,7 @@ class SimCLRTrainer(CNNTrainer):
             epoch_logger[f"epoch {self.n_epochs}"]["anchor_positive"] = 0.0
             epoch_logger[f"epoch {self.n_epochs}"]["anchor_negative"] = 0.0
 
-        epoch_logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"].sum())
+        epoch_logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"])
         epoch_logger[f"epoch {self.n_epochs}"]["anchor_positive"] += float(
             result["anchor_positive"]
         )
@@ -125,3 +125,4 @@ class SimCLRTrainer(CNNTrainer):
             + colored(", anchor_negative", "yellow")
             + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['anchor_negative']}"
         )
+        self.save_log()
