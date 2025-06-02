@@ -30,7 +30,6 @@ class DCGANGenerator(nn.Module):
         for index in range(config.n_gen_layers):
             module_list.extend(
                 [
-                    ("upsample_" + str(index), nn.Upsample(scale_factor=2)),
                     (
                         "conv2d_" + str(index),
                         nn.Conv2d(
@@ -41,14 +40,12 @@ class DCGANGenerator(nn.Module):
                             padding=(self.config.gen_kernel_size - 1) // 2,
                         ),
                     ),
+                    ("pixel_shuffle_" + str(index), nn.PixelShuffle(2)),
                     (
                         "bn2d_" + str(index),
                         nn.BatchNorm2d(out_channels),
                     ),
-                    (
-                        "leaky_relu_" + str(index + 1),
-                        nn.LeakyReLU(0.2, inplace=True),
-                    ),
+                    ("silu_" + str(index), nn.SiLU(inplace=True)),
                     ("dropout_" + str(index + 1), nn.Dropout(self.config.gen_dropout)),
                 ],
             )
@@ -119,7 +116,7 @@ class DCGANDiscriminator(nn.Module):
                         padding=(self.config.dis_kernel_size - 1) // 2,
                     ),
                 ),
-                ("leaky_relu_init", nn.LeakyReLU(0.2, inplace=True)),
+                ("silu_init", nn.SiLU(inplace=True)),
                 ("dropout_init", nn.Dropout2d(self.config.dis_dropout)),
             ]
         )
@@ -140,7 +137,7 @@ class DCGANDiscriminator(nn.Module):
                             padding=(self.config.dis_kernel_size - 1) // 2,
                         ),
                     ),
-                    ("leaky_relu_" + str(index + 1), nn.LeakyReLU(0.2, inplace=True)),
+                    ("silu_" + str(index + 1), nn.SiLU(inplace=True)),
                     (
                         "dropout_" + str(index + 1),
                         nn.Dropout2d(self.config.dis_dropout),
