@@ -21,12 +21,13 @@ class TrainArgs:
         self.device: str = self.args["device"]
         self.batch_size: int = self.args["batch_size"]
         self.n_epochs: int = self.args["n_epochs"]
-        self.num_workers: int = self.args.get("num_workers", 8)
+        self.num_workers: int = self.args.get("num_workers", 2)
         self.lr: float = self.args["lr"]
 
         self.is_shuffle: bool = self.args.get("is_shuffle", False)
         self.save_dict: str = self.args.get("save_dict", "./checkpoints")
 
+        self.epochs_per_logging: int = self.args.get("epochs_per_logging", 1)
         self.epochs_per_validation: int = self.args.get("epochs_per_validation", 1)
 
         if "log_dict" not in self.args["info"].keys():
@@ -232,6 +233,8 @@ class Trainer(Generic[T_args, T_model], ABC):
                 scheduler.step()
 
             self.epoch_info()
+            if self.n_epochs % self.args.epochs_per_logging == 0:
+                self.save_log()
 
             # Validation
             self.model.eval()
