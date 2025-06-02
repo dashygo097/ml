@@ -1,0 +1,56 @@
+from typing import Tuple
+
+import torch
+from torch import nn
+
+from .functional import scaled_dot_product_attention
+
+
+class MulHeadAttn2d(nn.Module):
+    def __init__(
+        self,
+        embed_size: int,
+        n_heads: int,
+        droupout: float = 0.1,
+    ) -> None:
+        super().__init__()
+        self.d_model = embed_size
+        self.n_heads = n_heads
+        self.head_dim = embed_size // n_heads
+
+        self.W_qkv = nn.Conv2d(
+            in_channels=embed_size,
+            out_channels=self.d_model * 3,
+            kernel_size=1,
+            bias=False,
+        )
+
+        self.W_o = nn.Conv2d(
+            in_channels=self.d_model,
+            out_channels=self.d_model,
+            kernel_size=1,
+        )
+
+        self.dropout = nn.Dropout(droupout)
+
+    def forward(self, x: torch.Tensor, mask=None) -> torch.Tensor:
+        B, C, H, W = x.shape
+        Q, K, V = self.qkv(x)
+
+        outputs, weights = scaled_dot_product_attention(Q, K, V, masked=mask)
+        outputs = outputs.view(B, self.d_model, H, W)
+        outputs = self.W_o(outputs)
+
+        return self.dropout(outputs)
+
+    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        B, C, H, W = x.shape
+
+        QKV = self.W_qkv(x)
+        Q, K, V = torch.chunk(QKV, chunks=3, dim=1)
+
+        Q = Q.view(B, self.n_heads, self.head_dim, H * W)
+        K = K.view(B, self.n_heads, self.head_dim, H * W)
+        V = V.view(B, self.n_heads, self.head_dim, H * W)
+
+        return Q, K, V
