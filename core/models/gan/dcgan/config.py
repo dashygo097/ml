@@ -5,7 +5,7 @@ import numpy as np
 from ....utils import load_yaml
 
 
-class GANConfig:
+class DCGANConfig:
     def __init__(self, config_path: str) -> None:
         self.config: Dict = load_yaml(config_path)
 
@@ -14,12 +14,14 @@ class GANConfig:
 
         # Generator
         self.n_gen_layers: int = self.config["generator"]["n_layers"]
-        self.gen_hidden_dim: int = self.config["generator"]["hidden_dim"]
+        self.gen_hidden_channels: int = self.config["generator"]["hidden_channels"]
+        self.gen_kernel_size: int = self.config["generator"].get("kernel_size", 3)
         self.gen_dropout: float = self.config["generator"].get("dropout", 0.0)
 
         # Discriminator
         self.n_dis_layers: int = self.config["discriminator"]["n_layers"]
-        self.dis_hidden_dim: int = self.config["discriminator"]["hidden_dim"]
+        self.dis_hidden_channels: int = self.config["discriminator"]["hidden_channels"]
+        self.dis_kernel_size: int = self.config["discriminator"].get("kernel_size", 3)
         self.dis_dropout: float = self.config["discriminator"].get("dropout", 0.0)
 
         # IO settings

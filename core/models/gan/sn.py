@@ -1,11 +1,10 @@
 import os
 from typing import Optional
 
-import torch
 from torch import nn
 from torch.nn.utils import spectral_norm
 
-from ...sys import Tracer
+from ...sys import Editor
 
 SN_TYPES = set(
     [
@@ -21,7 +20,7 @@ SN_TYPES = set(
 )
 
 
-class SNWrapper(Tracer):
+class SNWrapper(Editor):
     def __init__(self, discriminator: nn.Module):
         super().__init__(discriminator)
 

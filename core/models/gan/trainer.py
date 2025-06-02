@@ -24,6 +24,11 @@ class GANTrainArgs(TrainArgs):
         self.label_smoothing: float = self.args.get("label_smoothing", 0.1)
         self.flip_chance: float = self.args.get("flip_chance", 0.05)
 
+        self.g2d_ratio: int = self.args.get("g2d_ratio", 1)
+        self.fresh_samples_per_g_step: bool = self.args.get(
+            "fresh_samples_per_g_step", False
+        )
+
 
 class GANTrainer(Trainer):
     def __init__(
@@ -34,14 +39,25 @@ class GANTrainer(Trainer):
         criterion=None,
         optimizer=None,
         scheduler=None,
+        valid_ds=None,
     ):
-        super().__init__(model, dataset, criterion, args, optimizer, scheduler)
+        self.model = model
+        self.criterion = criterion
+        self.args = args
+        self.generator: nn.Module = model.generator
+        self.discriminator: nn.Module = model.discriminator
+
+        self.set_device(args.device)
+        self.set_model(model)
+        self.set_dataset(dataset)
         self.set_criterion(criterion)
         self.set_optimizer(optimizer)
         self.set_schedulers(scheduler)
+        self.set_valid_ds(valid_ds)
 
-        self.generator: nn.Module = model.generator
-        self.discriminator: nn.Module = model.discriminator
+        self.n_steps: int = 0
+        self.n_epochs: int = 0
+        self.logger: Dict = {"epoch": {}, "step": {}, "valid": {}}
 
         if self.args.enable_ema:
             self.ema_model = copy.deepcopy(self.generator)
@@ -175,17 +191,28 @@ class GANTrainer(Trainer):
         d_loss.backward()
         self.optimizer_D.step()
 
-        self.optimizer_G.zero_grad()
+        g_loss_total = 0
+        for _ in range(self.args.g2d_ratio):
+            self.optimizer_G.zero_grad()
 
-        f_preds = self.discriminator(f_images)
-        g_loss = self.criterion_G(f_preds, r_labels)
-        g_loss.backward()
-        self.optimizer_G.step()
+            if self.args.fresh_samples_per_g_step:
+                z = torch.randn(B, self.model.config.latent_dim, device=self.device)
+                z += torch.randn_like(z) * self.args.latent_noise_stddev
+                f_images = self.generator(z)
 
-        if self.args.enable_ema:
-            self.update_ema()
+            f_preds = self.discriminator(f_images)
+            g_loss = self.criterion_G(f_preds, r_labels)
+            g_loss.backward()
+            self.optimizer_G.step()
 
-        return {"g_loss": g_loss.item(), "d_loss": d_loss.item()}
+            g_loss_total += g_loss.item()
+
+            if self.args.enable_ema:
+                self.update_ema()
+
+        g_loss_avg = g_loss_total / self.args.g2d_ratio
+
+        return {"g_loss": g_loss_avg, "d_loss": d_loss.item()}
 
     def step_info(self, result: Dict) -> None:
         epoch_logger = self.logger["epoch"]
@@ -199,12 +226,8 @@ class GANTrainer(Trainer):
 
     def epoch_info(self) -> None:
         epoch_logger = self.logger["epoch"]
-        epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] /= (
-            len(self.data_loader) * self.args.batch_size
-        )
-        epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] /= (
-            len(self.data_loader) * self.args.batch_size
-        )
+        epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] /= len(self.data_loader)
+        epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] /= len(self.data_loader)
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("g_loss", "yellow")
