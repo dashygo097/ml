@@ -11,7 +11,7 @@ class MulHeadAttn2d(nn.Module):
         self,
         embed_size: int,
         n_heads: int,
-        droupout: float = 0.1,
+        dropout: float = 0.1,
     ) -> None:
         super().__init__()
         self.d_model = embed_size
@@ -31,7 +31,7 @@ class MulHeadAttn2d(nn.Module):
             kernel_size=1,
         )
 
-        self.dropout = nn.Dropout(droupout)
+        self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor, mask=None) -> torch.Tensor:
         B, C, H, W = x.shape

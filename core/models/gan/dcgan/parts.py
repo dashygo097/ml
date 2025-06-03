@@ -3,6 +3,7 @@ from typing import OrderedDict
 import torch
 from torch import nn
 
+from ..minibatch import MiniBatch1d
 from .config import DCGANConfig
 
 
@@ -17,12 +18,28 @@ class DCGANGenerator(nn.Module):
             self.config.img_shape[1] // 2**config.n_gen_layers,
         )
 
-        self.linear_init = nn.Linear(
-            self.config.latent_dim,
-            self.config.gen_hidden_channels * self.init_size[0] * self.init_size[1],
-        )
-        self.bn2d_init = nn.BatchNorm1d(
-            self.config.gen_hidden_channels * self.init_size[0] * self.init_size[1]
+        module_list.extend(
+            [
+                (
+                    "conv2d_trans_init",
+                    nn.ConvTranspose2d(
+                        self.config.latent_dim,
+                        self.config.gen_hidden_channels,
+                        kernel_size=self.config.gen_kernel_size,
+                        stride=2,
+                        padding=0,
+                        bias=False,
+                    ),
+                ),
+                (
+                    "bn2d_init",
+                    nn.BatchNorm2d(self.config.gen_hidden_channels),
+                ),
+                (
+                    "silu_init",
+                    nn.SiLU(inplace=True),
+                ),
+            ]
         )
 
         in_channels = self.config.gen_hidden_channels
@@ -31,16 +48,16 @@ class DCGANGenerator(nn.Module):
             module_list.extend(
                 [
                     (
-                        "conv2d_" + str(index),
-                        nn.Conv2d(
+                        "conv2d_trans_" + str(index),
+                        nn.ConvTranspose2d(
                             in_channels,
                             out_channels,
                             kernel_size=self.config.gen_kernel_size,
-                            stride=1,
+                            stride=2,
                             padding=(self.config.gen_kernel_size - 1) // 2,
+                            bias=False,
                         ),
                     ),
-                    ("pixel_shuffle_" + str(index), nn.PixelShuffle(2)),
                     (
                         "bn2d_" + str(index),
                         nn.BatchNorm2d(out_channels),
@@ -56,13 +73,14 @@ class DCGANGenerator(nn.Module):
         module_list.extend(
             [
                 (
-                    "conv2d_out",
-                    nn.Conv2d(
+                    "conv2d_trans_out",
+                    nn.ConvTranspose2d(
                         fit_channels,
                         self.config.n_channels,
                         kernel_size=self.config.gen_kernel_size,
-                        stride=1,
+                        stride=2,
                         padding=(self.config.gen_kernel_size - 1) // 2,
+                        bias=False,
                     ),
                 ),
                 ("act", nn.Tanh()),
@@ -85,15 +103,14 @@ class DCGANGenerator(nn.Module):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
+        elif isinstance(m, nn.ConvTranspose2d):
+            nn.init.xavier_uniform_(m.weight)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         B, L_dim = z.shape
-        z = self.bn2d_init(self.linear_init(z))
-        z = z.view(
-            B,
-            self.config.gen_hidden_channels,
-            self.init_size[0],
-            self.init_size[1],
-        )
+        z = z.view(B, L_dim, 1, 1)
         z = self.seq(z)
 
         return z
@@ -104,6 +121,7 @@ class DCGANDiscriminator(nn.Module):
         super().__init__()
         self.config = config
         module_list = []
+        fc_list = []
         module_list.extend(
             [
                 (
@@ -137,12 +155,12 @@ class DCGANDiscriminator(nn.Module):
                             padding=(self.config.dis_kernel_size - 1) // 2,
                         ),
                     ),
+                    ("bn2d_" + str(index), nn.BatchNorm2d(out_channels)),
                     ("silu_" + str(index + 1), nn.SiLU(inplace=True)),
                     (
                         "dropout_" + str(index + 1),
                         nn.Dropout2d(self.config.dis_dropout),
                     ),
-                    ("bn2d_" + str(index), nn.BatchNorm2d(out_channels)),
                 ]
             )
             in_channels = out_channels
@@ -152,17 +170,47 @@ class DCGANDiscriminator(nn.Module):
                 (img_shape[1] + 1) // 2,
             )
 
-        fit_dim = out_channels // 2
+        if self.config.dis_use_minibatch:
+            fc_list.extend(
+                [
+                    ("flatten", nn.Flatten()),
+                    (
+                        "minibatch1d_0",
+                        MiniBatch1d(
+                            in_channels * img_shape[0] * img_shape[1],
+                            self.config.dis_minibatch_dim,
+                            self.config.dis_minibatch_inner_dim,
+                        ),
+                    ),
+                    (
+                        "linear_0",
+                        nn.Linear(
+                            in_channels * img_shape[0] * img_shape[1]
+                            + self.config.dis_minibatch_dim,
+                            1,
+                        ),
+                    ),
+                ]
+            )
 
-        module_list.extend(
-            [
-                ("adpool2d", nn.AdaptiveAvgPool2d((1, 1))),
-                ("flatten", nn.Flatten()),
-                ("dense", nn.Linear(fit_dim, 1)),
-                ("act", nn.Sigmoid()),
-            ]
-        )
+        else:
+            fc_list.extend(
+                [
+                    (
+                        "conv2d_out",
+                        nn.Conv2d(
+                            in_channels,
+                            1,
+                            kernel_size=self.config.dis_kernel_size,
+                            stride=2,
+                            padding=0,
+                        ),
+                    ),
+                    ("act", nn.Sigmoid()),
+                ]
+            )
         self.seq = nn.Sequential(OrderedDict(module_list))
+        self.fc = nn.Sequential(OrderedDict(fc_list))
         self.apply(self.init_weights)
 
     def init_weights(self, m: nn.Module) -> None:
@@ -179,4 +227,5 @@ class DCGANDiscriminator(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.seq(x).squeeze(-1)
+        x = self.seq(x).view(x.shape[0], -1)
+        return self.fc(x)

@@ -24,6 +24,16 @@ class DCGANConfig:
         self.dis_kernel_size: int = self.config["discriminator"].get("kernel_size", 3)
         self.dis_dropout: float = self.config["discriminator"].get("dropout", 0.0)
 
+        self.dis_use_minibatch: bool = self.config["discriminator"].get(
+            "use_minibatch", True
+        )
+        self.dis_minibatch_dim: int = self.config["discriminator"].get(
+            "minibatch_dim", 64
+        )
+        self.dis_minibatch_inner_dim: int = self.config["discriminator"].get(
+            "minibatch_inner_dim", 16
+        )
+
         # IO settings
         self.n_channels = self.config["n_channels"]
         self.img_shape: List[int] = self.config["img_shape"]
