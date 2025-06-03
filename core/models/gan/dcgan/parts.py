@@ -227,5 +227,4 @@ class DCGANDiscriminator(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.seq(x).view(x.shape[0], -1)
-        return self.fc(x)
+        return self.fc(self.seq(x)).reshape(x.shape[0], 1)
