@@ -2,6 +2,7 @@ import copy
 import os
 from typing import Dict, List, Optional, Tuple, Union
 
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 from termcolor import colored
@@ -134,6 +135,23 @@ class GANTrainer(Trainer):
                 + "!"
             )
 
+    def validate(self) -> None:
+        os.makedirs(
+            "output/valid_" + str(self.n_epochs) + "x" + str(self.n_steps),
+            exist_ok=True,
+        )
+        inputs = torch.randn(10, self.model.config.latent_dim).to(self.device)
+        outputs = self.generator(inputs).squeeze(1)
+        for i in range(10):
+            output = outputs[i].cpu().detach()
+            fig, ax = plt.subplots(ncols=1, figsize=(6, 5))
+            ax.imshow(output.detach().numpy())
+            ax.set_title("Generated Image")
+            plt.savefig(
+                f"output/valid_{self.n_epochs}x{self.n_steps}/generated_image_{i}.png"
+            )
+        plt.close("all")
+
     def update_ema(self) -> None:
         if self.args.enable_ema:
             for ema_param, model_param in zip(
@@ -145,7 +163,7 @@ class GANTrainer(Trainer):
                 )
 
     def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
-        B, Total = batch[0].shape
+        B = batch[0].shape[0]
         batched = (
             batch[0]
             .reshape(
@@ -156,20 +174,21 @@ class GANTrainer(Trainer):
             )
             .to(self.device)
         )
+        batched *= 1 - self.args.instance_noise_stddev
         batched += torch.randn_like(batched) * self.args.instance_noise_stddev
 
         r_labels = (
-            torch.ones(B, dtype=torch.float32, device=self.device)
+            torch.ones(B, 1, dtype=torch.float32, device=self.device)
             - self.args.label_smoothing
         )
-        flip_mask = torch.rand(B, device=self.device) < self.args.flip_chance
+        flip_mask = torch.rand(B, 1, device=self.device) < self.args.flip_chance
         r_labels[flip_mask] = 1 - r_labels[flip_mask]
 
         f_labels = (
-            torch.zeros(B, dtype=torch.float32, device=self.device)
+            torch.zeros(B, 1, dtype=torch.float32, device=self.device)
             + self.args.label_smoothing
         )
-        flip_mask = torch.rand(B, device=self.device) < self.args.flip_chance
+        flip_mask = torch.rand(B, 1, device=self.device) < self.args.flip_chance
         f_labels[flip_mask] = 1 - f_labels[flip_mask]
 
         self.optimizer_D.zero_grad()
