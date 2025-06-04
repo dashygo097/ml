@@ -8,6 +8,7 @@ import torch.nn as nn
 from termcolor import colored
 
 from ...trainer import TrainArgs, Trainer
+from .frontend import ImageGAN
 
 
 class GANTrainArgs(TrainArgs):
@@ -34,7 +35,7 @@ class GANTrainArgs(TrainArgs):
 class GANTrainer(Trainer):
     def __init__(
         self,
-        model: nn.Module,
+        model: ImageGAN,
         dataset,
         args: GANTrainArgs,
         criterion=None,

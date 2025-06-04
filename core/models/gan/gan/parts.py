@@ -3,7 +3,6 @@ from typing import OrderedDict
 import torch
 from torch import nn
 
-from ....utils import PrintShape
 from .config import GANConfig
 
 
@@ -122,4 +121,4 @@ class GANDiscriminator(nn.Module):
 
         x = x.view(B, C * W * H)
         x = self.seq(x)
-        return x.squeeze(-1)
+        return x
