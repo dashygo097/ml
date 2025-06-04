@@ -8,7 +8,7 @@ from transformers.models.auto.modeling_auto import AutoModelForCausalLM
 from transformers.models.auto.tokenization_auto import AutoTokenizer
 
 
-def evaluate(model, tokenizer):
+def evaluate_wikitext(model, tokenizer):
     testenc = load_dataset("wikitext", "wikitext-2-raw-v1", split="test")
     testenc = tokenizer("\n\n".join(testenc["text"]), return_tensors="pt")
 
@@ -33,7 +33,7 @@ def evaluate(model, tokenizer):
     return torch.exp(torch.stack(nlls).sum() / (nsamples * 2048))
 
 
-def benchmark_wikitext(model_name, device):
+def benchmark_wikitext(model_name: str, device: str):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
     model.eval()
@@ -41,14 +41,14 @@ def benchmark_wikitext(model_name, device):
     gc.collect()
     if device == "cuda" and torch.cuda.is_available():
         torch.cuda.empty_cache()
-    elif device == "mps":
+    elif device == "mps" and torch.backends.mps.is_available():
         torch.mps.empty_cache()
     # Evaluate
-    nll = evaluate(model, tokenizer)
+    nll = evaluate_wikitext(model, tokenizer)
     # Clear cache
     gc.collect()
     if device == "cuda" and torch.cuda.is_available():
         torch.cuda.empty_cache()
-    elif device == "mps":
+    elif device == "mps" and torch.backends.mps.is_available():
         torch.mps.empty_cache()
     return nll.item()

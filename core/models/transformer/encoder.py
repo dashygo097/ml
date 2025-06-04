@@ -1,4 +1,4 @@
-from typing import OrderedDict, Tuple
+from typing import Optional, OrderedDict, Tuple
 
 import torch
 import torch.nn as nn
@@ -7,7 +7,11 @@ from .attns import MulHeadAttn
 
 
 class AddNorm(nn.Module):
-    def __init__(self, d_model: int, dropout: float = 0.1):
+    def __init__(
+        self,
+        d_model: int,
+        dropout: float = 0.1,
+    ) -> None:
         super().__init__()
         self.d_model = d_model
 
@@ -36,7 +40,13 @@ class FFN(nn.Module):
 
 
 class EncoderBlock(nn.Module):
-    def __init__(self, d_model: int, n_heads: int, d_inner: int, dropout: float = 0.1):
+    def __init__(
+        self,
+        d_model: int,
+        n_heads: int,
+        d_inner: int,
+        dropout: float = 0.1,
+    ) -> None:
         super().__init__()
         self.d_model = d_model
         self.n_heads = n_heads
@@ -47,7 +57,11 @@ class EncoderBlock(nn.Module):
         self.addnorm1 = AddNorm(d_model, dropout=dropout)
         self.addnorm2 = AddNorm(d_model, dropout=dropout)
 
-    def forward(self, x: torch.Tensor, mask=None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: Optional[str] | torch.Tensor = None,
+    ) -> torch.Tensor:
         x = self.addnorm1(x, self.attn(x, mask=mask))
         return self.addnorm2(x, self.ffn(x))
 
@@ -55,7 +69,7 @@ class EncoderBlock(nn.Module):
         return self.attn.qkv(x)
 
 
-class Encoder(nn.Module):
+class EncoderBody(nn.Module):
     def __init__(
         self,
         n_layers: int,
