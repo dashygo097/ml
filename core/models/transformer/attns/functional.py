@@ -1,5 +1,5 @@
 import math
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -7,7 +7,7 @@ import torch.nn.functional as F
 
 def masked_softmax(
     x: torch.Tensor,
-    masked=None,
+    masked: Optional[str] | torch.Tensor = None,
 ) -> torch.Tensor:
     x = x - torch.max(x)
 
@@ -30,7 +30,7 @@ def scaled_dot_product_attention(
     Q: torch.Tensor,
     K: torch.Tensor,
     V: torch.Tensor,
-    masked=None,
+    masked: Optional[str] | torch.Tensor = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     d = Q.shape[-1]
     results = (Q @ K.transpose(-1, -2)) / math.sqrt(d)
