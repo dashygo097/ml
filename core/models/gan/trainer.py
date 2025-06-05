@@ -21,10 +21,10 @@ class GANTrainArgs(TrainArgs):
         self.enable_ema: bool = self.args["ema"].get("enable", False)
         self.ema_decay: float = self.args["ema"].get("decay", 0.999)
 
-        self.instance_noise_stddev: float = self.args.get("instance_noise_stddev", 0.05)
-        self.latent_noise_stddev: float = self.args.get("latent_noise_stddev", 0.05)
+        self.instance_noise_stddev: float = self.args.get("instance_noise_stddev", 0)
+        self.latent_noise_stddev: float = self.args.get("latent_noise_stddev", 0)
         self.label_smoothing: float = self.args.get("label_smoothing", 0.1)
-        self.flip_chance: float = self.args.get("flip_chance", 0.05)
+        self.flip_chance: float = self.args.get("flip_chance", 0)
 
         self.g2d_ratio: int = self.args.get("g2d_ratio", 1)
         self.fresh_samples_per_g_step: bool = self.args.get(
@@ -138,7 +138,10 @@ class GANTrainer(Trainer):
 
     def validate(self) -> None:
         os.makedirs(
-            "output/valid_" + str(self.n_epochs) + "x" + str(self.n_steps),
+            "train_logs/validation/valid_"
+            + str(self.n_epochs)
+            + "x"
+            + str(self.n_steps),
             exist_ok=True,
         )
         inputs = torch.randn(10, self.model.config.latent_dim).to(self.device)
@@ -149,7 +152,7 @@ class GANTrainer(Trainer):
             ax.imshow(output.detach().numpy())
             ax.set_title("Generated Image")
             plt.savefig(
-                f"output/valid_{self.n_epochs}x{self.n_steps}/generated_image_{i}.png"
+                f"train_logs/validation/valid_{self.n_epochs}x{self.n_steps}/generated_image_{i}.png"
             )
         plt.close("all")
 
@@ -175,22 +178,27 @@ class GANTrainer(Trainer):
             )
             .to(self.device)
         )
-        batched *= 1 - self.args.instance_noise_stddev
-        batched += torch.randn_like(batched) * self.args.instance_noise_stddev
+        if self.args.instance_noise_stddev > 0:
+            batched += (
+                torch.randn_like(batched, device=self.device)
+                * self.args.instance_noise_stddev
+            )
 
         r_labels = (
             torch.ones(B, 1, dtype=torch.float32, device=self.device)
             - self.args.label_smoothing
         )
-        flip_mask = torch.rand(B, 1, device=self.device) < self.args.flip_chance
-        r_labels[flip_mask] = 1 - r_labels[flip_mask]
+        if self.args.flip_chance > 0:
+            flip_mask = torch.rand(B, 1, device=self.device) < self.args.flip_chance
+            r_labels[flip_mask] = 1 - r_labels[flip_mask]
 
         f_labels = (
             torch.zeros(B, 1, dtype=torch.float32, device=self.device)
             + self.args.label_smoothing
         )
-        flip_mask = torch.rand(B, 1, device=self.device) < self.args.flip_chance
-        f_labels[flip_mask] = 1 - f_labels[flip_mask]
+        if self.args.flip_chance > 0:
+            flip_mask = torch.rand(B, 1, device=self.device) < self.args.flip_chance
+            f_labels[flip_mask] = 1 - f_labels[flip_mask]
 
         self.optimizer_D.zero_grad()
         r_preds = self.discriminator(batched)
@@ -201,13 +209,14 @@ class GANTrainer(Trainer):
             self.model.config.latent_dim,
             device=self.device,
         )
-        z += torch.randn_like(z) * self.args.latent_noise_stddev
+        if self.args.latent_noise_stddev > 0:
+            z += torch.randn_like(z, device=self.device) * self.args.latent_noise_stddev
 
         f_images = self.generator(z)
         f_preds = self.discriminator(f_images.detach())
-        fake_loss = self.criterion_D(f_preds, f_labels)
+        f_loss = self.criterion_D(f_preds, f_labels)
 
-        d_loss = r_loss + fake_loss
+        d_loss = r_loss + f_loss
         d_loss.backward()
         self.optimizer_D.step()
 
@@ -217,7 +226,11 @@ class GANTrainer(Trainer):
 
             if self.args.fresh_samples_per_g_step:
                 z = torch.randn(B, self.model.config.latent_dim, device=self.device)
-                z += torch.randn_like(z) * self.args.latent_noise_stddev
+                if self.args.latent_noise_stddev > 0:
+                    z += (
+                        torch.randn_like(z, device=self.device)
+                        * self.args.latent_noise_stddev
+                    )
                 f_images = self.generator(z)
 
             f_preds = self.discriminator(f_images)
@@ -232,7 +245,12 @@ class GANTrainer(Trainer):
 
         g_loss_avg = g_loss_total / self.args.g2d_ratio
 
-        return {"g_loss": g_loss_avg, "d_loss": d_loss.item()}
+        return {
+            "g_loss": g_loss_avg,
+            "d_loss": d_loss.item(),
+            "r_loss": r_loss.item(),
+            "f_loss": f_loss.item(),
+        }
 
     def step_info(self, result: Dict) -> None:
         epoch_logger = self.logger["epoch"]
@@ -240,18 +258,28 @@ class GANTrainer(Trainer):
             epoch_logger[f"epoch {self.n_epochs}"] = {}
             epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] = 0.0
             epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] = 0.0
+            epoch_logger[f"epoch {self.n_epochs}"]["r_loss"] = 0.0
+            epoch_logger[f"epoch {self.n_epochs}"]["f_loss"] = 0.0
 
         epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] += float(result["g_loss"])
         epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] += float(result["d_loss"])
+        epoch_logger[f"epoch {self.n_epochs}"]["r_loss"] += float(result["r_loss"])
+        epoch_logger[f"epoch {self.n_epochs}"]["f_loss"] += float(result["f_loss"])
 
     def epoch_info(self) -> None:
         epoch_logger = self.logger["epoch"]
         epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] /= len(self.data_loader)
         epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] /= len(self.data_loader)
+        epoch_logger[f"epoch {self.n_epochs}"]["r_loss"] /= len(self.data_loader)
+        epoch_logger[f"epoch {self.n_epochs}"]["f_loss"] /= len(self.data_loader)
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("g_loss", "yellow")
             + f": {epoch_logger[f'epoch {self.n_epochs}']['g_loss']}, "
             + colored("d_loss", "yellow")
-            + f": {epoch_logger[f'epoch {self.n_epochs}']['d_loss']}"
+            + f": {epoch_logger[f'epoch {self.n_epochs}']['d_loss']}, "
+            + colored("r_loss", "yellow")
+            + f": {epoch_logger[f'epoch {self.n_epochs}']['r_loss']}, "
+            + colored("f_loss", "yellow")
+            + f": {epoch_logger[f'epoch {self.n_epochs}']['f_loss']}"
         )

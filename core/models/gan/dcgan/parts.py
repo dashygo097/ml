@@ -110,7 +110,7 @@ class DCGANGenerator(nn.Module):
 
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         B, L_dim = z.shape
-        z = z.view(B, L_dim, 1, 1)
+        z = z.view(B, L_dim).unsqueeze(-1).unsqueeze(-1)
         z = self.seq(z)
 
         return z
@@ -187,9 +187,11 @@ class DCGANDiscriminator(nn.Module):
                         nn.Linear(
                             in_channels * img_shape[0] * img_shape[1]
                             + self.config.dis_minibatch_dim,
-                            1,
+                            self.config.dis_minibatch_out_features,
                         ),
                     ),
+                    ("linear_1", nn.Linear(self.config.dis_minibatch_out_features, 1)),
+                    ("act_0", nn.Sigmoid()),
                 ]
             )
 
