@@ -18,3 +18,7 @@ class DCGANConfig(ImageGANConfig):
         self.dis_hidden_channels: int = self.discriminator_config["hidden_channels"]
         self.dis_kernel_size: int = self.discriminator_config.get("kernel_size", 3)
         self.dis_dropout: float = self.discriminator_config.get("dropout", 0.0)
+
+        self.dis_minibatch_out_features: int = self.discriminator_config.get(
+            "minibatch_out_features", 64
+        )

@@ -2,7 +2,9 @@ from typing import OrderedDict
 
 import torch
 from torch import nn
+from torch.nn.modules import module
 
+from ..minibatch import MiniBatch1d
 from .config import GANConfig
 
 
@@ -18,7 +20,7 @@ class GANGenerator(nn.Module):
                     "linear_0",
                     nn.Linear(self.config.latent_dim, self.config.gen_hidden_dim),
                 ),
-                ("leaky_relu_0", nn.LeakyReLU(0.1, inplace=True)),
+                ("leaky_relu_0", nn.LeakyReLU(0.2, inplace=True)),
                 ("dropout_0", nn.Dropout(self.config.dis_dropout)),
             ],
         )
@@ -86,6 +88,7 @@ class GANDiscriminator(nn.Module):
                     ),
                 ),
                 ("leaky_relu_0", nn.LeakyReLU(0.2, inplace=True)),
+                ("dropout_0", nn.Dropout(self.config.dis_dropout)),
             ]
         )
 
@@ -94,17 +97,37 @@ class GANDiscriminator(nn.Module):
             module_list.extend(
                 [
                     ("linear_" + str(index + 1), nn.Linear(in_dim, in_dim // 2)),
-                    ("leaky_relu_" + str(index + 1), nn.LeakyReLU(0.1, inplace=True)),
+                    ("leaky_relu_" + str(index + 1), nn.LeakyReLU(0.2, inplace=True)),
+                    (
+                        "dropout_" + str(index + 1),
+                        nn.Dropout(self.config.dis_dropout),
+                    ),
                 ]
             )
 
         fit_dim = self.config.dis_hidden_dim // (2**config.n_dis_layers)
-        module_list.extend(
-            [
-                ("dense", nn.Linear(fit_dim, 1)),
-                ("act", nn.Sigmoid()),
-            ]
-        )
+        if self.config.dis_use_minibatch:
+            module_list.extend(
+                [
+                    (
+                        "minibatch",
+                        MiniBatch1d(
+                            fit_dim,
+                            self.config.dis_minibatch_dim,
+                            self.config.dis_minibatch_inner_dim,
+                        ),
+                    ),
+                    ("dense", nn.Linear(fit_dim + self.config.dis_minibatch_dim, 1)),
+                    ("act", nn.Sigmoid()),
+                ]
+            )
+        else:
+            module_list.extend(
+                [
+                    ("dense", nn.Linear(fit_dim, 1)),
+                    ("act", nn.Sigmoid()),
+                ]
+            )
 
         self.seq = nn.Sequential(OrderedDict(module_list))
 
