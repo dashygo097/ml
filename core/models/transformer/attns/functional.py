@@ -7,34 +7,50 @@ import torch.nn.functional as F
 
 def masked_softmax(
     x: torch.Tensor,
-    masked: Optional[str] | torch.Tensor = None,
+    mask: Optional[str] | torch.Tensor = None,
+    dim: int = -1,
 ) -> torch.Tensor:
-    x = x - torch.max(x)
+    x = x - x.max(dim=dim, keepdim=True).values
 
-    if masked is None:
-        Y = F.softmax(x, dim=-1)
-    elif masked == "^":
-        for i in range(x.shape[-2]):
-            x[..., i, i + 1 : :] = -1e7
-        Y = F.softmax(x, dim=-1)
-    elif isinstance(masked, torch.Tensor):
-        x = x.masked_fill(masked == 0, float("-inf"))
-        return F.softmax(x, dim=-1)
+    if mask is None:
+        return F.softmax(x, dim=dim)
+    elif mask == "^":
+        causal_mask = torch.triu(
+            torch.ones(x.shape[-2:], dtype=torch.bool, device=x.device), diagonal=1
+        )
+        x = x.masked_fill(causal_mask, float("-inf"))
+    elif isinstance(mask, torch.Tensor):
+        x = x.masked_fill(~mask.bool(), float("-inf"))
+        return F.softmax(x, dim=dim)
     else:
         raise ValueError("Invalid masked value")
 
-    return Y
+    return F.softmax(x, dim=dim)
 
 
 def scaled_dot_product_attention(
     Q: torch.Tensor,
     K: torch.Tensor,
     V: torch.Tensor,
-    masked: Optional[str] | torch.Tensor = None,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+    mask: Optional[str] | torch.Tensor = None,
+    dim: int = -1,
+) -> torch.Tensor:
     d = Q.shape[-1]
-    results = (Q @ K.transpose(-1, -2)) / math.sqrt(d)
-    weights = masked_softmax(results, masked=masked)
-    outputs = weights @ V
+    outputs = (Q @ K.transpose(dim, -2)) / math.sqrt(d)
+    outputs = masked_softmax(outputs, mask=mask, dim=dim)
+    outputs = outputs @ V
+    return outputs
 
-    return outputs, weights
+
+def sdp_attn(
+    Q: torch.Tensor,
+    K: torch.Tensor,
+    V: torch.Tensor,
+    mask: Optional[str] | torch.Tensor = None,
+    dim: int = -1,
+) -> Tuple[torch.Tensor, ...]:
+    d = Q.shape[-1]
+    scores = (Q @ K.transpose(dim, -2)) / math.sqrt(d)
+    weights = masked_softmax(scores, mask=mask, dim=dim)
+    outputs = weights @ V
+    return outputs, weights, scores

@@ -29,7 +29,7 @@ class CrossAttn(nn.Module):
         B, C, E = x_2.shape
         Q, K, V = self.qkv(x_1, x_2)
 
-        outputs, weights = scaled_dot_product_attention(Q, K, V, masked=mask)
+        outputs = scaled_dot_product_attention(Q, K, V, mask=mask)
         return self.dropout(outputs)
 
     def qkv(
@@ -70,7 +70,7 @@ class MulHeadCrossAttn(nn.Module):
         B, C_2, E_2 = x_2.shape
         Q, K, V = self.qkv(x_1, x_2)
 
-        outputs, weights = scaled_dot_product_attention(Q, K, V, masked=mask)
+        outputs = scaled_dot_product_attention(Q, K, V, mask=mask)
         outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
         outputs = self.W_o(outputs)
 
