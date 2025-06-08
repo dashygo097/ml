@@ -1,9 +1,21 @@
-from typing import Tuple
+import math
+from dataclasses import dataclass, field
+from typing import Dict, Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
-from .functional import scaled_dot_product_attention
+from .functional import scaled_dot_product_attention, sdp_attn
+
+
+@dataclass
+class InfraRecord:
+    input_logits: torch.Tensor
+    output_logits: Optional[torch.Tensor] = None
+    attn_weights: Optional[torch.Tensor] = None
+    k_cache: Optional[torch.Tensor] = None
+    v_cache: Optional[torch.Tensor] = None
 
 
 class MulHeadAttn(nn.Module):
@@ -26,15 +38,70 @@ class MulHeadAttn(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor, mask=None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask=None,
+    ) -> torch.Tensor:
         B, C, E = x.shape
         Q, K, V = self.qkv(x)
 
-        outputs, weights = scaled_dot_product_attention(Q, K, V, masked=mask)
+        outputs = scaled_dot_product_attention(Q, K, V, mask=mask)
+
         outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
         outputs = self.W_o(outputs)
 
         return self.dropout(outputs)
+
+    def prompt(self, inputs: Dict) -> Tuple[Dict, Dict]:
+        assert "logits" in inputs.keys(), "[ERROR] inputs must contain 'logits' key"
+        B, C, E = inputs["logits"].shape
+        Q, K, V = self.qkv(inputs["logits"])
+
+        outputs, weights, scores = sdp_attn(Q, K, V, mask="^")
+        outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
+        outputs = self.W_o(outputs)
+
+        inputs["cache"] = {"k": K, "v": V, "weights": weights}
+        return inputs, {"logits": outputs}
+
+    def infer(self, inputs: Dict, use_cache: bool = False) -> Tuple[Dict, Dict]:
+        assert "logits" in inputs.keys(), "[ERROR] inputs must contain 'logits' key"
+        B, C, E = inputs["logits"].shape
+
+        if use_cache and "cache" in inputs.keys():
+            assert inputs["cache"]["k"].shape[2] == inputs["cache"]["v"].shape[2], (
+                "[ERROR] cache must have the same length for k and v"
+            )
+
+            d_length = C - inputs["cache"]["k"].shape[2]
+            new_inputs = inputs["logits"][:, -d_length:, :]
+
+            Q, K, V = self.qkv(new_inputs)
+
+            K = torch.cat([inputs["cache"]["k"], K], dim=2)
+            V = torch.cat([inputs["cache"]["v"], V], dim=2)
+
+            scores = Q @ K.transpose(-2, -1) / math.sqrt(self.head_dim)
+            scores = F.softmax(scores, dim=-1)
+            weights = torch.cat(
+                [
+                    inputs["cache"]["weights"],
+                    torch.zeros(B, self.n_heads, C - d_length, d_length),
+                ],
+                dim=-1,
+            )
+            weights = torch.cat([weights, scores], dim=2)
+
+            outputs = weights @ V
+            outputs = outputs.transpose(1, 2).reshape(B, C, -1)
+            outputs = self.W_o(outputs)
+
+            inputs["cache"] = {"k": K, "v": V, "weights": weights}
+            return inputs, {"logits": outputs}
+
+        else:
+            return self.prompt(inputs)
 
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         B, C, E = x.shape

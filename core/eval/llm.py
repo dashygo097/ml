@@ -31,6 +31,13 @@ class LLMEvaluator(Evaluator):
             self.logger["perplexity"] = perplexity
             self.save_log(log_dict + "/wikitext")
 
+        """
+        elif benchmark == "timer":
+            time = benchmark_output_time(self.model, self.tokenizer, self.device)
+            self.logger["timer"] = time
+            self.save_log(log_dict + "/timer")
+        """
+
     def load(
         self,
         model: Optional[str] | nn.Module = None,

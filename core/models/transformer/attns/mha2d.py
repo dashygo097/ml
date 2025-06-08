@@ -37,7 +37,7 @@ class MulHeadAttn2d(nn.Module):
         B, C, H, W = x.shape
         Q, K, V = self.qkv(x)
 
-        outputs, weights = scaled_dot_product_attention(Q, K, V, masked=mask)
+        outputs = scaled_dot_product_attention(Q, K, V, mask=mask)
         outputs = outputs.view(B, self.d_model, H, W)
         outputs = self.W_o(outputs)
 
