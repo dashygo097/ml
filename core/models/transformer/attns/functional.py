@@ -50,7 +50,7 @@ def sdp_attn(
     dim: int = -1,
 ) -> Tuple[torch.Tensor, ...]:
     d = Q.shape[-1]
-    scores = (Q @ K.transpose(dim, -2)) / math.sqrt(d)
-    weights = masked_softmax(scores, mask=mask, dim=dim)
+    weights = (Q @ K.transpose(dim, -2)) / math.sqrt(d)
+    weights = masked_softmax(weights, mask=mask, dim=dim)
     outputs = weights @ V
-    return outputs, weights, scores
+    return outputs, weights
