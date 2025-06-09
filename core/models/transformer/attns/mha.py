@@ -1,11 +1,12 @@
 import math
 from dataclasses import dataclass, field
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
 from torch import nn
 
+from ..rope import RoPE
 from .functional import scaled_dot_product_attention, sdp_attn
 
 
@@ -35,6 +36,7 @@ class MulHeadAttn(nn.Module):
 
         self.W_qkv = nn.Linear(embed_size, self.d_model * 3, bias=False)
         self.W_o = nn.Linear(self.d_model, self.d_model)
+        self.rope = RoPE(self.head_dim)
 
         self.dropout = nn.Dropout(dropout)
 
@@ -115,5 +117,8 @@ class MulHeadAttn(nn.Module):
         Q = Q.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
         K = K.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
         V = V.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
+
+        Q = self.rope(Q)
+        K = self.rope(K)
 
         return Q, K, V

@@ -5,11 +5,16 @@ import torch.nn as nn
 
 from .attns import MulHeadAttn, MulHeadCrossAttn
 from .encoder import FFN, AddNorm
-from .rope import RoPEWithMaxLength
 
 
 class DecoderBlock(nn.Module):
-    def __init__(self, d_model: int, n_heads: int, d_inner: int, dropout: float = 0.1):
+    def __init__(
+        self,
+        d_model: int,
+        n_heads: int,
+        d_inner: int,
+        dropout: float = 0.1,
+    ):
         super().__init__()
         self.d_model = d_model
         self.n_heads = n_heads
@@ -155,7 +160,6 @@ class DecoderOnly(nn.Module):
         self.max_length = max_length
 
         self.embedding = nn.Embedding(vocab_size, d_model)
-        self.rope = RoPEWithMaxLength(d_model, max_length=max_length)
 
         self.body = DecoderOnlyBody(
             n_layers, d_model, n_heads, d_inner, dropout=dropout
