@@ -40,7 +40,11 @@ class MulHeadAttn(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor, mask=None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: Optional[str] | torch.Tensor = None,
+    ) -> torch.Tensor:
         B, C, E = x.shape
         Q, K, V = self.qkv(x)
 
@@ -108,7 +112,7 @@ class MulHeadAttn(nn.Module):
         else:
             return self.prompt(record)
 
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         B, C, E = x.shape
 
         QKV = self.W_qkv(x)
