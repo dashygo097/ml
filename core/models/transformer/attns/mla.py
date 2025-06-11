@@ -44,7 +44,9 @@ class MulHeadLatentAttn(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(
-        self, x: torch.Tensor, mask: Optional[str] | torch.Tensor = None
+        self,
+        x: torch.Tensor,
+        mask: Optional[str] | torch.Tensor = None,
     ) -> torch.Tensor:
         B, C, E = x.shape
         Q, K, V = self.qkv(x)
@@ -56,7 +58,7 @@ class MulHeadLatentAttn(nn.Module):
 
         return self.dropout(outputs)
 
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         B, C, E = x.shape
         KR = self.rope(
             self.W_kr(x).view(B, C, self.num_heads, self.split_dim).transpose(1, 2)

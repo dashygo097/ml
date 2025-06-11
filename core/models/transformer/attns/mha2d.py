@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 from torch import nn
@@ -33,7 +33,11 @@ class MulHeadAttn2d(nn.Module):
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor, mask=None) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: Optional[str] | torch.Tensor = None,
+    ) -> torch.Tensor:
         B, C, H, W = x.shape
         Q, K, V = self.qkv(x)
 
@@ -43,7 +47,7 @@ class MulHeadAttn2d(nn.Module):
 
         return self.dropout(outputs)
 
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         B, C, H, W = x.shape
 
         QKV = self.W_qkv(x)
