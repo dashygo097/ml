@@ -38,7 +38,8 @@ class MulHeadAttn(nn.Module):
         self.W_o = nn.Linear(self.d_model, self.d_model)
         self.rope = RoPE(self.head_dim)
 
-        self.dropout = nn.Dropout(dropout)
+        self.attn_dropout = nn.Dropout(dropout)
+        self.out_dropout = nn.Dropout(dropout)
 
     def forward(
         self,
@@ -48,12 +49,13 @@ class MulHeadAttn(nn.Module):
         B, C, E = x.shape
         Q, K, V = self.qkv(x)
 
-        outputs = scaled_dot_product_attention(Q, K, V, mask=mask)
+        outputs = scaled_dot_product_attention(
+            Q, K, V, mask=mask, dropout=self.attn_dropout
+        )
 
         outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
         outputs = self.W_o(outputs)
-
-        return self.dropout(outputs)
+        return self.out_dropout(outputs)
 
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
         B, C, E = record.input_logits.shape

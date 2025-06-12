@@ -31,7 +31,8 @@ class MulHeadAttn2d(nn.Module):
             kernel_size=1,
         )
 
-        self.dropout = nn.Dropout(dropout)
+        self.attn_dropout = nn.Dropout(dropout)
+        self.out_dropout = nn.Dropout(dropout)
 
     def forward(
         self,
@@ -41,11 +42,13 @@ class MulHeadAttn2d(nn.Module):
         B, C, H, W = x.shape
         Q, K, V = self.qkv(x)
 
-        outputs = scaled_dot_product_attention(Q, K, V, mask=mask)
+        outputs = scaled_dot_product_attention(
+            Q, K, V, mask=mask, dropout=self.attn_dropout
+        )
         outputs = outputs.view(B, self.d_model, H, W)
         outputs = self.W_o(outputs)
 
-        return self.dropout(outputs)
+        return self.out_dropout(outputs)
 
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         B, C, H, W = x.shape
