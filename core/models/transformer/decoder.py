@@ -83,13 +83,16 @@ class DecoderOnlyBlock(nn.Module):
         n_heads: int,
         d_inner: int,
         dropout: float = 0.1,
+        attn: Optional[nn.Module] = None,
     ) -> None:
         super().__init__()
         self.d_model = d_model
         self.n_heads = n_heads
         self.d_inner = d_inner
 
-        self.attn = MulHeadAttn(d_model, n_heads, dropout=dropout)
+        self.attn = (
+            MulHeadAttn(d_model, n_heads, dropout=dropout) if attn is None else attn
+        )
         self.ffn = FFN(d_model, d_inner, dropout=dropout)
         self.addnorm1 = AddNorm(d_model, dropout=dropout)
         self.addnorm2 = AddNorm(d_model, dropout=dropout)
@@ -111,6 +114,7 @@ class DecoderOnlyBody(nn.Module):
         n_heads: int,
         d_inner: int,
         dropout: float = 0.1,
+        attn: Optional[nn.Module] = None,
     ) -> None:
         super().__init__()
         self.n_layers = n_layers
@@ -123,7 +127,9 @@ class DecoderOnlyBody(nn.Module):
             module_list.append(
                 (
                     f"blk_{index}",
-                    DecoderOnlyBlock(d_model, n_heads, d_inner, dropout=dropout),
+                    DecoderOnlyBlock(
+                        d_model, n_heads, d_inner, dropout=dropout, attn=attn
+                    ),
                 )
             )
 
@@ -149,6 +155,7 @@ class DecoderOnly(nn.Module):
         d_inner: int,
         dropout: float = 0.1,
         max_length: int = 512,
+        attn: Optional[nn.Module] = None,
     ) -> None:
         super().__init__()
         self.vocab_size = vocab_size
@@ -162,7 +169,7 @@ class DecoderOnly(nn.Module):
         self.embedding = nn.Embedding(vocab_size, d_model)
 
         self.body = DecoderOnlyBody(
-            n_layers, d_model, n_heads, d_inner, dropout=dropout
+            n_layers, d_model, n_heads, d_inner, dropout=dropout, attn=attn
         )
 
         self.norm = nn.LayerNorm(d_model)
@@ -172,6 +179,5 @@ class DecoderOnly(nn.Module):
         self, x: torch.Tensor, mask: Optional[str] | torch.Tensor = "^"
     ) -> torch.Tensor:
         x = self.embedding(x)
-        x = self.rope(x)
         x = self.body(x, mask=mask)
         return self.dense(self.norm(x))
