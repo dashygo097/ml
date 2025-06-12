@@ -65,7 +65,7 @@ class EncoderBlock(nn.Module):
         x = self.addnorm1(x, self.attn(x, mask=mask))
         return self.addnorm2(x, self.ffn(x))
 
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         return self.attn.qkv(x)
 
 
