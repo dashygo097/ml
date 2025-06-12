@@ -33,11 +33,13 @@ def scaled_dot_product_attention(
     K: torch.Tensor,
     V: torch.Tensor,
     mask: Optional[str] | torch.Tensor = None,
+    dropout: Optional[torch.nn.Module] = None,
     dim: int = -1,
 ) -> torch.Tensor:
     d = Q.shape[-1]
     outputs = (Q @ K.transpose(dim, -2)) / math.sqrt(d)
     outputs = masked_softmax(outputs, mask=mask, dim=dim)
+    outputs = outputs if dropout is None else dropout(outputs)
     outputs = outputs @ V
     return outputs
 
@@ -47,10 +49,12 @@ def sdp_attn(
     K: torch.Tensor,
     V: torch.Tensor,
     mask: Optional[str] | torch.Tensor = None,
+    dropout: Optional[torch.nn.Module] = None,
     dim: int = -1,
 ) -> Tuple[torch.Tensor, ...]:
     d = Q.shape[-1]
     weights = (Q @ K.transpose(dim, -2)) / math.sqrt(d)
     weights = masked_softmax(weights, mask=mask, dim=dim)
+    weights = weights if dropout is None else dropout(weights)
     outputs = weights @ V
     return outputs, weights

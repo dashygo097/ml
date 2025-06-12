@@ -41,7 +41,8 @@ class MulHeadLatentAttn(nn.Module):
         self.W_o = nn.Linear(self.head_dim * num_heads, self.d_model, bias=False)
         self.rope = RoPE(self.head_dim // 2)
 
-        self.dropout = nn.Dropout(dropout)
+        self.attn_dropout = nn.Dropout(dropout)
+        self.out_dropout = nn.Dropout(dropout)
 
     def forward(
         self,
@@ -51,12 +52,14 @@ class MulHeadLatentAttn(nn.Module):
         B, C, E = x.shape
         Q, K, V = self.qkv(x)
 
-        outputs = scaled_dot_product_attention(Q, K, V, mask=mask)
+        outputs = scaled_dot_product_attention(
+            Q, K, V, mask=mask, dropout=self.attn_dropout
+        )
 
         outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
         outputs = self.W_o(outputs)
 
-        return self.dropout(outputs)
+        return self.out_dropout(outputs)
 
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         B, C, E = x.shape

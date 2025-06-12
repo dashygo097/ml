@@ -21,7 +21,9 @@ class DecoderBlock(nn.Module):
         self.d_inner = d_inner
 
         self.attn = MulHeadAttn(d_model, n_heads, dropout=dropout)
-        self.attn_mask = MulHeadCrossAttn(d_model, d_model, n_heads, dropout=dropout)
+        self.attn_mask = MulHeadCrossAttn(
+            d_model, n_heads, d_q=d_model, d_kv=d_model, dropout=dropout
+        )
         self.ffn = FFN(d_model, d_inner, dropout=dropout)
         self.addnorm1 = AddNorm(d_model, dropout=dropout)
         self.addnorm2 = AddNorm(d_model, dropout=dropout)
