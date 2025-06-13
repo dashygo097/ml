@@ -1,4 +1,3 @@
-from .eval import *
 from .logger import *
 from .models import *
 from .sys import *
