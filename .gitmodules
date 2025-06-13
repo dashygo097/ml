@@ -1,6 +1,0 @@
-[submodule "benchmark/lip-reading/HDTF"]
-	path = benchmark/lip-reading/HDTF
-	url = https://github.com/universome/HDTF.git
-[submodule "benchmark/lip-reading/VFHQ"]
-	path = benchmark/lip-reading/VFHQ
-	url = https://github.com/anjieyang/VFHQ-downloader.git
