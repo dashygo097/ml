@@ -1,3 +1,3 @@
-# ml-lib
+# ml-workflow
 
 Dashygo's AI workflow (:
