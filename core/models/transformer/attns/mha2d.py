@@ -3,23 +3,24 @@ from typing import Optional, Tuple
 import torch
 from torch import nn
 
+from .base import AttnModel
 from .functional import scaled_dot_product_attention
 
 
-class MulHeadAttn2d(nn.Module):
+class MulHeadAttn2d(AttnModel):
     def __init__(
         self,
         embed_size: int,
         n_heads: int,
+        d_model: Optional[int] = None,
         dropout: float = 0.1,
     ) -> None:
-        super().__init__()
-        self.d_model = embed_size
+        super().__init__(embed_size, d_model, dropout)
         self.n_heads = n_heads
-        self.head_dim = embed_size // n_heads
+        self.head_dim = self.d_model // n_heads
 
         self.W_qkv = nn.Conv2d(
-            in_channels=embed_size,
+            in_channels=self.embed_size,
             out_channels=self.d_model * 3,
             kernel_size=1,
             bias=False,
@@ -27,12 +28,9 @@ class MulHeadAttn2d(nn.Module):
 
         self.W_o = nn.Conv2d(
             in_channels=self.d_model,
-            out_channels=self.d_model,
+            out_channels=self.embed_size,
             kernel_size=1,
         )
-
-        self.attn_dropout = nn.Dropout(dropout)
-        self.out_dropout = nn.Dropout(dropout)
 
     def forward(
         self,
