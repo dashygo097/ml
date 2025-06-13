@@ -1,7 +1,9 @@
+import math
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 from .functional import scaled_dot_product_attention
@@ -91,8 +93,8 @@ class MulHeadCrossAttn(nn.Module):
             Q, K, V = self.qkv(new_inputs, x_2)
             K = torch.cat([record.k_cache, K], dim=2)
             V = torch.cat([record.v_cache, V], dim=2)
-            scores = Q @ K.transpose(-2, -1) / (self.head_dim**0.5)
-            scores = torch.softmax(scores, dim=-1)
+            scores = Q @ K.transpose(-2, -1) / (math.sqrt(self.head_dim))
+            scores = F.softmax(scores, dim=-1)
             weights = torch.cat(
                 [
                     record.attn_weights,
