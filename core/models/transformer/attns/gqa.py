@@ -3,8 +3,8 @@ from typing import Optional, Tuple
 import torch
 from torch import nn
 
-from .base import AttnModel
-from .functional import scaled_dot_product_attention
+from .base import AttnInfraRecord, AttnModel
+from .functional import scaled_dot_product_attention, sdp_attn
 
 
 class GroupedQueryAttn(AttnModel):
@@ -61,3 +61,45 @@ class GroupedQueryAttn(AttnModel):
         V = V.unsqueeze(1).expand(-1, self.heads_per_group, -1, -1, -1)
 
         return Q, K, V
+
+    def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
+        B, C, E = record.input_logits.shape
+        Q, K, V = self.qkv(record.input_logits)
+        outputs, weights = sdp_attn(Q, K, V, mask="^")
+        outputs = outputs.permute(0, 3, 1, 2, 4).reshape(
+            B, C, self.heads_per_group * self.kv_heads * self.head_dim
+        )
+        outputs = self.W_o(outputs)
+        record.k_cache = K
+        record.v_cache = V
+        record.attn_weights = weights
+        record.output_logits = outputs
+        return record
+
+    def infer(
+        self, record: AttnInfraRecord, use_cache: bool = False
+    ) -> AttnInfraRecord:
+        B, C, E = record.input_logits.shape
+        if (
+            use_cache
+            and record.k_cache is not None
+            and record.v_cache is not None
+            and record.attn_weights is not None
+        ):
+            d_length = C - record.k_cache.shape[2]
+            new_inputs = record.input_logits[:, -d_length:, :]
+            Q, K, V = self.qkv(new_inputs)
+            K = torch.cat([record.k_cache, K], dim=2)
+            V = torch.cat([record.v_cache, V], dim=2)
+            outputs, weights = sdp_attn(Q, K, V, mask="^")
+            outputs = outputs.permute(0, 3, 1, 2, 4).reshape(
+                B, C, self.heads_per_group * self.kv_heads * self.head_dim
+            )
+            outputs = self.W_o(outputs)
+            record.k_cache = K
+            record.v_cache = V
+            record.attn_weights = weights
+            record.output_logits = outputs
+            return record
+        else:
+            return self.prompt(record)

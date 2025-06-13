@@ -4,8 +4,8 @@ import torch
 from torch import nn
 
 from ..rope import RoPE
-from .base import AttnModel
-from .functional import scaled_dot_product_attention
+from .base import AttnInfraRecord, AttnModel
+from .functional import scaled_dot_product_attention, sdp_attn
 
 
 class MulHeadLatentAttn(AttnModel):
@@ -86,3 +86,51 @@ class MulHeadLatentAttn(AttnModel):
         Q = torch.cat([Q, self.rope(Q_)], dim=-1)
 
         return Q, K, V
+
+    def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
+        B, C, E = record.input_logits.shape
+        Q, K, V = self.qkv(record.input_logits)
+        outputs, weights = sdp_attn(Q, K, V, mask="^")
+        outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
+        outputs = self.W_o(outputs)
+        record.k_cache = K
+        record.v_cache = V
+        record.attn_weights = weights
+        record.output_logits = outputs
+        return record
+
+    def infer(
+        self, record: AttnInfraRecord, use_cache: bool = False
+    ) -> AttnInfraRecord:
+        B, C, E = record.input_logits.shape
+        if (
+            use_cache
+            and record.k_cache is not None
+            and record.v_cache is not None
+            and record.attn_weights is not None
+        ):
+            d_length = C - record.k_cache.shape[2]
+            new_inputs = record.input_logits[:, -d_length:, :]
+            Q, K, V = self.qkv(new_inputs)
+            K = torch.cat([record.k_cache, K], dim=2)
+            V = torch.cat([record.v_cache, V], dim=2)
+            scores = Q @ K.transpose(-2, -1) / self.head_dim**0.5
+            scores = torch.softmax(scores, dim=-1)
+            weights = torch.cat(
+                [
+                    record.attn_weights,
+                    torch.zeros(B, self.num_heads, C - d_length, d_length),
+                ],
+                dim=-1,
+            )
+            weights = torch.cat([weights, scores], dim=2)
+            outputs = weights @ V
+            outputs = outputs.transpose(1, 2).reshape(B, C, -1)
+            outputs = self.W_o(outputs)
+            record.k_cache = K
+            record.v_cache = V
+            record.attn_weights = weights
+            record.output_logits = outputs
+            return record
+        else:
+            return self.prompt(record)

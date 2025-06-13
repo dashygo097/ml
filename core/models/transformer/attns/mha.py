@@ -1,5 +1,4 @@
 import math
-from dataclasses import dataclass, field
 from typing import Optional, Tuple
 
 import torch
@@ -7,17 +6,8 @@ import torch.nn.functional as F
 from torch import nn
 
 from ..rope import RoPE
-from .base import AttnModel
+from .base import AttnInfraRecord, AttnModel
 from .functional import scaled_dot_product_attention, sdp_attn
-
-
-@dataclass
-class AttnInfraRecord:
-    input_logits: torch.Tensor
-    output_logits: Optional[torch.Tensor] = None
-    attn_weights: Optional[torch.Tensor] = None
-    k_cache: Optional[torch.Tensor] = None
-    v_cache: Optional[torch.Tensor] = None
 
 
 class MulHeadAttn(AttnModel):
@@ -54,6 +44,21 @@ class MulHeadAttn(AttnModel):
         outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
         outputs = self.W_o(outputs)
         return self.out_dropout(outputs)
+
+    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+        B, C, E = x.shape
+
+        QKV = self.W_qkv(x)
+        Q, K, V = QKV.chunk(3, dim=-1)
+
+        Q = Q.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
+        K = K.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
+        V = V.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
+
+        Q = self.rope(Q)
+        K = self.rope(K)
+
+        return Q, K, V
 
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
         B, C, E = record.input_logits.shape
@@ -111,18 +116,3 @@ class MulHeadAttn(AttnModel):
 
         else:
             return self.prompt(record)
-
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
-        B, C, E = x.shape
-
-        QKV = self.W_qkv(x)
-        Q, K, V = QKV.chunk(3, dim=-1)
-
-        Q = Q.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
-        K = K.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
-        V = V.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
-
-        Q = self.rope(Q)
-        K = self.rope(K)
-
-        return Q, K, V
