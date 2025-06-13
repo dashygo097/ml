@@ -1,6 +1,8 @@
+import math
 from typing import Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 from .base import AttnInfraRecord, AttnModel
@@ -80,6 +82,7 @@ class GroupedQueryAttn(AttnModel):
         self, record: AttnInfraRecord, use_cache: bool = False
     ) -> AttnInfraRecord:
         B, C, E = record.input_logits.shape
+
         if (
             use_cache
             and record.k_cache is not None
@@ -88,18 +91,32 @@ class GroupedQueryAttn(AttnModel):
         ):
             d_length = C - record.k_cache.shape[2]
             new_inputs = record.input_logits[:, -d_length:, :]
+
             Q, K, V = self.qkv(new_inputs)
+
             K = torch.cat([record.k_cache, K], dim=2)
             V = torch.cat([record.v_cache, V], dim=2)
-            outputs, weights = sdp_attn(Q, K, V, mask="^")
-            outputs = outputs.permute(0, 3, 1, 2, 4).reshape(
-                B, C, self.heads_per_group * self.kv_heads * self.head_dim
+
+            scores = Q @ K.transpose(-2, -1) / math.sqrt(self.head_dim)
+            scores = F.softmax(scores, dim=-1)
+            weights = torch.cat(
+                [
+                    record.attn_weights,
+                    torch.zeros(B, self.q_heads, C - d_length, d_length),
+                ],
+                dim=-1,
             )
+            weights = torch.cat([weights, scores], dim=2)
+
+            outputs = weights @ V
+            outputs = outputs.transpose(1, 2).reshape(B, C, -1)
             outputs = self.W_o(outputs)
+
             record.k_cache = K
             record.v_cache = V
             record.attn_weights = weights
             record.output_logits = outputs
             return record
+
         else:
             return self.prompt(record)
