@@ -3,7 +3,8 @@ from typing import Optional, OrderedDict, Tuple
 import torch
 import torch.nn as nn
 
-from .attns import MulHeadAttn
+from .attns import AttnModel, MulHeadAttn
+from .swiglu import SwiGLU
 
 
 class AddNorm(nn.Module):
@@ -39,6 +40,22 @@ class FFN(nn.Module):
         return self.linear2(self.dropout(x))
 
 
+class SwiGLUFFN(nn.Module):
+    def __init__(self, d_model: int, d_inner: int, dropout: float = 0.1):
+        super().__init__()
+        self.d_model = d_model
+        self.d_inner = d_inner
+        self.linear1 = nn.Linear(d_model, d_inner)
+        self.linear2 = nn.Linear(d_inner // 2, d_model)
+        self.dropout = nn.Dropout(dropout)
+        self.act = SwiGLU()
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.linear1(x)
+        x = self.act(x)
+        return self.linear2(self.dropout(x))
+
+
 class EncoderBlock(nn.Module):
     def __init__(
         self,
@@ -46,13 +63,16 @@ class EncoderBlock(nn.Module):
         n_heads: int,
         d_inner: int,
         dropout: float = 0.1,
+        attn: Optional[AttnModel] = None,
     ) -> None:
         super().__init__()
         self.d_model = d_model
         self.n_heads = n_heads
         self.d_inner = d_inner
 
-        self.attn = MulHeadAttn(d_model, n_heads, dropout=dropout)
+        self.attn = (
+            MulHeadAttn(d_model, n_heads, dropout=dropout) if attn is None else attn
+        )
         self.ffn = FFN(d_model, d_inner, dropout=dropout)
         self.addnorm1 = AddNorm(d_model, dropout=dropout)
         self.addnorm2 = AddNorm(d_model, dropout=dropout)
@@ -77,6 +97,7 @@ class EncoderBody(nn.Module):
         n_heads: int,
         d_inner: int,
         dropout: float = 0.1,
+        attn: Optional[AttnModel] = None,
     ):
         super().__init__()
         self.n_layers = n_layers
@@ -89,7 +110,7 @@ class EncoderBody(nn.Module):
             module_list.append(
                 (
                     f"blk_{index}",
-                    EncoderBlock(d_model, n_heads, d_inner, dropout),
+                    EncoderBlock(d_model, n_heads, d_inner, dropout=dropout, attn=attn),
                 )
             )
         self.blks = nn.Sequential(OrderedDict(module_list))
@@ -98,9 +119,3 @@ class EncoderBody(nn.Module):
         for blk in self.blks:
             x = blk(x)
         return x
-
-    def qkv(self, x: torch.Tensor):
-        for index in range(self.n_layers - 1):
-            x = self.blks[index](x)
-
-        return list(self.blks._modules.values())[-1].qkv(x)  # pyright: ignore
