@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from ..rope import RoPE
+from .base import AttnModel
 from .functional import scaled_dot_product_attention, sdp_attn
 
 
@@ -19,27 +20,24 @@ class AttnInfraRecord:
     v_cache: Optional[torch.Tensor] = None
 
 
-class MulHeadAttn(nn.Module):
+class MulHeadAttn(AttnModel):
     def __init__(
         self,
         embed_size: int,
         n_heads: int,
+        d_model: Optional[int] = None,
         dropout: float = 0.1,
     ) -> None:
-        super().__init__()
-        assert embed_size % n_heads == 0, (
+        super().__init__(embed_size, d_model, dropout)
+        assert self.d_model % n_heads == 0, (
             "[ERROR] embed_size must be divisible by n_heads"
         )
-        self.d_model = embed_size
         self.n_heads = n_heads
-        self.head_dim = embed_size // n_heads
+        self.head_dim = self.d_model // n_heads
 
-        self.W_qkv = nn.Linear(embed_size, self.d_model * 3, bias=False)
-        self.W_o = nn.Linear(self.d_model, self.d_model)
+        self.W_qkv = nn.Linear(self.embed_size, self.d_model * 3, bias=False)
+        self.W_o = nn.Linear(self.d_model, self.embed_size)
         self.rope = RoPE(self.head_dim)
-
-        self.attn_dropout = nn.Dropout(dropout)
-        self.out_dropout = nn.Dropout(dropout)
 
     def forward(
         self,
