@@ -7,7 +7,7 @@ from .attns import MulHeadLatentAttn
 from .decoder import DecoderOnlyBlock
 
 
-class GPT2Model(nn.Module):
+class GPTModel(nn.Module):
     def __init__(
         self,
         vocab_size: int,
@@ -16,7 +16,7 @@ class GPT2Model(nn.Module):
         num_layers: int = 12,
         dropout: float = 0.1,
     ) -> None:
-        super(GPT2Model, self).__init__()
+        super().__init__()
         self.vocab_size = vocab_size
         self.d_model = d_model
         self.num_heads = num_heads

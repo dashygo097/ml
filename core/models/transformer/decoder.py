@@ -3,7 +3,7 @@ from typing import Optional, OrderedDict
 import torch
 import torch.nn as nn
 
-from .attns import MulHeadAttn, MulHeadCrossAttn
+from .attns import AttnModel, MulHeadAttn, MulHeadCrossAttn
 from .encoder import FFN, AddNorm
 
 
@@ -116,7 +116,7 @@ class DecoderOnlyBody(nn.Module):
         n_heads: int,
         d_inner: int,
         dropout: float = 0.1,
-        attn: Optional[nn.Module] = None,
+        attn: Optional[AttnModel] = None,
     ) -> None:
         super().__init__()
         self.n_layers = n_layers
@@ -157,7 +157,7 @@ class DecoderOnly(nn.Module):
         d_inner: int,
         dropout: float = 0.1,
         max_length: int = 512,
-        attn: Optional[nn.Module] = None,
+        attn: Optional[AttnModel] = None,
     ) -> None:
         super().__init__()
         self.vocab_size = vocab_size

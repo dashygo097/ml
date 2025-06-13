@@ -1,6 +1,5 @@
-from typing import Dict, List, Tuple
+from typing import Dict
 
-import torch
 import torch.nn as nn
 
 from ...trainer import TrainArgs, Trainer
@@ -24,3 +23,9 @@ class GPTrainer(Trainer):
 
     def step(self, batch) -> Dict:
         return {}
+
+    def step_info(self, result: Dict) -> None: ...
+
+    def epoch_info(self) -> None: ...
+
+    def validate(self) -> None: ...
