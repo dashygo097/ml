@@ -5,6 +5,7 @@ from torch import nn
 
 from .attns import MulHeadLatentAttn
 from .decoder import DecoderOnlyBlock
+from .ffn import SwiGLUFFN
 
 
 class GPTModel(nn.Module):
@@ -38,6 +39,11 @@ class GPTModel(nn.Module):
                             embed_size=d_model,
                             latent_dim=d_model // 3,
                             num_heads=num_heads,
+                            dropout=dropout,
+                        ),
+                        ffn=SwiGLUFFN(
+                            d_model=d_model,
+                            d_inner=d_model * 4,
                             dropout=dropout,
                         ),
                     ),
