@@ -24,7 +24,6 @@ class AttnModel(ABC, nn.Module):
         self.d_model: int = d_model if d_model is not None else embed_size
         self.dropout = dropout
 
-        self.attn_dropout = nn.Dropout(dropout)
         self.out_dropout = nn.Dropout(dropout)
 
     @abstractmethod

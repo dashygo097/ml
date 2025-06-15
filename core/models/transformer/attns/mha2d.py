@@ -1,10 +1,10 @@
 from typing import Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import nn
 
 from .base import AttnModel
-from .functional import scaled_dot_product_attention
 
 
 class MulHeadAttn2d(AttnModel):
@@ -35,13 +35,14 @@ class MulHeadAttn2d(AttnModel):
     def forward(
         self,
         x: torch.Tensor,
-        mask: Optional[str] | torch.Tensor = None,
+        mask: Optional[torch.Tensor] = None,
+        is_causal: bool = False,
     ) -> torch.Tensor:
         B, C, H, W = x.shape
         Q, K, V = self.qkv(x)
 
-        outputs = scaled_dot_product_attention(
-            Q, K, V, mask=mask, dropout=self.attn_dropout
+        outputs = F.scaled_dot_product_attention(
+            Q, K, V, attn_mask=mask, dropout_p=self.dropout, is_causal=is_causal
         )
         outputs = outputs.view(B, self.d_model, H, W)
         outputs = self.W_o(outputs)

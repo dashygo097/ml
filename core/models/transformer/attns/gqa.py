@@ -1,12 +1,10 @@
-import math
 from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .base import AttnInfraRecord, AttnModel
-from .functional import scaled_dot_product_attention, sdp_attn
+from .base import AttnModel
 
 
 class GroupedQueryAttn(AttnModel):
@@ -36,13 +34,20 @@ class GroupedQueryAttn(AttnModel):
     def forward(
         self,
         x: torch.Tensor,
-        mask: Optional[str] | torch.Tensor = None,
+        mask: Optional[torch.Tensor] = None,
+        is_causal: bool = False,
     ) -> torch.Tensor:
         B, C, E = x.shape
         Q, K, V = self.qkv(x)
 
-        outputs = scaled_dot_product_attention(
-            Q, K, V, mask=mask, dropout=self.attn_dropout
+        outputs = F.scaled_dot_product_attention(
+            Q,
+            K,
+            V,
+            attn_mask=mask,
+            dropout_p=self.dropout,
+            is_causal=is_causal,
+            enable_gqa=True,
         )
         outputs = outputs.permute(0, 3, 1, 2, 4).reshape(
             B, C, self.heads_per_group * self.kv_heads * self.head_dim
@@ -59,64 +64,5 @@ class GroupedQueryAttn(AttnModel):
         )
         KV = self.W_kv(x).view(B, C, self.kv_heads, 2, self.head_dim).transpose(1, 2)
         K, V = KV.unbind(dim=3)
-        K = K.unsqueeze(1).expand(-1, self.heads_per_group, -1, -1, -1)
-        V = V.unsqueeze(1).expand(-1, self.heads_per_group, -1, -1, -1)
 
         return Q, K, V
-
-    def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
-        B, C, E = record.input_logits.shape
-        Q, K, V = self.qkv(record.input_logits)
-        outputs, weights = sdp_attn(Q, K, V, mask="^")
-        outputs = outputs.permute(0, 3, 1, 2, 4).reshape(
-            B, C, self.heads_per_group * self.kv_heads * self.head_dim
-        )
-        outputs = self.W_o(outputs)
-        record.k_cache = K
-        record.v_cache = V
-        record.attn_weights = weights
-        record.output_logits = outputs
-        return record
-
-    def infer(
-        self, record: AttnInfraRecord, use_cache: bool = False
-    ) -> AttnInfraRecord:
-        B, C, E = record.input_logits.shape
-
-        if (
-            use_cache
-            and record.k_cache is not None
-            and record.v_cache is not None
-            and record.attn_weights is not None
-        ):
-            d_length = C - record.k_cache.shape[2]
-            new_inputs = record.input_logits[:, -d_length:, :]
-
-            Q, K, V = self.qkv(new_inputs)
-
-            K = torch.cat([record.k_cache, K], dim=2)
-            V = torch.cat([record.v_cache, V], dim=2)
-
-            scores = Q @ K.transpose(-2, -1) / math.sqrt(self.head_dim)
-            scores = F.softmax(scores, dim=-1)
-            weights = torch.cat(
-                [
-                    record.attn_weights,
-                    torch.zeros(B, self.q_heads, C - d_length, d_length),
-                ],
-                dim=-1,
-            )
-            weights = torch.cat([weights, scores], dim=2)
-
-            outputs = weights @ V
-            outputs = outputs.transpose(1, 2).reshape(B, C, -1)
-            outputs = self.W_o(outputs)
-
-            record.k_cache = K
-            record.v_cache = V
-            record.attn_weights = weights
-            record.output_logits = outputs
-            return record
-
-        else:
-            return self.prompt(record)
