@@ -12,6 +12,9 @@ class HFDatasetWrapper(Dataset):
         self.dataset = self.dataset.remove_columns(other_columns)
         self.dataset.set_format("torch")
 
+    def save(self, path: str):
+        self.dataset.save_to_disk(path)
+
     def _tokenize_fn(self, example):
         return self.tokenizer(
             example[self.feature],

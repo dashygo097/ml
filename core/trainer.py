@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import torch
 from termcolor import colored
 from torch import nn
+from torch.cuda.amp import GradScaler, autocast
 from tqdm import tqdm
 
 from .utils import load_yaml
@@ -67,6 +68,7 @@ class Trainer(Generic[T_args, T_model], ABC):
         self.set_optimizer(optimizer)
         self.set_schedulers(scheduler)
         self.set_valid_ds(valid_ds)
+        self.scaler = GradScaler()
 
         self.n_steps: int = 0
         self.n_epochs: int = 0
