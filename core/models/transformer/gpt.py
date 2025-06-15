@@ -55,10 +55,13 @@ class GPTModel(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(
-        self, x: torch.Tensor, mask: Optional[str] | torch.Tensor = "^"
+        self,
+        x: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+        is_causal: bool = True,
     ) -> torch.Tensor:
         x = self.embedding(x)
         for blk in self.decoders:
-            x = blk(x, mask=mask)
+            x = blk(x, mask=mask, is_causal=is_causal)
 
         return self.fc(self.dropout(x))

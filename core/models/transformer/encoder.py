@@ -32,9 +32,10 @@ class EncoderBlock(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        mask: Optional[str] | torch.Tensor = None,
+        mask: Optional[torch.Tensor] = None,
+        is_causal: bool = False,
     ) -> torch.Tensor:
-        x = self.addnorm1(x, self.attn(x, mask=mask))
+        x = self.addnorm1(x, self.attn(x, mask=mask, is_causal=is_causal))
         return self.addnorm2(x, self.ffn(x))
 
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
