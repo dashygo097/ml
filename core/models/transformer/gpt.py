@@ -55,7 +55,7 @@ class GPTModel(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(
-        self, x: torch.Tensor, mask: Optional[str] | torch.Tensor = None
+        self, x: torch.Tensor, mask: Optional[str] | torch.Tensor = "^"
     ) -> torch.Tensor:
         x = self.embedding(x)
         for blk in self.decoders:

@@ -7,7 +7,7 @@ from torch import nn
 
 from ..rope import RoPE
 from .base import AttnInfraRecord, AttnModel
-from .functional import scaled_dot_product_attention, sdp_attn
+from .functional import sdp_attn
 
 
 class MulHeadLatentAttn(AttnModel):
@@ -45,21 +45,20 @@ class MulHeadLatentAttn(AttnModel):
             self.head_dim * self.num_heads, self.head_dim * self.num_heads, bias=False
         )
 
-        self.W_o = nn.Linear(
-            self.head_dim * self.num_heads, self.embed_size, bias=False
-        )
+        self.W_o = nn.Linear(self.head_dim * self.num_heads, self.embed_size)
         self.rope = RoPE(self.head_dim // 2)
 
     def forward(
         self,
         x: torch.Tensor,
-        mask: Optional[str] | torch.Tensor = None,
+        mask: Optional[torch.Tensor] = None,
+        is_causal: bool = False,
     ) -> torch.Tensor:
         B, C, _ = x.shape
         Q, K, V = self.qkv(x)
 
-        outputs = scaled_dot_product_attention(
-            Q, K, V, mask=mask, dropout=self.attn_dropout
+        outputs = F.scaled_dot_product_attention(
+            Q, K, V, attn_mask=mask, dropout_p=self.dropout, is_causal=is_causal
         )
 
         outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
