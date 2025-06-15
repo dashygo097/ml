@@ -27,7 +27,12 @@ class AttnModel(ABC, nn.Module):
         self.out_dropout = nn.Dropout(dropout)
 
     @abstractmethod
-    def forward(self, x: torch.Tensor) -> torch.Tensor: ...
+    def forward(
+        self,
+        x: torch.Tensor,
+        mask: Optional[torch.Tensor] = None,
+        is_causal: bool = False,
+    ) -> torch.Tensor: ...
 
     @abstractmethod
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]: ...
