@@ -2,6 +2,7 @@ from .attns import *
 from .decoder import *
 from .encoder import *
 from .ffn import *
+from .gpt import *
 from .rmsnorm import *
 from .rope import *
 from .swiglu import *

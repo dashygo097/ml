@@ -9,11 +9,11 @@ from torch import nn
 from torch.fx import Node
 from torch.nn.utils import prune
 
-from ..editor import Editor
+from ..editor import GraphEditor
 from .utils import should_pass
 
 
-class Pruner(Editor):
+class GraphPruner(GraphEditor):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 

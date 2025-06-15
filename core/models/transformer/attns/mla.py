@@ -55,7 +55,7 @@ class MulHeadLatentAttn(AttnModel):
         x: torch.Tensor,
         mask: Optional[str] | torch.Tensor = None,
     ) -> torch.Tensor:
-        B, C, E = x.shape
+        B, C, _ = x.shape
         Q, K, V = self.qkv(x)
 
         outputs = scaled_dot_product_attention(
@@ -68,7 +68,7 @@ class MulHeadLatentAttn(AttnModel):
         return self.out_dropout(outputs)
 
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
-        B, C, E = x.shape
+        B, C, _ = x.shape
         KR = self.rope(
             self.W_kr(x).view(B, C, self.num_heads, self.split_dim).transpose(1, 2)
         )
@@ -90,7 +90,7 @@ class MulHeadLatentAttn(AttnModel):
         return Q, K, V
 
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
-        B, C, E = record.input_logits.shape
+        B, C, _ = record.input_logits.shape
         Q, K, V = self.qkv(record.input_logits)
         outputs, weights = sdp_attn(Q, K, V, mask="^")
         outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
@@ -104,7 +104,7 @@ class MulHeadLatentAttn(AttnModel):
     def infer(
         self, record: AttnInfraRecord, use_cache: bool = False
     ) -> AttnInfraRecord:
-        B, C, E = record.input_logits.shape
+        B, C, _ = record.input_logits.shape
         if (
             use_cache
             and record.k_cache is not None
