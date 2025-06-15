@@ -37,10 +37,11 @@ class DecoderBlock(nn.Module):
         self,
         x: torch.Tensor,
         enc: torch.Tensor,
-        mask: Optional[str] | torch.Tensor = "^",
-        enc_mask: Optional[str] | torch.Tensor = None,
+        mask: Optional[torch.Tensor] = None,
+        enc_mask: Optional[torch.Tensor] = None,
+        is_causal: bool = True,
     ):
-        x = self.addnorm1(x, self.attn(x, mask=mask))
+        x = self.addnorm1(x, self.attn(x, mask=mask, is_causal=is_causal))
         x = self.addnorm2(x, self.attn_mask(x, enc, mask=enc_mask))
         return self.addnorm3(x, self.ffn(x))
 
@@ -70,7 +71,8 @@ class DecoderOnlyBlock(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        mask: Optional[str] | torch.Tensor = "^",
+        mask: Optional[torch.Tensor] = None,
+        is_causal: bool = True,
     ) -> torch.Tensor:
-        x = self.addnorm1(x, self.attn(x, mask=mask))
+        x = self.addnorm1(x, self.attn(x, mask=mask, is_causal=is_causal))
         return self.addnorm2(x, self.ffn(x))
