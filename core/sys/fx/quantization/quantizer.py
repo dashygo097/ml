@@ -4,10 +4,10 @@ from typing import Optional, overload
 from torch import nn
 from torch.fx.node import Node
 
-from ..editor import Editor
+from ..editor import GraphEditor
 
 
-class Quantizer(Editor):
+class GraphQuantizer(GraphEditor):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 

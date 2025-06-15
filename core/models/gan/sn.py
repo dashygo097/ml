@@ -4,7 +4,7 @@ from typing import Optional
 from torch import nn
 from torch.nn.utils import spectral_norm
 
-from ...sys import Editor
+from ...sys.fx import GraphEditor
 
 SN_TYPES = set(
     [
@@ -20,7 +20,7 @@ SN_TYPES = set(
 )
 
 
-class SNWrapper(Editor):
+class SNWrapper(GraphEditor):
     def __init__(self, discriminator: nn.Module):
         super().__init__(discriminator)
 

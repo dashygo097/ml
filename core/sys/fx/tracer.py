@@ -1,36 +1,58 @@
 import time
 import warnings
 from collections import defaultdict
-from typing import Dict, List, Tuple, overload
+from typing import Dict, Optional, Tuple, overload
 
 import matplotlib.pyplot as plt
 import torch
 from ptflops import get_model_complexity_info
 from termcolor import colored
 from torch import nn
+from torch.fx import GraphModule, symbolic_trace
+from torch.fx.node import Node
 
 
-class Tracer:
-    def __init__(self, model: nn.Module):
+class GraphTracer:
+    def __init__(self, model: nn.Module) -> None:
         self.model = model
+        self.trace()
+
+    def trace(self) -> None:
+        self.graph: GraphModule = symbolic_trace(self.model)
 
     def summary(self) -> None:
-        print(self.model)
+        if self.graph is None:
+            raise ValueError("Model has not been traced yet.")
+
+        print(self.graph)
         self.numal(info=True)
 
     @overload
-    def fetch(self, target: type) -> List[Tuple[str, nn.Module]]:
-        return self.fetch(target=target)
+    def fetch(self, target: Optional[Node]) -> Optional[Node]:
+        return self.fetch(target)
 
     @overload
-    def fetch(self, target: str) -> List[Tuple[str, nn.Module]]:
-        return self.fetch(target=target)
+    def fetch(self, target: Optional[str]) -> Optional[Node]:
+        return self.fetch(target)
+
+    @overload
+    def fetch_neighbors(
+        self, target: Optional[Node], follow_operators: bool = True
+    ) -> Dict:
+        return self.fetch_neighbors(target, follow_operators)
+
+    @overload
+    def fetch_neighbors(
+        self, target: Optional[str], follow_operators: bool = True
+    ) -> Dict:
+        return self.fetch_neighbors(target, follow_operators)
 
     def numal(self, info: bool = False) -> int:
         num_params = 0
-        for _, param in self.model.named_parameters():
-            if param.requires_grad:
-                num_params += param.numel()
+        for node in self.graph.graph.nodes:
+            if node.op == "call_module":
+                submod = self.graph.get_submodule(str(node.target))
+                num_params += sum(p.numel() for p in submod.parameters())
 
         if info:
             print(
@@ -210,14 +232,74 @@ class Tracer:
         fig.subplots_adjust(top=0.925)
         plt.show()
 
-    def fetch(self, target: str | type) -> List[Tuple[str, nn.Module]]:
-        modules = []
-        if isinstance(target, type):
-            for name, module in self.model.named_modules():
-                if isinstance(module, target):
-                    modules.append((name, module))
+    def fetch(self, target: Optional[Node] | Optional[str]):
+        if self.graph is None:
+            raise ValueError("Model has not been traced yet.")
+
+        target_node = None
+
+        if target is None:
+            raise ValueError(
+                colored("[ERROR] Target cannot be None.", "red", attrs=["bold"])
+            )
+
+        elif isinstance(target, Node):
+            for node in self.graph.graph.nodes:
+                if node.op == "call_module" and node == target:
+                    target_node = node
+                    break
+
         elif isinstance(target, str):
-            for name, module in self.model.named_modules():
-                if name == target:
-                    modules.append((name, module))
-        return modules
+            for node in self.graph.graph.nodes:
+                if node.op == "call_module" and str(node) == target:
+                    target_node = node
+                    break
+
+        return target_node
+
+    def fetch_neighbors(
+        self,
+        target: Optional[Node] | Optional[str],
+        follow_operators: bool = True,
+    ) -> Dict:
+        if self.graph is None:
+            raise ValueError("Model has not been traced yet.")
+
+        target_node = self.fetch(target)
+        if target_node is None:
+            return {}
+
+        connected_submodules = {"input": [], "output": []}
+
+        if target is None:
+            raise ValueError(
+                colored("[ERROR] Target cannot be None.", "red", attrs=["bold"])
+            )
+
+        def find_upstream_modules(node, depth=0):
+            for other_node in node.all_input_nodes:
+                if other_node.op == "call_module":
+                    if other_node not in connected_submodules["input"]:
+                        connected_submodules["input"].append(other_node)
+                elif follow_operators and other_node.op in [
+                    "call_function",
+                    "call_method",
+                ]:
+                    find_upstream_modules(other_node, depth + 1)
+
+        def find_downstream_modules(node, depth=0):
+            for other_node in self.graph.graph.nodes:
+                if node in other_node.all_input_nodes:
+                    if other_node.op == "call_module":
+                        if other_node not in connected_submodules["output"]:
+                            connected_submodules["output"].append(other_node)
+                    elif follow_operators and other_node.op in [
+                        "call_function",
+                        "call_method",
+                    ]:
+                        find_downstream_modules(other_node, depth + 1)
+
+        find_upstream_modules(target_node)
+        find_downstream_modules(target_node)
+
+        return connected_submodules
