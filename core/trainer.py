@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 import torch
 from termcolor import colored
 from torch import nn
-from torch.cuda.amp import GradScaler, autocast
+from torch.cuda.amp import GradScaler
 from tqdm import tqdm
+from .logger import TrainLogger
 
 from .utils import load_yaml
 
