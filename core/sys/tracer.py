@@ -1,4 +1,5 @@
 import time
+import os
 import warnings
 from collections import defaultdict
 from typing import Dict, List, Tuple, overload
@@ -24,7 +25,7 @@ class Tracer:
     def fuzzy_fetch(self, target: str) -> nn.Module:
         fetched_module = []
         for name, module in self.model.named_modules():
-            if name == target or target in name:
+            if target in name:
                 fetched_module.append(module)
 
         if not fetched_module:
@@ -82,6 +83,17 @@ class Tracer:
             print(colored(f"Parameters: {params}", "blue", attrs=["bold"]))
 
         return str(macs), str(params)
+
+    def sparsity_report(self, info: bool = True) -> Dict[str, float]:
+        report = {}
+        for name, param in self.model.named_parameters():
+            total = param.numel()
+            zeros = (param == 0).sum().item()
+            sparsity = zeros / total
+            report[name] = sparsity
+            if info:
+                print(f"{name}: {sparsity * 100:.2f}% sparse")
+        return report
 
     def layer_output(
         self,
@@ -252,3 +264,15 @@ class Tracer:
             )
 
         return modules
+
+
+def sparsity_report(self, info: bool = True) -> Dict[str, float]:
+    report = {}
+    for name, param in self.model.named_parameters():
+        total = param.numel()
+        zeros = (param == 0).sum().item()
+        sparsity = zeros / total
+        report[name] = sparsity
+        if info:
+            print(f"{name}: {sparsity * 100:.2f}% sparse")
+    return report
