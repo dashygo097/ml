@@ -14,9 +14,32 @@ class Tracer:
     def __init__(self, model: nn.Module):
         self.model = model
 
+    def load(self, path: str, device: str = "cpu") -> None:
+        self.model.load_state_dict(torch.load(path, map_location=device))
+
     def summary(self) -> None:
         print(self.model)
         self.numal(info=True)
+
+    def fuzzy_fetch(self, target: str) -> nn.Module:
+        fetched_module = []
+        for name, module in self.model.named_modules():
+            if name == target or target in name:
+                fetched_module.append(module)
+
+        if not fetched_module:
+            assert False, colored(
+                f"Module with name '{target}' not found in the model.",
+                "red",
+                attrs=["bold"],
+            )
+        if len(fetched_module) > 1:
+            assert False, colored(
+                f"Multiple modules found with name '{target}': {fetched_module}",
+                "red",
+                attrs=["bold"],
+            )
+        return fetched_module[0]
 
     @overload
     def fetch(self, target: type) -> List[Tuple[str, nn.Module]]:
@@ -220,4 +243,12 @@ class Tracer:
             for name, module in self.model.named_modules():
                 if name == target:
                     modules.append((name, module))
+
+        if not modules:
+            assert False, colored(
+                f"Module with name or type '{target}' not found in the model.",
+                "red",
+                attrs=["bold"],
+            )
+
         return modules

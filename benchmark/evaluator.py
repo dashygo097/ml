@@ -14,7 +14,7 @@ class Evaluator(ABC):
         self.device = device
 
     @abstractmethod
-    def bench(self, benchmark: str, log_dict: str = "eval_logs") -> None: ...
+    def bench(self, benchmark: str, log_dict: str = "./eval_logs") -> None: ...
 
     def save_log(self, log_dict: str, info: bool = False) -> None:
         os.makedirs(log_dict, exist_ok=True)
