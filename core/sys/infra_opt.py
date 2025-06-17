@@ -1,4 +1,3 @@
-import coremltools as ct
 import onnx
 import onnxoptimizer
 import torch
@@ -10,7 +9,7 @@ def ex2onnx(model: nn.Module, input_shape: tuple) -> None:
     model_name = model.__class__.__name__.lower()
     dummy_input = torch.randn(input_shape)
     torch.onnx.export(
-        model, (dummy_input,), f"{model_name}.onnx", verbose=True, opset_version=12
+        model, (dummy_input,), f"{model_name}.onnx", verbose=True, opset_version=11
     )
 
 
@@ -23,15 +22,3 @@ def optim_onnx(onnx_model_path: str) -> None:
     ]
     onnx_model = onnxoptimizer.optimize(onnx_model, passes)
     onnx.save_model(onnx_model, onnx_model_path)
-
-
-def convert2ct(model: nn.Module):
-    model_name = model.__class__.__name__.lower()
-    dummy_input = torch.randn((1, 3, 512, 512)).to("mps")
-    model.eval()
-    traced_model = torch.jit.trace(model, dummy_input)
-    mlmodel = ct.convert(
-        traced_model,
-        inputs=[ct.TensorType(name="input", shape=dummy_input.shape)],
-    )
-    mlmodel.save(f"{model_name}.mlpackage")  # pyright: ignore
