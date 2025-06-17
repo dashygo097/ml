@@ -10,7 +10,6 @@ from termcolor import colored
 from torch import nn
 from torch.cuda.amp import GradScaler
 from tqdm import tqdm
-from .logger import TrainLogger
 
 from .utils import load_yaml
 
@@ -29,7 +28,6 @@ class TrainArgs:
         self.is_shuffle: bool = self.args.get("is_shuffle", False)
         self.save_dict: str = self.args.get("save_dict", "./checkpoints")
 
-        self.epochs_per_logging: int = self.args.get("epochs_per_logging", 1)
         self.epochs_per_validation: int = self.args.get("epochs_per_validation", 1)
 
         if "log_dict" not in self.args["info"].keys():
@@ -236,8 +234,7 @@ class Trainer(Generic[T_args, T_model], ABC):
                 scheduler.step()
 
             self.epoch_info()
-            if self.n_epochs % self.args.epochs_per_logging == 0:
-                self.save_log()
+            self.save_log(info=False)
 
             # Validation
             self.model.eval()
