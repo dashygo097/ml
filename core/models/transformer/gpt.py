@@ -3,9 +3,9 @@ from typing import Optional, OrderedDict
 import torch
 from torch import nn
 
-from ml.core import MulHeadLatentAttn
-from ml.core import DecoderOnlyBlock
-from ml.core import SwiGLUFFN
+from .attns import MulHeadLatentAttn
+from .decoder import DecoderOnlyBlock
+from .ffn import SwiGLUFFN
 
 
 class GPTModel(nn.Module):

@@ -125,4 +125,3 @@ class SimCLRTrainer(CNNTrainer):
             + colored(", anchor_negative", "yellow")
             + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['anchor_negative']}"
         )
-        self.save_log()
