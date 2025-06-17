@@ -25,7 +25,7 @@ class LLMEvaluator(Evaluator):
     def load(self, model: nn.Module, tokenizer=None, info: bool = True) -> None:
         self.load(model, tokenizer, info)
 
-    def bench(self, benchmark: str, log_dict: str = "eval_logs") -> None:
+    def bench(self, benchmark: str, log_dict: str = "./eval_logs") -> None:
         if benchmark == "wikitext":
             perplexity = benchmark_wikitext(self.model_name, self.device)
             self.logger["perplexity"] = perplexity
