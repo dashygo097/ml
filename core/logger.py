@@ -1,19 +1,29 @@
 import os
+from typing import Callable
 from typing import Dict, List, Optional
+from matplotlib.lines import lineMarkers
 from termcolor import colored
 import matplotlib.pyplot as plt
+import numpy as np
 import json
 
 
 class TrainLogContent:
-    epoch: Dict = {}
-    step: Dict = {}
-    valid: Dict = {}
+    def __init__(self) -> None:
+        self.epoch: Dict = {}
+        self.step: Dict = {}
+        self.valid: Dict = {}
 
     def __getitem__(self, key: str) -> Dict:
         if key not in self.__dict__:
-            raise KeyError(f"Key '{key}' not found in TrainLogContent.")
-        return dict(sorted(self.__dict__[key].items(), key=lambda x: int(x[0])))
+            raise KeyError(f"[ERROR] Key '{key}' not found in TrainLogContent.")
+
+        return dict(sorted(self.__dict__[key].items(), key=lambda x: x))
+
+    def __setitem__(self, key: str, value: Dict) -> None:
+        if key not in self.__dict__:
+            raise KeyError(f"[ERROR] Key '{key}' not found in TrainLogContent.")
+        self.__dict__[key] = value
 
 
 class TrainLogger:
@@ -40,6 +50,15 @@ class TrainLogger:
                 + "!"
             )
 
+    def op(self, key: str, func: Callable, index: Optional[int] = None) -> None:
+        if index is None:
+            index_key = str(len(self.content[key]) - 1)
+        else:
+            index_key = str(index)
+        current_records = self.content[key]
+        current_records[index_key] = func(current_records[index_key])
+        self.content[key] = current_records
+
     def log(self, key: str, value: Dict, index: Optional[int] = None) -> None:
         if index is None:
             index_key = str(len(self.content[key]))
@@ -47,7 +66,7 @@ class TrainLogger:
             index_key = str(index)
         current_records = self.content[key]
         current_records[index_key] = value
-        self.content.__dict__[key] = current_records
+        self.content[key] = current_records
 
     def plot(self, key: str) -> None:
         # NOTE: Can be reimpled this function if want to
@@ -58,22 +77,25 @@ class TrainLogger:
 
         records = self.content[key]
 
-        n_records = len(records.keys())
+        n_begin = min(map(int, records.keys()))
+        n_end = max(map(int, records.keys()))
 
-        for record in records.values():
+        for num, record in records.items():
             for label, value in record.items():
                 if label not in elements:
                     elements[label] = []
-                elements[label].append(value)
+                elements[label].append((int(num), value))
 
         for label in elements.keys():
-            plt.plot(elements[label], label=label)
+            x = [item[0] for item in elements[label]]
+            y = [item[1] for item in elements[label]]
+            plt.plot(x, y, label=label)
             plt.title(f"{label} vs {key}s")
             plt.xticks(
                 range(
-                    0,
-                    n_records,
-                    max(int(n_records / 10 + 0.5), 1),
+                    n_begin,
+                    n_end,
+                    max(int((n_end - n_begin) / 10 + 0.5), 1),
                 )
             )
             plt.xlabel(f"{key}")
