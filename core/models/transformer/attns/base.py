@@ -17,7 +17,10 @@ class AttnInfraRecord:
 
 class AttnModel(ABC, nn.Module):
     def __init__(
-        self, embed_size: int, d_model: Optional[int] = None, dropout: float = 0.1
+        self,
+        embed_size: int,
+        d_model: Optional[int] = None,
+        dropout: float = 0.1,
     ):
         super().__init__()
         self.embed_size = embed_size
