@@ -31,23 +31,27 @@ class WGANTrainer(GANTrainer):
     def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict: ...
 
     def step_info(self, result: Dict) -> None:
-        epoch_logger = self.logger["epoch"]
-        if f"epoch {self.n_epochs}" not in epoch_logger:
-            epoch_logger[f"epoch {self.n_epochs}"] = {}
-            epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] = 0.0
-            epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] = 0.0
-
-        epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] += float(result["g_loss"])
-        epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] += float(result["d_loss"])
+        self.logger.op(
+            "epoch",
+            lambda x: {
+                "g_loss": x.get("g_loss", 0) + float(result["g_loss"].item()),
+                "d_loss": x.get("d_loss", 0) + float(result["d_loss"].item()),
+            },
+        )
 
     def epoch_info(self) -> None:
-        epoch_logger = self.logger["epoch"]
-        epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] /= len(self.data_loader)
-        epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] /= len(self.data_loader)
+        self.logger.op(
+            "epoch",
+            lambda x: {
+                "g_loss": x.get("g_loss", 0) / len(self.data_loader),
+                "d_loss": x.get("d_loss", 0) / len(self.data_loader),
+            },
+            index=self.n_epochs,
+        )
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("g_loss", "yellow")
-            + f": {epoch_logger[f'epoch {self.n_epochs}']['g_loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['g_loss']}, "
             + colored("d_loss", "yellow")
-            + f": {epoch_logger[f'epoch {self.n_epochs}']['d_loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['d_loss']}"
         )

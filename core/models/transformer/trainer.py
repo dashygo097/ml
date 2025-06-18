@@ -88,43 +88,35 @@ class GPTrainer(Trainer):
 
     def step_info(self, result: Dict) -> None:
         # step
-        step_info = self.logger["step"]
-        step_checkpoint = self.n_steps // 1000
-        if f"step {self.n_steps}" not in step_info and self.n_steps % 1000 == 0:
-            step_info[f"step {self.n_steps}"] = {}
-            step_info[f"step {self.n_steps}"]["loss"] = 0.0
-        step_info[f"step {step_checkpoint * 1000}"]["loss"] += (
-            float(result["loss"]) / 1000
-        )
-        self.logger["step"] = step_info
-
         if self.n_steps % 1000 == 0:
+            self.logger.op(
+                "step",
+                lambda x: {"loss": x.get("loss", 0) + result["loss"]},
+                index=self.n_steps,
+            )
             print(
                 f"(Step {self.n_steps}) "
                 + colored("loss", "yellow")
-                + f": {self.logger['step'][f'step {self.n_steps}']['loss']}"
+                + f": {self.logger.content.step[f'{self.n_steps}']['loss']}"
             )
-            self.save_log(info=False)
 
         # epoch
-        epoch_logger = self.logger["epoch"]
-        if f"epoch {self.n_epochs}" not in epoch_logger:
-            epoch_logger[f"epoch {self.n_epochs}"] = {}
-            epoch_logger[f"epoch {self.n_epochs}"]["loss"] = 0.0
-
-        epoch_logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"])
+        self.logger.op(
+            "epoch",
+            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
+            index=self.n_epochs,
+        )
 
     def epoch_info(self) -> None:
-        self.logger["epoch"][f"epoch {self.n_epochs}"]["loss"] /= len(self.data_loader)
+        self.logger.op(
+            "epoch",
+            lambda x: {"loss": x.get("loss", 0) / len(self.data_loader)},
+            index=self.n_epochs,
+        )
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
         )
-
-        if self.n_epochs % 20 == 0 and self.n_epochs > 0:
-            self.save()
-
-        self.save_log(info=False)
 
     def validate(self) -> None: ...

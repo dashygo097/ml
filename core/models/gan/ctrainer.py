@@ -102,5 +102,5 @@ class GANTrainerCT(GANTrainer):
 
         return {
             "g_loss": g_loss_avg,
-            "d_loss": d_loss.item(),
+            "d_loss": d_loss,
         }

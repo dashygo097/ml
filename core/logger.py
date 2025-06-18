@@ -1,10 +1,8 @@
 import os
 from typing import Callable
 from typing import Dict, List, Optional
-from matplotlib.lines import lineMarkers
 from termcolor import colored
 import matplotlib.pyplot as plt
-import numpy as np
 import json
 
 
@@ -18,7 +16,17 @@ class TrainLogContent:
         if key not in self.__dict__:
             raise KeyError(f"[ERROR] Key '{key}' not found in TrainLogContent.")
 
-        return dict(sorted(self.__dict__[key].items(), key=lambda x: x))
+        try:
+            return dict(sorted(self.__dict__[key].items(), key=lambda x: int(x[0])))
+
+        except ValueError:
+            print(
+                colored(
+                    f"[ERROR] Invalid keys in {key}. Ensure keys are integers.",
+                    "red",
+                )
+            )
+            return {}
 
     def __setitem__(self, key: str, value: Dict) -> None:
         if key not in self.__dict__:
@@ -55,8 +63,13 @@ class TrainLogger:
             index_key = str(len(self.content[key]) - 1)
         else:
             index_key = str(index)
+
         current_records = self.content[key]
-        current_records[index_key] = func(current_records[index_key])
+        try:
+            current_records[index_key] = func(current_records[index_key])
+        except KeyError:
+            current_records[index_key] = func({})
+
         self.content[key] = current_records
 
     def log(self, key: str, value: Dict, index: Optional[int] = None) -> None:
@@ -77,8 +90,18 @@ class TrainLogger:
 
         records = self.content[key]
 
-        n_begin = min(map(int, records.keys()))
-        n_end = max(map(int, records.keys()))
+        try:
+            n_begin = min(map(int, records.keys()))
+            n_end = max(map(int, records.keys()))
+
+        except ValueError:
+            print(
+                colored(
+                    f"[ERROR] Invalid keys in {key} for plotting. Ensure keys are integers.",
+                    "red",
+                )
+            )
+            return
 
         for num, record in records.items():
             for label, value in record.items():

@@ -85,43 +85,23 @@ class SimCLRTrainer(CNNTrainer):
 
         self.optimizer.step()
 
-        return {
-            "loss": loss.item(),
-            "anchor_positive": 0.0,
-            "anchor_negative": 0.0,
-        }
+        return {"loss": loss}
 
     def step_info(self, result: Dict) -> None:
-        epoch_logger = self.logger["epoch"]
-        if f"epoch {self.n_epochs}" not in epoch_logger:
-            epoch_logger[f"epoch {self.n_epochs}"] = {}
-            epoch_logger[f"epoch {self.n_epochs}"]["loss"] = 0.0
-            epoch_logger[f"epoch {self.n_epochs}"]["anchor_positive"] = 0.0
-            epoch_logger[f"epoch {self.n_epochs}"]["anchor_negative"] = 0.0
-
-        epoch_logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"])
-        epoch_logger[f"epoch {self.n_epochs}"]["anchor_positive"] += float(
-            result["anchor_positive"]
+        self.logger.op(
+            "epoch",
+            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            index=self.n_epochs,
         )
-        epoch_logger[f"epoch {self.n_epochs}"]["anchor_negative"] += float(
-            result["anchor_negative"]
-        )
-        self.logger["epoch"] = epoch_logger
 
     def epoch_info(self) -> None:
-        self.logger["epoch"][f"epoch {self.n_epochs}"]["loss"] /= len(self.data_loader)
-        self.logger["epoch"][f"epoch {self.n_epochs}"]["anchor_positive"] /= len(
-            self.data_loader
-        )
-        self.logger["epoch"][f"epoch {self.n_epochs}"]["anchor_negative"] /= len(
-            self.data_loader
+        self.logger.op(
+            "epoch",
+            lambda x: {"loss": x.get("loss", 0) / len(self.data_loader)},
+            index=self.n_epochs,
         )
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['loss']}\n"
-            + colored("anchor_positive", "yellow")
-            + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['anchor_positive']}"
-            + colored(", anchor_negative", "yellow")
-            + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['anchor_negative']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
         )

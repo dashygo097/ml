@@ -41,20 +41,22 @@ class CNNTrainer(Trainer):
         return {"loss": loss}
 
     def step_info(self, result: Dict) -> None:
-        epoch_logger = self.logger["epoch"]
-        if f"epoch {self.n_epochs}" not in epoch_logger:
-            epoch_logger[f"epoch {self.n_epochs}"] = {}
-            epoch_logger[f"epoch {self.n_epochs}"]["loss"] = 0.0
-
-        epoch_logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"].sum())
-        self.logger["epoch"] = epoch_logger
+        self.logger.op(
+            "epoch",
+            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            index=self.n_epochs,
+        )
 
     def epoch_info(self) -> None:
-        self.logger["epoch"][f"epoch {self.n_epochs}"]["loss"] /= len(self.data_loader)
+        self.logger.op(
+            "epoch",
+            lambda x: {"loss": x.get("loss", 0) / len(self.data_loader)},
+            index=self.n_epochs,
+        )
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {self.logger['epoch'][f'epoch {self.n_epochs}']['loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
         )
 
     def validate(self) -> None:
@@ -84,10 +86,9 @@ class CNNTrainer(Trainer):
 
         avg_loss = total_loss / total
         accuracy = correct / total
-        self.logger["valid"][f"epoch {self.n_epochs}"] = {
-            "loss": avg_loss,
-            "accuracy": accuracy,
-        }
+        self.logger.log(
+            "valid", {"loss": avg_loss, "accuracy": accuracy}, index=self.n_epochs
+        )
         print(
             f"(Validation {self.n_epochs}) "
             + colored("loss", "yellow")
@@ -109,15 +110,13 @@ class CNNFinetuner(CNNTrainer):
         super().__init__(model, dataset, criterion, args, optimizer, scheduler)
 
     def step_info(self, result: Dict) -> None:
-        step_logger = self.logger["step"]
-        epoch_logger = self.logger["epoch"]
-        if f"epoch {self.n_epochs}" not in epoch_logger:
-            epoch_logger[f"epoch {self.n_epochs}"] = {}
-            epoch_logger[f"epoch {self.n_epochs}"]["loss"] = 0.0
-        epoch_logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"].sum())
-
-        if f"step {self.n_steps}" not in step_logger:
-            step_logger[f"step {self.n_steps}"] = {}
-            step_logger[f"step {self.n_steps}"]["loss"] = 0.0
-
-        step_logger[f"step {self.n_steps}"]["loss"] = float(result["loss"].sum())
+        self.logger.op(
+            "step",
+            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            index=self.n_steps,
+        )
+        self.logger.op(
+            "epoch",
+            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            index=self.n_epochs,
+        )
