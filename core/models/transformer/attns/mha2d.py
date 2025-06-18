@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from torch import nn
 
 from .base import AttnModel
+from ..rope import RoPE
 
 
 class MulHeadAttn2d(AttnModel):
@@ -25,12 +26,12 @@ class MulHeadAttn2d(AttnModel):
             kernel_size=1,
             bias=False,
         )
-
         self.W_o = nn.Conv2d(
             in_channels=self.d_model,
             out_channels=self.embed_size,
             kernel_size=1,
         )
+        self.rope = RoPE(self.head_dim)
 
     def forward(
         self,
@@ -55,8 +56,11 @@ class MulHeadAttn2d(AttnModel):
         QKV = self.W_qkv(x)
         Q, K, V = torch.chunk(QKV, chunks=3, dim=1)
 
-        Q = Q.view(B, self.n_heads, self.head_dim, H * W)
-        K = K.view(B, self.n_heads, self.head_dim, H * W)
-        V = V.view(B, self.n_heads, self.head_dim, H * W)
+        Q = Q.view(B, self.n_heads, self.head_dim, H * W).permute(0, 1, 3, 2)
+        K = K.view(B, self.n_heads, self.head_dim, H * W).permute(0, 1, 3, 2)
+        V = V.view(B, self.n_heads, self.head_dim, H * W).permute(0, 1, 3, 2)
+
+        Q = self.rope(Q)
+        K = self.rope(K)
 
         return Q, K, V
