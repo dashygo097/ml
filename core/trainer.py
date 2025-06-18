@@ -9,6 +9,7 @@ import torch
 from termcolor import colored
 from torch import nn
 from torch.cuda.amp import GradScaler
+from .logger import TrainLogger
 from tqdm import tqdm
 
 from .utils import load_yaml
@@ -71,7 +72,7 @@ class Trainer(Generic[T_args, T_model], ABC):
 
         self.n_steps: int = 0
         self.n_epochs: int = 0
-        self.logger: Dict = {"epoch": {}, "step": {}, "valid": {}}
+        self.logger: TrainLogger = TrainLogger(self.args.log_dict)
 
     def set_device(self, device) -> None:
         if device is None:
@@ -145,17 +146,6 @@ class Trainer(Generic[T_args, T_model], ABC):
     def load(self, path: str) -> None:
         self.model.load_state_dict(torch.load(path))
 
-    def save_log(self, info: bool = False) -> None:
-        os.makedirs(self.args.log_dict, exist_ok=True)
-        path = self.args.log_dict + "/datalogs" + ".json"
-        json.dump(self.logger, open(path, "w"))
-        if info:
-            print(
-                "[INFO] Log saved at: "
-                + colored(path, "light_green", attrs=["underline"])
-                + "!"
-            )
-
     @abstractmethod
     def step(self, batch) -> Dict:
         # TODO: impl this function
@@ -174,34 +164,7 @@ class Trainer(Generic[T_args, T_model], ABC):
         ...
 
     def log2plot(self, key: str) -> None:
-        # NOTE: Can be reimpled this function if you want
-        plt.style.use("ggplot")
-        plot_titles = []
-        datareg = {}
-
-        logger = self.logger[key]
-
-        for obj in logger.keys():
-            for record in logger[obj]:
-                plot_titles.append(record)
-            break
-
-        for record in plot_titles:
-            datareg[record] = []
-
-        for record in plot_titles:
-            for obj in logger.keys():
-                datareg[record].append(logger[obj][record])
-
-        for data in datareg.keys():
-            plt.plot(datareg[data], label=data)
-            plt.title(f"{data} vs {key}s")
-            plt.xticks(range(0, self.n_epochs, max(int(self.n_epochs / 10 + 0.5), 1)))
-            plt.xlabel(f"{key}")
-            plt.ylabel(data)
-            plt.legend()
-            plt.savefig(self.args.log_dict + "/" + data + "-" + f"{key}.png")
-            plt.clf()
+        self.logger.plot(key)
 
     def train(self) -> None:
         # Initialization
@@ -234,7 +197,7 @@ class Trainer(Generic[T_args, T_model], ABC):
                 scheduler.step()
 
             self.epoch_info()
-            self.save_log(info=False)
+            self.logger.save_log(info=False)
 
             # Validation
             self.model.eval()
@@ -246,15 +209,10 @@ class Trainer(Generic[T_args, T_model], ABC):
 
         # Finalization
         self.save()
-        self.save_log(info=True)
+        self.logger.save_log(info=True)
         if self.args.is_draw:
-            for key in self.logger.keys():
-                self.args.drawing_list.append(key)
-                self.log2plot(key)
-
-        else:
-            for key in self.args.drawing_list:
-                self.log2plot(key)
+            for key in self.logger.content.__dict__.keys():
+                self.logger.plot(key)
 
     def _keyboard_listener(self) -> None:
         while True:

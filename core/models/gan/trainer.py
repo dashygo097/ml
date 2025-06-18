@@ -9,6 +9,7 @@ from termcolor import colored
 
 from ...trainer import TrainArgs, Trainer
 from .frontend import ImageGAN
+from ...logger import TrainLogger
 
 
 class GANTrainArgs(TrainArgs):
@@ -59,7 +60,7 @@ class GANTrainer(Trainer):
 
         self.n_steps: int = 0
         self.n_epochs: int = 0
-        self.logger: Dict = {"epoch": {}, "step": {}, "valid": {}}
+        self.logger: TrainLogger = TrainLogger(self.args.log_dict)
 
         if self.args.enable_ema:
             self.ema_model = copy.deepcopy(self.generator)
@@ -247,39 +248,42 @@ class GANTrainer(Trainer):
 
         return {
             "g_loss": g_loss_avg,
-            "d_loss": d_loss.item(),
-            "r_loss": r_loss.item(),
-            "f_loss": f_loss.item(),
+            "d_loss": d_loss,
+            "r_loss": r_loss,
+            "f_loss": f_loss,
         }
 
     def step_info(self, result: Dict) -> None:
-        epoch_logger = self.logger["epoch"]
-        if f"epoch {self.n_epochs}" not in epoch_logger:
-            epoch_logger[f"epoch {self.n_epochs}"] = {}
-            epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] = 0.0
-            epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] = 0.0
-            epoch_logger[f"epoch {self.n_epochs}"]["r_loss"] = 0.0
-            epoch_logger[f"epoch {self.n_epochs}"]["f_loss"] = 0.0
-
-        epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] += float(result["g_loss"])
-        epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] += float(result["d_loss"])
-        epoch_logger[f"epoch {self.n_epochs}"]["r_loss"] += float(result["r_loss"])
-        epoch_logger[f"epoch {self.n_epochs}"]["f_loss"] += float(result["f_loss"])
+        self.logger.op(
+            "epoch",
+            lambda x: {
+                "g_loss": x.get("g_loss", 0) + result["g_loss"].item(),
+                "d_loss": x.get("d_loss", 0) + result["d_loss"].item(),
+                "r_loss": x.get("r_loss", 0) + result["r_loss"].item(),
+                "f_loss": x.get("f_loss", 0) + result["f_loss"].item(),
+            },
+        )
 
     def epoch_info(self) -> None:
-        epoch_logger = self.logger["epoch"]
-        epoch_logger[f"epoch {self.n_epochs}"]["g_loss"] /= len(self.data_loader)
-        epoch_logger[f"epoch {self.n_epochs}"]["d_loss"] /= len(self.data_loader)
-        epoch_logger[f"epoch {self.n_epochs}"]["r_loss"] /= len(self.data_loader)
-        epoch_logger[f"epoch {self.n_epochs}"]["f_loss"] /= len(self.data_loader)
+        self.logger.op(
+            "epoch",
+            lambda x: {
+                "g_loss": x.get("g_loss", 0) / len(self.data_loader),
+                "d_loss": x.get("d_loss", 0) / len(self.data_loader),
+                "r_loss": x.get("r_loss", 0) / len(self.data_loader),
+                "f_loss": x.get("f_loss", 0) / len(self.data_loader),
+            },
+            index=self.n_epochs,
+        )
+
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("g_loss", "yellow")
-            + f": {epoch_logger[f'epoch {self.n_epochs}']['g_loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['g_loss']}, "
             + colored("d_loss", "yellow")
-            + f": {epoch_logger[f'epoch {self.n_epochs}']['d_loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['d_loss']}, "
             + colored("r_loss", "yellow")
-            + f": {epoch_logger[f'epoch {self.n_epochs}']['r_loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['r_loss']}, "
             + colored("f_loss", "yellow")
-            + f": {epoch_logger[f'epoch {self.n_epochs}']['f_loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['f_loss']}"
         )
