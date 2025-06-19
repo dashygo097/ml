@@ -34,20 +34,20 @@ class VAETrainer(Trainer):
         return {"loss": loss}
 
     def step_info(self, result: Dict) -> None:
-        epoch_logger = self.logger["epoch"]
-        if f"epoch {self.n_epochs}" not in epoch_logger:
-            epoch_logger[f"epoch {self.n_epochs}"] = {}
-            epoch_logger[f"epoch {self.n_epochs}"]["loss"] = 0.0
-
-        epoch_logger[f"epoch {self.n_epochs}"]["loss"] += float(result["loss"].sum())
+        self.logger.op(
+            "epoch",
+            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            index=self.n_epochs,
+        )
 
     def epoch_info(self) -> None:
-        epoch_logger = self.logger["epoch"]
-        epoch_logger[f"epoch {self.n_epochs}"]["loss"] /= (
-            len(self.data_loader) * self.args.batch_size
+        self.logger.op(
+            "epoch",
+            lambda x: {"loss": x.get("loss", 0) / len(self.data_loader)},
+            index=self.n_epochs,
         )
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {epoch_logger[f'epoch {self.n_epochs}']['loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
         )
