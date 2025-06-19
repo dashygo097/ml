@@ -1,6 +1,7 @@
 import torch
 from .conv import Conv2d, Conv2dTranspose, nonorm_Conv2d
 from torch import nn
+from .encoder import FaceEncoder, AudioEncoder
 
 
 class Wav2Lip_v2(nn.Module):
@@ -9,58 +10,8 @@ class Wav2Lip_v2(nn.Module):
 
         self.device = device
 
-        self.face_encoder_blocks = nn.ModuleList(
-            [
-                nn.Sequential(
-                    Conv2d(6, 16, kernel_size=7, stride=1, padding=3)
-                ),  # 96,96
-                nn.Sequential(
-                    Conv2d(16, 32, kernel_size=3, stride=2, padding=1),  # 48,48
-                    Conv2d(32, 32, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(32, 32, kernel_size=3, stride=1, padding=1, residual=True),
-                ),
-                nn.Sequential(
-                    Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # 24,24
-                    Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
-                ),
-                nn.Sequential(
-                    Conv2d(64, 128, kernel_size=3, stride=2, padding=1),  # 12,12
-                    Conv2d(128, 128, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(128, 128, kernel_size=3, stride=1, padding=1, residual=True),
-                ),
-                nn.Sequential(
-                    Conv2d(128, 256, kernel_size=3, stride=2, padding=1),  # 6,6
-                    Conv2d(256, 256, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(256, 256, kernel_size=3, stride=1, padding=1, residual=True),
-                ),
-                nn.Sequential(
-                    Conv2d(256, 512, kernel_size=3, stride=2, padding=1),  # 3,3
-                    Conv2d(512, 512, kernel_size=3, stride=1, padding=1, residual=True),
-                ),
-                nn.Sequential(
-                    Conv2d(512, 512, kernel_size=3, stride=1, padding=0),  # 1, 1
-                    Conv2d(512, 512, kernel_size=1, stride=1, padding=0),
-                ),
-            ]
-        )
-
-        self.audio_encoder = nn.Sequential(
-            Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
-            Conv2d(32, 32, kernel_size=3, stride=1, padding=1, residual=True),
-            Conv2d(32, 32, kernel_size=3, stride=1, padding=1, residual=True),
-            Conv2d(32, 64, kernel_size=3, stride=(3, 1), padding=1),
-            Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
-            Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
-            Conv2d(64, 128, kernel_size=3, stride=3, padding=1),
-            Conv2d(128, 128, kernel_size=3, stride=1, padding=1, residual=True),
-            Conv2d(128, 128, kernel_size=3, stride=1, padding=1, residual=True),
-            Conv2d(128, 256, kernel_size=3, stride=(3, 2), padding=1),
-            Conv2d(256, 256, kernel_size=3, stride=1, padding=1, residual=True),
-            Conv2d(256, 512, kernel_size=3, stride=1, padding=0),
-            Conv2d(512, 512, kernel_size=1, stride=1, padding=0),
-        )
+        self.face_encoder = FaceEncoder()
+        self.audio_encoder = AudioEncoder()
 
         self.face_decoder_blocks = nn.ModuleList(
             [
@@ -125,27 +76,13 @@ class Wav2Lip_v2(nn.Module):
     ) -> torch.Tensor:
         # audio_sequences = (B, T, 1, 80, 16)
         B = audio_sequences.size(0)
-
-        input_dim_size = len(face_sequences.size())
-        if input_dim_size > 4:
-            audio_sequences = torch.cat(
-                [audio_sequences[:, i] for i in range(audio_sequences.size(1))], dim=0
-            )
-            face_sequences = torch.cat(
-                [face_sequences[:, :, i] for i in range(face_sequences.size(2))], dim=0
-            )
-
-        audio_embedding = self.audio_encoder(audio_sequences)  # B, 512, 1, 1
-        if a_alpha != 1.0:
-            audio_embedding *= a_alpha
+        input_dim_size = audio_sequences.ndim
+        audio_embedding = self.audio_encoder(audio_sequences, a_alpha)
 
         feats = []
-        x = face_sequences
-        for f in self.face_encoder_blocks:
-            x = f(x)
-            feats.append(x)
+        feats = self.face_encoder(face_sequences, audio_embedding)
 
-        x = audio_embedding
+        x = audio_embedding.view(B, 512, 1, 1)
         for f in self.face_decoder_blocks:
             x = f(x)
             try:
@@ -171,21 +108,14 @@ class Wav2Lip_v2(nn.Module):
     def audio_forward(
         self, audio_sequences: torch.Tensor, a_alpha: float = 1.0
     ) -> torch.Tensor:
-        audio_embedding = self.audio_encoder(audio_sequences)  # B, 512, 1, 1
-        if a_alpha != 1.0:
-            audio_embedding *= a_alpha
-        return audio_embedding
+        return self.audio_encoder(audio_sequences, a_alpha)
 
     def inference(
         self,
         audio_embedding: torch.Tensor,
         face_sequences: torch.Tensor,
     ) -> torch.Tensor:
-        feats = []
-        x = face_sequences
-        for f in self.face_encoder_blocks:
-            x = f(x)
-            feats.append(x)
+        feats = self.face_encoder(face_sequences, audio_embedding)
 
         x = audio_embedding
         for f in self.face_decoder_blocks:
