@@ -149,6 +149,7 @@ class Wav2Lip(nn.Module):
         for f in self.face_decoder_blocks:
             x = f(x)
             try:
+                print(x.shape, feats[-1].shape)
                 x = torch.cat((x, feats[-1]), dim=1)
             except Exception as e:
                 print(x.size())
