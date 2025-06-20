@@ -79,9 +79,22 @@ class FaceDecoder(nn.Module):
 class Block_v2(nn.Module):
     def __init__(self, in_ch: int, out_ch: int, mul3: bool = False):
         super().__init__()
-        init_padding = 0 if mul3 else 1
-        self.up = Conv2dTranspose(in_ch, out_ch, 3, 1, init_padding)
-        self.res = Conv2d(in_ch, out_ch, 3, 1, 1, residual=True)
+        self.up = Conv2dTranspose(
+            in_ch,
+            out_ch,
+            kernel_size=3,
+            stride=2 if not mul3 else 1,
+            padding=1 if not mul3 else 0,
+            output_padding=1 if not mul3 else 0,
+        )
+        self.res = Conv2d(
+            out_ch,
+            out_ch,
+            kernel_size=3,
+            stride=1,
+            padding=1,
+            residual=True,
+        )
         self.cbam = CBAM(out_ch)
         self.lgcm = LGCM(out_ch, 8)
 
@@ -98,8 +111,8 @@ class FaceDecoder_v2(nn.Module):
         super().__init__()
         self.block = nn.ModuleList(
             [
-                Block_v2(512, 512, mul3=True),
-                Block_v2(1024, 512),
+                Conv2d(512, 512, kernel_size=1, stride=1, padding=0),
+                Block_v2(1024, 512, mul3=True),
                 Block_v2(1024, 512),
                 Block_v2(768, 384),
                 Block_v2(512, 256),
