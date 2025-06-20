@@ -2,7 +2,7 @@ import torch
 from .conv import Conv2d, nonorm_Conv2d
 from torch import nn
 from .encoder import FaceEncoder, AudioEncoder
-from .decoder import FaceDecoder
+from .decoder import FaceDecoder, FaceDecoder_v2
 
 
 class Wav2Lip_v2(nn.Module):
@@ -14,7 +14,7 @@ class Wav2Lip_v2(nn.Module):
         self.face_encoder = FaceEncoder()
         self.audio_encoder = AudioEncoder()
 
-        self.face_decoder = FaceDecoder()
+        self.face_decoder = FaceDecoder_v2()
 
         self.output_block = nn.Sequential(
             Conv2d(80, 32, kernel_size=3, stride=1, padding=1),
