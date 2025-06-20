@@ -1,4 +1,5 @@
 import torch
+from typing import List
 from .conv import Conv2d, Conv2dTranspose
 from torch import nn
 
@@ -55,3 +56,19 @@ class FaceDecoder(nn.Module):
                 ),
             ]
         )  # 96,96
+
+    def forward(
+        self, audio_embedding: torch.Tensor, feats: List[torch.Tensor]
+    ) -> torch.Tensor:
+        x = audio_embedding
+        for f in self.blocks:
+            x = f(x)
+            try:
+                x = torch.cat((x, feats[-1]), dim=1)
+            except Exception as e:
+                print(x.size())
+                print(feats[-1].size())
+                raise e
+
+            feats.pop()
+        return x

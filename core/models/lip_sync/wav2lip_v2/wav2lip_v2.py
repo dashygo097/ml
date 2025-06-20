@@ -1,7 +1,8 @@
 import torch
-from .conv import Conv2d, Conv2dTranspose, nonorm_Conv2d
+from .conv import Conv2d, nonorm_Conv2d
 from torch import nn
 from .encoder import FaceEncoder, AudioEncoder
+from .decoder import FaceDecoder
 
 
 class Wav2Lip_v2(nn.Module):
@@ -13,54 +14,7 @@ class Wav2Lip_v2(nn.Module):
         self.face_encoder = FaceEncoder()
         self.audio_encoder = AudioEncoder()
 
-        self.face_decoder_blocks = nn.ModuleList(
-            [
-                nn.Sequential(
-                    Conv2d(512, 512, kernel_size=1, stride=1, padding=0),
-                ),
-                nn.Sequential(
-                    Conv2dTranspose(
-                        1024, 512, kernel_size=3, stride=1, padding=0
-                    ),  # 3,3
-                    Conv2d(512, 512, kernel_size=3, stride=1, padding=1, residual=True),
-                ),
-                nn.Sequential(
-                    Conv2dTranspose(
-                        1024, 512, kernel_size=3, stride=2, padding=1, output_padding=1
-                    ),
-                    Conv2d(512, 512, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(512, 512, kernel_size=3, stride=1, padding=1, residual=True),
-                ),  # 6, 6
-                nn.Sequential(
-                    Conv2dTranspose(
-                        768, 384, kernel_size=3, stride=2, padding=1, output_padding=1
-                    ),
-                    Conv2d(384, 384, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(384, 384, kernel_size=3, stride=1, padding=1, residual=True),
-                ),  # 12, 12
-                nn.Sequential(
-                    Conv2dTranspose(
-                        512, 256, kernel_size=3, stride=2, padding=1, output_padding=1
-                    ),
-                    Conv2d(256, 256, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(256, 256, kernel_size=3, stride=1, padding=1, residual=True),
-                ),  # 24, 24
-                nn.Sequential(
-                    Conv2dTranspose(
-                        320, 128, kernel_size=3, stride=2, padding=1, output_padding=1
-                    ),
-                    Conv2d(128, 128, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(128, 128, kernel_size=3, stride=1, padding=1, residual=True),
-                ),  # 48, 48
-                nn.Sequential(
-                    Conv2dTranspose(
-                        160, 64, kernel_size=3, stride=2, padding=1, output_padding=1
-                    ),
-                    Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
-                    Conv2d(64, 64, kernel_size=3, stride=1, padding=1, residual=True),
-                ),
-            ]
-        )  # 96,96
+        self.face_decoder = FaceDecoder()
 
         self.output_block = nn.Sequential(
             Conv2d(80, 32, kernel_size=3, stride=1, padding=1),
@@ -83,16 +37,7 @@ class Wav2Lip_v2(nn.Module):
         feats = self.face_encoder(face_sequences, audio_embedding)
 
         x = audio_embedding.view(B, 512, 1, 1)
-        for f in self.face_decoder_blocks:
-            x = f(x)
-            try:
-                x = torch.cat((x, feats[-1]), dim=1)
-            except Exception as e:
-                print(x.size())
-                print(feats[-1].size())
-                raise e
-
-            feats.pop()
+        x = self.face_decoder(x, feats)
 
         x = self.output_block(x)
 
@@ -117,17 +62,8 @@ class Wav2Lip_v2(nn.Module):
     ) -> torch.Tensor:
         feats = self.face_encoder(face_sequences, audio_embedding)
 
-        x = audio_embedding
-        for f in self.face_decoder_blocks:
-            x = f(x)
-            try:
-                x = torch.cat((x, feats[-1]), dim=1)
-            except Exception as e:
-                print(x.size())
-                print(feats[-1].size())
-                raise e
-
-            feats.pop()
+        x = audio_embedding.view(audio_embedding.size(0), 512, 1, 1)
+        x = self.face_decoder(x, feats)
 
         x = self.output_block(x)
         outputs = x
