@@ -3,6 +3,8 @@ from typing import List
 from .conv import Conv2d, Conv2dTranspose
 from torch import nn
 
+from ...transformer import LGCM, CBAM
+
 
 class FaceDecoder(nn.Module):
     def __init__(self):
@@ -70,5 +72,53 @@ class FaceDecoder(nn.Module):
                 print(feats[-1].size())
                 raise e
 
+            feats.pop()
+        return x
+
+
+class Block_v2(nn.Module):
+    def __init__(self, in_ch: int, out_ch: int, mul3: bool = False):
+        super().__init__()
+        init_padding = 0 if mul3 else 1
+        self.up = Conv2dTranspose(in_ch, out_ch, 3, 1, init_padding)
+        self.res = Conv2d(in_ch, out_ch, 3, 1, 1, residual=True)
+        self.cbam = CBAM(out_ch)
+        self.lgcm = LGCM(out_ch, 8)
+
+    def forward(self, x):
+        x = self.up(x)
+        x = self.res(x)
+        x = self.cbam(x)
+        x = self.lgcm(x)
+        return x
+
+
+class FaceDecoder_v2(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.block = nn.ModuleList(
+            [
+                Block_v2(512, 512, mul3=True),
+                Block_v2(1024, 512),
+                Block_v2(1024, 512),
+                Block_v2(768, 384),
+                Block_v2(512, 256),
+                Block_v2(320, 128),
+                Block_v2(160, 64),
+            ]
+        )
+
+    def forward(
+        self, audio_embedding: torch.Tensor, feats: List[torch.Tensor]
+    ) -> torch.Tensor:
+        x = audio_embedding
+        for f in self.block:
+            x = f(x)
+            try:
+                x = torch.cat((x, feats[-1]), dim=1)
+            except Exception as e:
+                print(x.size())
+                print(feats[-1].size())
+                raise e
             feats.pop()
         return x
