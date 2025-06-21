@@ -2,7 +2,7 @@ import torch
 from .conv import Conv2d, nonorm_Conv2d
 from torch import nn
 from .encoder import FaceEncoder, AudioEncoder
-from .decoder import FaceDecoder, FaceDecoder_v2
+from .decoder import FaceDecoder_v2
 
 
 class Wav2Lip_v2(nn.Module):
