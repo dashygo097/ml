@@ -6,7 +6,7 @@ from torch import nn
 
 class LeNet(nn.Module):
     def __init__(self) -> None:
-        super(LeNet, self).__init__()
+        super().__init__()
 
         module_list = []
 
