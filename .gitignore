@@ -1,5 +1,6 @@
 .vscode/
 .DS_Store/
 __pycache__/
+benchmarks/assets/
 demo/
 scripts/hust_ic_sync.sh

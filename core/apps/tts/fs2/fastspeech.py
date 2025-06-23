@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 
-from ...transformer.encoder import EncoderBlock
+from ....models import EncoderBlock
 from .adapter import VarianceAdapter
 from .config import FastSpeechConfig
 

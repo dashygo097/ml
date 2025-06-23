@@ -1,4 +1,4 @@
 from .decoder import *
 from .encoder import *
-from .vqvae import *
+from .model import *
 from .quantizer import *

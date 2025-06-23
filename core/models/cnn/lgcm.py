@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from typing import Optional
 
-from .attns import MulHeadAttn
+from ..transformer import MulHeadAttn
 
 
 class LGCM(nn.Module):
