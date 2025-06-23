@@ -1,9 +1,10 @@
-import torch
 from typing import List
-from .conv import Conv2d, Conv2dTranspose
+
+import torch
 from torch import nn
 
-from ...transformer import LGCM, CBAM
+from ....models import CBAM, LGCM
+from .conv import Conv2d, Conv2dTranspose
 
 
 class FaceDecoder(nn.Module):

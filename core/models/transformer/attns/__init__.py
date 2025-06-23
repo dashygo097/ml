@@ -4,5 +4,4 @@ from .functional import *
 from .gqa import *
 from .mha import *
 from .mha2d import *
-from .cbam import *
 from .mla import *

@@ -1,17 +1,15 @@
-import json
 import os
 import threading
 from abc import ABC, abstractmethod
 from typing import Dict, Generic, List, TypeVar
 
-import matplotlib.pyplot as plt
 import torch
 from termcolor import colored
 from torch import nn
 from torch.cuda.amp import GradScaler
-from .logger import TrainLogger
 from tqdm import tqdm
 
+from .logger import TrainLogger
 from .utils import load_yaml
 
 
@@ -68,7 +66,14 @@ class Trainer(Generic[T_args, T_model], ABC):
         self.set_optimizer(optimizer)
         self.set_schedulers(scheduler)
         self.set_valid_ds(valid_ds)
-        self.scaler = GradScaler()
+        self.scaler = GradScaler() if torch.cuda.is_available() else None
+        if self.scaler is None:
+            print(
+                colored(
+                    "[WARN] CUDA is NOT available, scalar won't be used.",
+                    "yellow",
+                )
+            )
 
         self.n_steps: int = 0
         self.n_epochs: int = 0

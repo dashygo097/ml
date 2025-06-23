@@ -1,2 +1,2 @@
-from .models import *
+from .model import *
 from .parts import *

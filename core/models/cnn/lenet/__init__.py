@@ -1,1 +1,1 @@
-from .lenet import *
+from .model import *

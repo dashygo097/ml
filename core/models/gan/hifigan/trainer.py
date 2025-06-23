@@ -1,10 +1,9 @@
 from typing import Dict, List, Tuple
 
 import torch.nn.functional as F
-from torch import nn
 
 from ..trainer import GANTrainArgs, GANTrainer
-from .hifigan import HiFiGAN
+from .model import HiFiGAN
 
 
 class HiFiGANTrainArgs(GANTrainArgs):

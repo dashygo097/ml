@@ -1,10 +1,11 @@
-from torch import nn
 from typing import List
+
 import torch
 import torch.nn.functional as F
+from torch import nn
 
+from ....models import MulHeadCrossAttn
 from .conv import Conv2d
-from ...transformer.attns import MulHeadCrossAttn
 
 
 class FaceEncoder(nn.Module):

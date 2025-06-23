@@ -1,11 +1,11 @@
 import os
-from typing import Optional, Tuple
+from typing import Tuple, Optional
 from termcolor import colored
 
+import numpy as np
 import torch
 from torch import nn
 from torch.export import export
-import numpy as np
 
 import tvm
 from tvm import relax
@@ -18,6 +18,7 @@ class TVMe2eOptimizer:
         model: nn.Module,
         example_args: Tuple[torch.Tensor, ...],
     ) -> None:
+        super().__init__()
         self.from_pytorch(model, example_args)
 
     def show(self) -> None:
@@ -103,24 +104,3 @@ class TVMe2eOptimizer:
             target_output = vm["main"](target_data, *target_params).numpy()
 
         return target_output
-
-
-class MLP(nn.Module):
-    def __init__(self, input_size: int, output_size: int) -> None:
-        super().__init__()
-        self.fc1 = nn.Linear(input_size, 128)
-        self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64, output_size)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        return self.fc3(x)
-
-
-if __name__ == "__main__":
-    optimizer = TVMe2eOptimizer(MLP(10, 20), (torch.randn(16, 10),))
-    optimizer.show()
-
-    optimizer.auto_tune("metal", total_trials=10, info=True)
-    optimizer.optimize(np.random.randn(16, 10).astype("float32"), "metal")
