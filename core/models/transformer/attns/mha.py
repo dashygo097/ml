@@ -5,7 +5,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ..rope import RoPE
+from ..components import RoPE
 from .base import AttnInfraRecord, AttnModel
 from .functional import sdp_attn
 

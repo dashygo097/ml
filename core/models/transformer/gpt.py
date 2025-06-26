@@ -4,8 +4,8 @@ import torch
 from torch import nn
 
 from .attns import MulHeadLatentAttn
+from .components import SwiGLUFFN
 from .decoder import DecoderOnlyBlock
-from .ffn import SwiGLUFFN
 
 
 class GPTModel(nn.Module):

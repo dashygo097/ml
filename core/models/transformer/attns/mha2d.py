@@ -4,8 +4,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from ..components import RoPE
 from .base import AttnModel
-from ..rope import RoPE
 
 
 class MulHeadAttn2d(AttnModel):

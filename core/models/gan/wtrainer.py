@@ -3,8 +3,8 @@ from typing import Dict, List, Tuple
 import torch
 from termcolor import colored
 
+from .base_trainer import GANTrainArgs, GANTrainer
 from .frontend import ImageGAN
-from .trainer import GANTrainArgs, GANTrainer
 
 
 class WGANTrainer(GANTrainer):

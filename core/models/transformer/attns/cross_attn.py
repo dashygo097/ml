@@ -5,9 +5,9 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from .functional import sdp_attn
-from ..rope import RoPE
+from ..comporope import RoPE
 from .base import AttnInfraRecord
+from .functional import sdp_attn
 
 
 class MulHeadCrossAttn(nn.Module):
