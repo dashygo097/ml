@@ -80,9 +80,14 @@ class GPTrainer(Trainer):
                     shift_labels.view(-1),
                 )
 
-            self.scaler.scale(loss).backward()
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
+            if self.scaler is not None:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+
+            else:
+                loss.backward()
+                self.optimizer.step()
 
         return {"loss": loss.item()}
 

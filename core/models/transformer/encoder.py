@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from .attns import AttnModel, MulHeadAttn
-from .ffn import FFN, AddNorm
+from .components import FFN, AddNorm
 
 
 class EncoderBlock(nn.Module):
