@@ -4,11 +4,12 @@ import torch
 import torch.nn.functional as F
 import torch_geometric.nn as gnn
 from termcolor import colored
-from torch import nn
 from torch_geometric.data import Data
 
+from ..base import GNNEncoder
 
-class GCNBackBone(nn.Module):
+
+class GCNBackBone(GNNEncoder):
     def __init__(
         self,
         features: List[int],
@@ -18,8 +19,9 @@ class GCNBackBone(nn.Module):
     ) -> None:
         super().__init__()
         self.num_layers = len(features)
-        self.in_features = features[0]
         self.features = features
+        self.in_features = features[0]
+        self.out_features = features[-1]
         self.act = act
         self.dropout = dropout
         self.normalize = normalize
