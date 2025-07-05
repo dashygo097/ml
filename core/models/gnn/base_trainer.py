@@ -2,6 +2,7 @@ from typing import Dict
 
 from termcolor import colored
 from torch import nn
+from torch.utils.data import DataLoader
 
 from ...trainer import TrainArgs, Trainer
 
@@ -24,6 +25,14 @@ class GNNTrainer(Trainer):
     ) -> None:
         super().__init__(
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
+        )
+
+    def set_dataset(self, dataset) -> None:
+        self.data_loader = DataLoader(
+            dataset,
+            batch_size=self.args.batch_size,
+            shuffle=self.args.is_shuffle,
+            num_workers=self.args.num_workers,
         )
 
     def step(self, batch) -> Dict: ...

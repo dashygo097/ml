@@ -4,6 +4,7 @@ import torch
 import torch.nn.functional as F
 import torch_geometric.nn as gnn
 from termcolor import colored
+from torch import nn
 from torch_geometric.data import Data
 
 from ..base import GNNEncoder
@@ -26,16 +27,15 @@ class GCNBackBone(GNNEncoder):
         self.dropout = dropout
         self.normalize = normalize
 
-        self.convs = []
+        convs = []
         for i in range(self.num_layers - 1):
-            self.convs.extend(
+            convs.extend(
                 [
-                    (
-                        f"blk_{i}",
-                        gnn.GCNConv(features[i], features[i + 1], normalize=normalize),
-                    ),
+                    gnn.GCNConv(features[i], features[i + 1], normalize=normalize),
                 ]
             )
+
+        self.convs = nn.ModuleList(convs)
 
     def forward(self, data: Data) -> torch.Tensor:
         x = data.x
