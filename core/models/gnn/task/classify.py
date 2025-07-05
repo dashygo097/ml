@@ -14,7 +14,7 @@ class GNNClassifier(nn.Module):
     def __init__(
         self,
         encoder: GNNEncoder,
-        n_classes: int,
+        num_classes: int,
         level: str = "node",
         fusion: Callable = global_mean_pool,
     ) -> None:
@@ -37,23 +37,29 @@ class GNNClassifier(nn.Module):
                 )
             )
 
-        self.n_classes = n_classes
+        self.num_classes = num_classes
         self.level = level
 
         self.encoder = encoder
-        self.head = GNNClassifyHead(encoder.out_features, n_classes)
+        self.head = GNNClassifyHead(encoder.out_features, num_classes)
         self.fusion = fusion
 
     def forward(self, data: Data) -> torch.Tensor:
+        return self.head(self.encode(data))
+
+    def predict(self, data: Data) -> torch.Tensor:
+        logits = self.forward(data)
+        return logits.argmax(dim=-1)
+
+    def encode(self, data: Data) -> torch.Tensor:
+        x = data.x
+        edge_index = data.edge_index
+        edge_attr = data.get("edge_attr", None)
         if self.level == "node":
-            x = self.encoder(data)
-            return self.head(x)
-
+            return self.encoder(x, edge_index, edge_attr)
         elif self.level == "graph":
-            x = self.encoder(data)
-            x = self.fusion(x, data.batch)
-            return self.head(x)
-
+            x = self.encoder(x, edge_index, edge_attr)
+            return self.fusion(x, batch=data.batch)
         else:
             raise ValueError(
                 colored(
