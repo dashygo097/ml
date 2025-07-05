@@ -8,7 +8,7 @@ from torch import nn
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from .trainer import CNNTrainArgs, CNNTrainer
+from .base_trainer import CNNTrainArgs, CNNTrainer
 
 
 class TripletDataset(Dataset):

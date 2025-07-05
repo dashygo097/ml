@@ -10,7 +10,7 @@ from .heads import ScoreBasedRecommendHead
 
 
 class ScoreBasedRecommender(nn.Module):
-    def __init__(self, encoder: GNNEncoder, n_users: int, n_items: int):
+    def __init__(self, encoder: GNNEncoder, num_users: int, num_items: int):
         super().__init__()
         if encoder.in_features is None:
             raise ValueError(
@@ -20,15 +20,46 @@ class ScoreBasedRecommender(nn.Module):
                     attrs=["bold"],
                 )
             )
-        self.n_users = n_users
-        self.n_items = n_items
+        self.num_users = num_users
+        self.num_items = num_items
 
-        self.user_embedding = nn.Embedding(n_users, encoder.in_features)
-        self.item_embedding = nn.Embedding(n_items, encoder.in_features)
+        self.user_embedding = nn.Embedding(num_users, encoder.in_features)
+        self.item_embedding = nn.Embedding(num_items, encoder.in_features)
         self.encoder = encoder
         self.head = ScoreBasedRecommendHead()
 
-    def forward(self, data: Data) -> Tuple[torch.Tensor, ...]:
+    def recommend(self, user_id: int, data: Data, topk: int = 1) -> List[int]:
+        self.eval()
+        with torch.no_grad():
+            return self.forward(user_id, data, topk)
+
+    def forward(self, user_id: int, data: Data, topk: int = 1) -> List[int]:
+        if user_id < 0 or user_id >= self.num_users:
+            raise ValueError(
+                colored(
+                    "[ERROR] User ID must be within the range of the number of users.",
+                    color="red",
+                    attrs=["bold"],
+                )
+            )
+
+        user_emb, item_emb = self.encode(data)
+        return self.decoder(user_id, user_emb, item_emb, topk)
+
+    def decoder(
+        self, user_id: int, user_emb: torch.Tensor, item_emb: torch.Tensor, topk: int
+    ) -> List[int]:
+        if user_id < 0 or user_id >= self.num_users:
+            raise ValueError(
+                colored(
+                    "[ERROR] User ID must be within the range of the number of users.",
+                    color="red",
+                    attrs=["bold"],
+                )
+            )
+        return self.head(user_id, user_emb, item_emb, topk)
+
+    def encode(self, data: Data) -> Tuple[torch.Tensor, ...]:
         embeddings = []
         x = torch.cat(
             [
@@ -48,18 +79,3 @@ class ScoreBasedRecommender(nn.Module):
             final_emb[self.user_embedding.num_embeddings :],
         )
         return user_emb, item_emb
-
-    def recommmend(self, user_id: int, data: Data, topk: int = 1) -> List[int]:
-        if user_id < 0 or user_id >= self.n_users:
-            raise ValueError(
-                colored(
-                    "[ERROR] User ID must be within the range of the number of users.",
-                    color="red",
-                    attrs=["bold"],
-                )
-            )
-
-        self.eval()
-        with torch.no_grad():
-            user_emb, item_emb = self.forward(data)
-            return self.head(user_id, user_emb, item_emb, topk)
