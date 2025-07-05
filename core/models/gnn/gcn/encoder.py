@@ -1,11 +1,9 @@
-from typing import Callable, List
+from typing import Callable, List, Optional
 
 import torch
 import torch.nn.functional as F
 import torch_geometric.nn as gnn
-from termcolor import colored
 from torch import nn
-from torch_geometric.data import Data
 
 from ..base import GNNEncoder
 
@@ -37,34 +35,32 @@ class GCNBackBone(GNNEncoder):
 
         self.convs = nn.ModuleList(convs)
 
-    def forward(self, data: Data) -> torch.Tensor:
-        x = data.x
-        edge_index = data.edge_index
-        edge_weight = getattr(data, "edge_weight", None)
+    def forward(
+        self,
+        x: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        edge_weight = edge_attr.float() if edge_attr is not None else None
+
         for conv in self.convs:
             x = conv(x, edge_index, edge_weight)
             x = self.act(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
-        if x is None:
-            raise ValueError(
-                colored(
-                    "[ERROR] data.x should NOT be None", color="red", attrs=["bold"]
-                )
-            )
         return x
 
     def feats(
         self,
-        data: Data,
+        x: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: Optional[torch.Tensor] = None,
         apply_act: bool = False,
         apply_dropout: bool = True,
     ) -> List[torch.Tensor]:
         feats = []
+        edge_weight = edge_attr.float() if edge_attr is not None else None
 
-        x = data.x
-        edge_index = data.edge_index
-        edge_weight = getattr(data, "edge_weight", None)
         for conv in self.convs:
             x = conv(x, edge_index, edge_weight)
             feats.append(x)

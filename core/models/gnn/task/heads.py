@@ -5,10 +5,10 @@ from torch import nn
 
 
 class GNNClassifyHead(nn.Module):
-    def __init__(self, out_features: int, n_classes: int) -> None:
+    def __init__(self, out_features: int, num_classes: int) -> None:
         super().__init__()
-        self.n_classes
-        self.fc = nn.Linear(out_features, n_classes)
+        self.num_classes = num_classes
+        self.fc = nn.Linear(out_features, num_classes)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.fc(x)
