@@ -8,13 +8,13 @@ from torch import nn
 from ..base import GNNEncoder
 
 
-class GCNBackbone(GNNEncoder):
+class GATBackbone(GNNEncoder):
     def __init__(
         self,
         features: List[int],
+        heads: int,
         act: Callable = F.relu,
         dropout: float = 0.5,
-        normalize: bool = True,
     ) -> None:
         super().__init__()
         self.num_layers = len(features)
@@ -23,13 +23,14 @@ class GCNBackbone(GNNEncoder):
         self.out_features = features[-1]
         self.act = act
         self.dropout = dropout
-        self.normalize = normalize
 
         convs = []
         for i in range(self.num_layers - 1):
             convs.extend(
                 [
-                    gnn.GCNConv(features[i], features[i + 1], normalize=normalize),
+                    gnn.GATv2Conv(
+                        features[i], features[i + 1], heads=heads, concat=False
+                    ),
                 ]
             )
 
