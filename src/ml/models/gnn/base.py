@@ -21,8 +21,8 @@ class BaseIterator:
 class GNNEncoder(ABC, nn.Module):
     def __init__(self) -> None:
         super().__init__()
-        self.in_features: Optional[int] = None
-        self.out_features: Optional[int] = None
+        self.in_features = None
+        self.out_features = None
 
     @abstractmethod
     def forward(
