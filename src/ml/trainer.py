@@ -23,6 +23,7 @@ class TrainArgs:
         self.n_epochs: int = self.args["n_epochs"]
         self.num_workers: int = self.args.get("num_workers", 2)
         self.lr: float = self.args["lr"]
+        self.weight_decay: float = self.args.get("weight_decay", 0.0)
 
         self.is_shuffle: bool = self.args.get("is_shuffle", False)
         self.save_dict: str = self.args.get("save_dict", "./checkpoints")
@@ -90,19 +91,27 @@ class Trainer(Generic[T_args, T_model], ABC):
             )
         elif isinstance(device, str):
             self.device = torch.device(device)
+            self.args.device = device
 
         elif isinstance(device, torch.device):
             self.device = device
+            self.args.device = device.type
 
         else:
             raise ValueError("Invalid device")
 
     def set_optimizer(self, optimizer) -> None:
         if optimizer is None:
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.lr)
+            self.optimizer = torch.optim.Adam(
+                self.model.parameters(),
+                lr=self.args.lr,
+                weight_decay=self.args.weight_decay,
+            )
 
         elif isinstance(optimizer, torch.optim.Optimizer):
             self.optimizer = optimizer
+            self.args.lr = self.optimizer.defaults["lr"]
+            self.args.weight_decay = self.optimizer.defaults.get("weight_decay", 0.0)
 
         else:
             raise ValueError("Invalid optimizer")
@@ -117,7 +126,7 @@ class Trainer(Generic[T_args, T_model], ABC):
         else:
             self.schedulers = [schedulers]
 
-    def set_model(self, model: nn.Module) -> None:
+    def set_model(self, model: T_model) -> None:
         self.model = model.to(self.device)
 
     def set_dataset(self, dataset) -> None:

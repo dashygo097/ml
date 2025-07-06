@@ -4,12 +4,13 @@ import torch
 from torch import nn
 
 
-class GNNClassifyHead(nn.Module):
+class ClassifyHead(nn.Module):
     def __init__(
         self,
         features: int | List[int],
         num_classes: int,
         act: Callable = nn.ReLU(),
+        out_act: Callable = nn.Identity(),
         dropout: float = 0.5,
     ) -> None:
         super().__init__()
@@ -27,9 +28,10 @@ class GNNClassifyHead(nn.Module):
                     layers.append(nn.Dropout(dropout))
 
             self.fc = nn.Sequential(*layers, nn.Linear(features[-1], num_classes))
+        self.out_act = out_act
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.fc(x)
+        return self.out_act(self.fc(x))
 
 
 class ScoreBasedRecommendHead(nn.Module):

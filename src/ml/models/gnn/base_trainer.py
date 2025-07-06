@@ -1,10 +1,10 @@
-from abc import abstractmethod
 from typing import Dict
 
 from termcolor import colored
 from torch import nn
 
 from ...trainer import TrainArgs, Trainer
+from .base import BaseIterator
 
 
 class GNNTrainer(Trainer):
@@ -22,11 +22,11 @@ class GNNTrainer(Trainer):
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
         )
 
-    @abstractmethod
-    def set_dataset(self, dataset) -> None: ...
+    def set_dataset(self, dataset) -> None:
+        self.data_loader = BaseIterator(dataset)
 
     def set_valid_ds(self, valid_ds) -> None:
-        self.valid_data_loader = None
+        self.valid_data_loader = BaseIterator(valid_ds)
 
     def step(self, batch) -> Dict: ...
 
@@ -48,5 +48,5 @@ class GNNTrainer(Trainer):
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs:}']['loss']}"
         )

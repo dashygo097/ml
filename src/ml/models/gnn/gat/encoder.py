@@ -13,8 +13,10 @@ class GATBackbone(GNNEncoder):
         self,
         features: List[int],
         heads: int,
-        act: Callable = F.relu,
-        dropout: float = 0.5,
+        act: Callable = F.elu,
+        dropout: float = 0.3,
+        normalize: bool = True,
+        residue: Optional[List[bool]] = None,
     ) -> None:
         super().__init__()
         self.num_layers = len(features)
@@ -23,18 +25,31 @@ class GATBackbone(GNNEncoder):
         self.out_features = features[-1]
         self.act = act
         self.dropout = dropout
+        self.residue = (
+            residue if residue is not None else [False] * (self.num_layers - 1)
+        )
 
-        convs = []
+        self.convs = nn.ModuleList()
+        self.res_proj = nn.ModuleList()
+        self.norms = nn.ModuleList()
         for i in range(self.num_layers - 1):
-            convs.extend(
+            self.convs.extend(
                 [
                     gnn.GATv2Conv(
-                        features[i], features[i + 1], heads=heads, concat=False
+                        features[i], features[i + 1] // heads, heads=heads, concat=True
                     ),
                 ]
             )
 
-        self.convs = nn.ModuleList(convs)
+            if normalize:
+                self.norms.append(gnn.LayerNorm(features[i + 1]))
+
+            if self.residue[i]:
+                self.res_proj.append(
+                    nn.Linear(features[i], features[i + 1], bias=False)
+                )
+            else:
+                self.res_proj.append(None)
 
     def forward(
         self,
@@ -44,8 +59,15 @@ class GATBackbone(GNNEncoder):
     ) -> torch.Tensor:
         edge_weight = edge_attr.float() if edge_attr is not None else None
 
-        for conv in self.convs:
-            x = conv(x, edge_index, edge_weight)
+        for index, conv in enumerate(self.convs):
+            if self.residue[index]:
+                x = conv(x, edge_index, edge_weight) + self.res_proj[index](x)
+            else:
+                x = conv(x, edge_index, edge_weight)
+
+            if self.norms:
+                x = self.norms[index](x)
+
             x = self.act(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
@@ -62,8 +84,11 @@ class GATBackbone(GNNEncoder):
         feats = []
         edge_weight = edge_attr.float() if edge_attr is not None else None
 
-        for conv in self.convs:
-            x = conv(x, edge_index, edge_weight)
+        for index, conv in enumerate(self.convs):
+            if self.residue[index]:
+                x = conv(x, edge_index, edge_weight) + self.res_proj[index](x)
+            else:
+                x = conv(x, edge_index, edge_weight)
             feats.append(x)
             if apply_act:
                 x = self.act(x)

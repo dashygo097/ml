@@ -15,6 +15,7 @@ class GraphMAE(GNNEncoder):
         dropout: float = 0.5,
         act: Callable = F.relu,
         normalize: bool = True,
+        residue: Optional[List[int]] = None,
     ) -> None:
         super().__init__()
         self.features = features
@@ -23,14 +24,22 @@ class GraphMAE(GNNEncoder):
         self.dropout = dropout
         self.act = act
         self.normalize = normalize
-
         self.num_layers = len(features) - 1
+        self.residue = residue if residue is not None else [False] * self.num_layers
 
         self.enc = nn.ModuleList()
+        self.res_project = nn.ModuleList()
         for i in range(self.num_layers):
             self.enc.append(
                 gnn.GCNConv(features[i], features[i + 1], normalize=normalize)
             )
+
+            if self.residue[i]:
+                self.res_project.append(
+                    nn.Linear(features[i], features[i + 1], bias=False)
+                )
+            else:
+                self.res_project.append(None)
 
         self.dec = nn.Sequential(
             nn.Linear(features[-1], features[-2]),
@@ -44,8 +53,11 @@ class GraphMAE(GNNEncoder):
         edge_index: torch.Tensor,
         edge_attr: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        for conv in self.enc:
-            x = conv(x, edge_index, edge_attr)
+        for index, conv in enumerate(self.enc):
+            if self.residue[index]:
+                x = conv(x, edge_index, edge_attr) + self.res_project[index](x)
+            else:
+                x = conv(x, edge_index, edge_attr)
             x = self.act(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
         return x
@@ -59,8 +71,11 @@ class GraphMAE(GNNEncoder):
         x_original = x.clone()
         x[mask] = 0.0
 
-        for conv in self.enc:
-            x = conv(x, edge_index)
+        for index, conv in enumerate(self.enc):
+            if self.residue[index]:
+                x = conv(x, edge_index) + self.res_project[index](x)
+            else:
+                x = conv(x, edge_index)
             x = self.act(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
@@ -77,8 +92,11 @@ class GraphMAE(GNNEncoder):
         apply_dropout: bool = True,
     ) -> List[torch.Tensor]:
         feats = []
-        for conv in self.enc:
-            x = conv(x, edge_index, edge_attr)
+        for index, conv in enumerate(self.enc):
+            if self.residue[index]:
+                x = conv(x, edge_index, edge_attr) + self.res_project[index](x)
+            else:
+                x = conv(x, edge_index, edge_attr)
             feats.append(x)
             if apply_act:
                 x = self.act(x)
