@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import torch
 from termcolor import colored
@@ -17,6 +17,7 @@ class GNNClassifier(nn.Module):
         num_classes: int,
         level: str = "node",
         fusion: Callable = global_mean_pool,
+        head: Optional[nn.Module] = None,
     ) -> None:
         super().__init__()
         if encoder.out_features is None:
@@ -41,7 +42,11 @@ class GNNClassifier(nn.Module):
         self.level = level
 
         self.encoder = encoder
-        self.head = GNNClassifyHead(encoder.out_features, num_classes)
+        self.head = (
+            head
+            if head is not None
+            else GNNClassifyHead(encoder.out_features, num_classes=num_classes)
+        )
         self.fusion = fusion
 
     def forward(self, data: Data) -> torch.Tensor:

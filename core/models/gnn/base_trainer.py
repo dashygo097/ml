@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Dict
 
 from termcolor import colored
@@ -20,6 +21,12 @@ class GNNTrainer(Trainer):
         super().__init__(
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
         )
+
+    @abstractmethod
+    def set_dataset(self, dataset) -> None: ...
+
+    def set_valid_ds(self, valid_ds) -> None:
+        self.valid_data_loader = None
 
     def step(self, batch) -> Dict: ...
 
