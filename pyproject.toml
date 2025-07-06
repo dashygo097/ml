@@ -1,0 +1,35 @@
+[project]
+name = "ml"
+version = "0.1.0"
+description = "Dashygo's ML workflow"
+readme = "README.md"
+authors = [
+    { name = "dashygo097", email = "dashygo097@github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "coremltools>=8.3.0",
+    "datasets>=3.6.0",
+    "librosa>=0.11.0",
+    "matplotlib>=3.10.3",
+    "onnx>=1.18.0",
+    "onnxoptimizer>=0.3.13",
+    "onnxruntime>=1.22.0",
+    "pandas>=2.3.0",
+    "ptflops>=0.7.4",
+    "termcolor>=3.1.0",
+    "torch",
+    "torch_geometric",
+    "torchvision>=0.22.1",
+    "transformers>=4.53.1",
+]
+
+[project.scripts]
+ml = "ml:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+package = true

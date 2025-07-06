@@ -7,9 +7,9 @@ import torch
 import torch.nn as nn
 from termcolor import colored
 
+from ...logger import TrainLogger
 from ...trainer import TrainArgs, Trainer
 from .frontend import ImageGAN
-from ...logger import TrainLogger
 
 
 class GANTrainArgs(TrainArgs):

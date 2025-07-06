@@ -15,6 +15,7 @@ class GCNBackbone(GNNEncoder):
         act: Callable = F.relu,
         dropout: float = 0.5,
         normalize: bool = True,
+        residue: Optional[List[bool]] = None,
     ) -> None:
         super().__init__()
         self.num_layers = len(features)
@@ -24,14 +25,24 @@ class GCNBackbone(GNNEncoder):
         self.act = act
         self.dropout = dropout
         self.normalize = normalize
+        self.residue = (
+            residue if residue is not None else [False] * (self.num_layers - 1)
+        )
 
         convs = []
+        self.res_proj = nn.ModuleList()
         for i in range(self.num_layers - 1):
             convs.extend(
                 [
                     gnn.GCNConv(features[i], features[i + 1], normalize=normalize),
                 ]
             )
+            if self.residue[i]:
+                self.res_proj.append(
+                    nn.Linear(features[i], features[i + 1], bias=False)
+                )
+            else:
+                self.res_proj.append(None)
 
         self.convs = nn.ModuleList(convs)
 
@@ -43,8 +54,11 @@ class GCNBackbone(GNNEncoder):
     ) -> torch.Tensor:
         edge_weight = edge_attr.float() if edge_attr is not None else None
 
-        for conv in self.convs:
-            x = conv(x, edge_index, edge_weight)
+        for index, conv in enumerate(self.convs):
+            if self.residue[index]:
+                x = conv(x, edge_index, edge_weight) + self.res_proj[index](x)
+            else:
+                x = conv(x, edge_index, edge_weight)
             x = self.act(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
@@ -61,8 +75,11 @@ class GCNBackbone(GNNEncoder):
         feats = []
         edge_weight = edge_attr.float() if edge_attr is not None else None
 
-        for conv in self.convs:
-            x = conv(x, edge_index, edge_weight)
+        for index, conv in enumerate(self.convs):
+            if self.residue[index]:
+                x = conv(x, edge_index, edge_weight) + self.res_proj[index](x)
+            else:
+                x = conv(x, edge_index, edge_weight)
             feats.append(x)
             if apply_act:
                 x = self.act(x)

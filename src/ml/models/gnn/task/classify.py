@@ -7,7 +7,7 @@ from torch_geometric.data import Data
 from torch_geometric.nn import global_mean_pool
 
 from ..base import GNNEncoder
-from .heads import GNNClassifyHead
+from .heads import ClassifyHead
 
 
 class GNNClassifier(nn.Module):
@@ -45,7 +45,7 @@ class GNNClassifier(nn.Module):
         self.head = (
             head
             if head is not None
-            else GNNClassifyHead(encoder.out_features, num_classes=num_classes)
+            else ClassifyHead(encoder.out_features, num_classes=num_classes)
         )
         self.fusion = fusion
 

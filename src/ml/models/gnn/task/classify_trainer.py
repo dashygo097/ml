@@ -1,14 +1,15 @@
 from typing import Dict
 
-from torch import nn
+from termcolor import colored
 
 from ..base_trainer import GNNTrainer, TrainArgs
+from .classify import GNNClassifier
 
 
 class GNNClassifyTrainer(GNNTrainer):
     def __init__(
         self,
-        model: nn.Module,
+        model: GNNClassifier,
         dataset,
         criterion,
         args: TrainArgs,
@@ -19,21 +20,6 @@ class GNNClassifyTrainer(GNNTrainer):
         super().__init__(
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
         )
-
-    def set_dataset(self, dataset) -> None:
-        class BaseIterator:
-            def __init__(self, data):
-                self.data = data
-
-            def __len__(self):
-                return 1
-
-            def __iter__(self):
-                while True:
-                    yield self.data
-                    break
-
-        self.data_loader = BaseIterator(dataset)
 
     def step(self, batch) -> Dict:
         self.optimizer.zero_grad()
@@ -46,4 +32,16 @@ class GNNClassifyTrainer(GNNTrainer):
 
         return {"loss": loss}
 
-    def validate(self) -> None: ...
+    def validate(self) -> None:
+        acc = 0.0
+        for data in self.valid_data_loader:
+            pred = self.model.predict(data)
+            for mask in [data.train_mask, data.val_mask, data.test_mask]:
+                correct = (pred[mask] == data.y[mask]).sum()
+                acc = int(correct) / int(mask.sum())
+
+        self.logger.log("valid", {"accuracy": acc}, index=self.n_epochs)
+        print(
+            f"(Validation {self.n_epochs}) "
+            + f": {colored('accuracy', 'green')}: {acc:.4f}"
+        )
