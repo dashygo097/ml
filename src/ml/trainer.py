@@ -194,6 +194,7 @@ class Trainer(Generic[T_args, T_model], ABC):
             )
 
         # Main training loop
+        self._stop_training = False
         for epoch in range(self.args.n_epochs):
             for i, batch in enumerate(
                 tqdm(
@@ -206,6 +207,27 @@ class Trainer(Generic[T_args, T_model], ABC):
                 step_result = self.step(batch)
                 self.step_info(step_result)
                 self.n_steps += 1
+
+                if step_result.get("should_stop"):
+                    print(
+                        colored(
+                            "Training stopped by user command.",
+                            "red",
+                            attrs=["bold"],
+                        )
+                    )
+                    self._stop_training = True
+                    break
+
+            if self._stop_training:
+                print(
+                    colored(
+                        "Training stopped by user command.",
+                        "red",
+                        attrs=["bold"],
+                    )
+                )
+                break
 
             for scheduler in self.schedulers:
                 scheduler.step()
