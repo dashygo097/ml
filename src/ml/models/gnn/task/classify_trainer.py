@@ -36,10 +36,9 @@ class GNNClassifyTrainer(GNNTrainer):
     def step(self, batch) -> Dict:
         self.optimizer.zero_grad()
 
-        edge_index, _ = dropout_edge(
+        batch.edge_index, _ = dropout_edge(
             batch.edge_index, p=self.args.edge_dropout, training=self.model.training
         )
-        batch.edge_index = edge_index
 
         out = self.model(batch.to(self.device))
         if hasattr(batch, "train_mask"):
@@ -96,8 +95,8 @@ class GNNClassifyTrainer(GNNTrainer):
         )
         print(
             f"(Validation {self.n_epochs}) "
-            + f": {colored('loss', 'red')}: {val_loss:.4f} "
-            + f": {colored('accuracy', 'green')}: {val_acc:.4f}"
+            + f" {colored('loss', 'red')}: {val_loss:.4f} "
+            + f", {colored('accuracy', 'green')}: {val_acc:.4f}"
         )
 
         if self._no_improve_epochs >= self.args.patience:
