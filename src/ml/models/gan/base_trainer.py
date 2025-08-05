@@ -239,7 +239,7 @@ class GANTrainer(Trainer):
             g_loss.backward()
             self.optimizer_G.step()
 
-            g_loss_total += g_loss.item()
+            g_loss_total += g_loss
 
             if self.args.enable_ema:
                 self.update_ema()
@@ -262,6 +262,7 @@ class GANTrainer(Trainer):
                 "r_loss": x.get("r_loss", 0) + result["r_loss"].item(),
                 "f_loss": x.get("f_loss", 0) + result["f_loss"].item(),
             },
+            index=self.n_epochs,
         )
 
     def epoch_info(self) -> None:
