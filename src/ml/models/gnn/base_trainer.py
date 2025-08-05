@@ -3,7 +3,7 @@ from typing import Dict
 from termcolor import colored
 from torch import nn
 
-from ...data import BaseIterator
+from ...iter import BaseIterator
 from ...trainer import TrainArgs, Trainer
 
 

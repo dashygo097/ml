@@ -101,6 +101,6 @@ class GNNClassifyTrainer(GNNTrainer):
 
         if self._no_improve_epochs >= self.args.patience:
             print(
-                f"🔒 Early stopping triggered after {self._no_improve_epochs} unimproved epochs."
+                f"Early stopping triggered after {self._no_improve_epochs} unimproved epochs."
             )
             self._stop_training = True

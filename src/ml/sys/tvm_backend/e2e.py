@@ -1,13 +1,12 @@
 import os
-from typing import Tuple, Optional
-from termcolor import colored
+from typing import Optional, Tuple
 
 import numpy as np
 import torch
+import tvm
+from termcolor import colored
 from torch import nn
 from torch.export import export
-
-import tvm
 from tvm import relax
 from tvm.relax.frontend.torch import from_exported_program
 
