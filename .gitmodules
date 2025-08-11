@@ -1,0 +1,3 @@
+[submodule "3rdparty/trtrt"]
+	path = 3rdparty/trtrt
+	url = https://github.com/dashygo097/trtrt.git

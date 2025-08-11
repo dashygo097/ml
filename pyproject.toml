@@ -10,6 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
     "coremltools>=8.3.0",
     "datasets>=3.6.0",
+    "gymnasium>=1.2.0",
     "librosa>=0.11.0",
     "matplotlib>=3.10.3",
     "onnx>=1.18.0",
