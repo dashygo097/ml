@@ -2,5 +2,5 @@
 .DS_Store/
 __pycache__/
 benchmarks/assets/
-demo/
+demos/
 scripts/hust_ic_sync.sh
