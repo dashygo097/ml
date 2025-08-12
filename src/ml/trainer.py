@@ -1,7 +1,7 @@
 import os
 import threading
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, List, TypeVar
+from typing import Callable, Dict, Generic, List, TypeVar
 
 import torch
 from termcolor import colored
@@ -46,20 +46,20 @@ T_args = TypeVar("T_args", bound=TrainArgs)
 T_model = TypeVar("T_model", bound=nn.Module)
 
 
-class Trainer(Generic[T_args, T_model], ABC):
+class Trainer(ABC, Generic[T_args, T_model]):
     def __init__(
         self,
         model: T_model,
         dataset,
-        criterion,
+        criterion: Callable,
         args: T_args,
         optimizer=None,
         scheduler=None,
         valid_ds=None,
     ) -> None:
-        self.model = model
-        self.criterion = criterion
-        self.args = args
+        self.model: T_model = model
+        self.criterion: Callable = criterion
+        self.args: T_args = args
 
         self.set_device(args.device)
         self.set_model(model)
@@ -158,7 +158,10 @@ class Trainer(Generic[T_args, T_model], ABC):
         )
 
     def load(self, path: str) -> None:
-        self.model.load_state_dict(torch.load(path))
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Checkpoint file {path} does not exist.")
+        self.model.load_state_dict(torch.load(path, map_location=self.device))
+        print(f"[INFO] Model loaded from: {path}!")
 
     @abstractmethod
     def step(self, batch) -> Dict:

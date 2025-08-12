@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Tuple
 
-import gymnasium as gym
 from gymnasium import Env
 
 
