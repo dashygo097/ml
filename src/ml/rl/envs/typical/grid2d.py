@@ -1,0 +1,99 @@
+from typing import Any, Dict, List, Optional, Tuple
+
+import gymnasium as gym
+import numpy as np
+
+from ..base import BaseEnv
+
+
+class Grid2DEnv(BaseEnv):
+    def __init__(self, size: int) -> None:
+        super().__init__()
+
+        self.size = size
+        self._agent_location = np.array([-1, -1], dtype=np.int32)
+        self._target_location = np.array([-1, -1], dtype=np.int32)
+
+        self.observation_space = gym.spaces.Dict(
+            {
+                "agent": gym.spaces.Box(0, size - 1, shape=(2,), dtype=int),
+                "target": gym.spaces.Box(0, size - 1, shape=(2,), dtype=int),
+            }
+        )
+
+        self.action_space = gym.spaces.Discrete(4)
+
+        self._action_to_direction = {
+            0: np.array([1, 0]),
+            1: np.array([0, 1]),
+            2: np.array([-1, 0]),
+            3: np.array([0, -1]),
+        }
+
+        self._forbidden_area = np.empty((0, 2), dtype=int)
+
+    def get_obs(self) -> Dict[str, Any]:
+        return {"agent": self._agent_location, "target": self._target_location}
+
+    def get_info(self) -> Dict[str, Any]:
+        return {
+            "distance": np.linalg.norm(
+                self._agent_location - self._target_location, ord=1
+            )
+        }
+
+    def reset(
+        self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        super().reset(seed=seed)
+
+        self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
+
+        self._target_location = self._agent_location
+        while np.array_equal(self._target_location, self._agent_location):
+            self._target_location = self.np_random.integers(
+                0, self.size, size=2, dtype=int
+            )
+
+        observation = self.get_obs()
+        info = self.get_info()
+
+        if options is not None:
+            if "agent_location" in options.keys():
+                self._agent_location = np.clip(
+                    options["agent_location"], 0, self.size - 1
+                )
+            if "target_location" in options.keys():
+                self._target_location = np.clip(
+                    options["target_location"], 0, self.size - 1
+                )
+            if "forbidden_area" in options.keys():
+                self._set_forbidden_area(options["forbidden_area"])
+
+        return observation, info
+
+    def step(self, action) -> Tuple:
+        direction = self._action_to_direction[action]
+
+        self._agent_location = np.clip(
+            self._agent_location + direction, 0, self.size - 1
+        )
+
+        terminated = np.array_equal(self._agent_location, self._target_location)
+
+        truncated = False
+
+        if terminated:
+            reward = 1.0
+        elif np.any(np.all(self._agent_location == self._forbidden_area, axis=1)):
+            reward = -1.0
+        else:
+            reward = 0.0
+
+        observation = self.get_obs()
+        info = self.get_info()
+
+        return observation, reward, terminated, truncated, info
+
+    def _set_forbidden_area(self, value: np.ndarray | List) -> None:
+        self._forbidden_area = np.clip(value, 0, self.size - 1)
