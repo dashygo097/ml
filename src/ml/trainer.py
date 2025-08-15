@@ -202,27 +202,17 @@ class Trainer(ABC, Generic[T_args, T_model]):
         # Main training loop
         self._stop_training = False
         for epoch in range(self.args.n_epochs):
-            for i, batch in enumerate(
-                tqdm(
-                    self.data_loader,
-                    total=len(self.data_loader),
-                    desc=colored(f"epoch: {epoch}", "light_red", attrs=["bold"]),
-                    leave=False,
-                )
+            for batch in tqdm(
+                self.data_loader,
+                total=len(self.data_loader),
+                desc=colored(f"epoch: {epoch}", "light_red", attrs=["bold"]),
+                leave=False,
             ):
                 step_result = self.step(batch)
                 self.step_info(step_result)
                 self.n_steps += 1
 
-                if step_result.get("should_stop"):
-                    print(
-                        colored(
-                            "Training stopped by user command.",
-                            "red",
-                            attrs=["bold"],
-                        )
-                    )
-                    self._stop_training = True
+                if self._stop_training:
                     break
 
             if self._stop_training:
@@ -239,7 +229,7 @@ class Trainer(ABC, Generic[T_args, T_model]):
                 scheduler.step()
 
             self.epoch_info()
-            self.logger.save_log(info=False)
+            self.logger.save_log()
 
             # Validation
             self.model.eval()
