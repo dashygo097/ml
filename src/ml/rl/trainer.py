@@ -20,7 +20,6 @@ class RLTrainArgs:
         )
         self.device: str = self.args["device"]
         self.n_epochs: int = self.args["n_epochs"]
-        self.max_iterations: int = self.args.get("max_iterations", 1000)
 
         # env reset options
         self.options: Dict = self.args.get("options", {})
@@ -68,8 +67,10 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
 
         self.n_steps: int = 0
         self.n_epochs: int = 0
-
         self.logger: TrainLogger = TrainLogger(self.args.log_dict)
+
+        self._terminated: bool = False
+        self._truncated: bool = False
 
     def set_device(self, device: str) -> None:
         self.device = device
@@ -121,15 +122,6 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
     def should_stop(self) -> None:
         self._stop_training = True
 
-    def should_truncate(self) -> None:
-        self._truncated = True
-
-    def obs(self) -> Dict:
-        return self._obs
-
-    def info(self) -> Dict:
-        return self._info
-
     def log2plot(self, key: str) -> None:
         self.logger.plot(key)
 
@@ -140,31 +132,18 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
 
         # Main training loop
         self._stop_training = False
-        self._truncated = False
         for _ in tqdm(
             range(self.args.n_epochs),
             desc=colored("Training", "light_red", attrs=["bold"]),
             leave=False,
         ):
+            self._terminated = False
             self._truncated = False
             self._obs, self._info = self.env.reset(options=self.args.options)
-            iteration = 0
-            while self._truncated is False and iteration < self.args.max_iterations:
+            while not (self._terminated or self._truncated):
                 step_result = self.step()
                 self.step_info(step_result)
                 self.n_steps += 1
-                iteration += 1
-
-                if step_result.get("should_stop"):
-                    print(
-                        colored(
-                            "Training stopped by user command.",
-                            "red",
-                            attrs=["bold"],
-                        )
-                    )
-                    self._stop_training = True
-                    break
 
             if self._stop_training:
                 print(
@@ -181,11 +160,12 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
                     scheduler.step()
 
             self.epoch_info()
-            self.logger.save_log(info=False)
+            self.logger.save_log()
 
             self.n_epochs += 1
 
         # Finalization
+        self.agent.eval()
         self.env.close()
         self.save()
         self.logger.save_log(info=True)
