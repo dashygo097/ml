@@ -9,6 +9,12 @@ class BaseEnv(ABC, Env):
         super().__init__()
 
     @abstractmethod
+    def get_obs_shape(self) -> Tuple: ...
+
+    @abstractmethod
+    def get_act_shape(self) -> Tuple: ...
+
+    @abstractmethod
     def get_obs(self) -> Dict[str, Any]: ...
 
     @abstractmethod
@@ -19,7 +25,6 @@ class BaseEnv(ABC, Env):
         self, *, seed: Optional[int] = None, options: Optional[Dict[str, Any]] = None
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         super().reset(seed=seed, options=options)
-        pass
 
     @abstractmethod
     def step(self, action) -> Tuple: ...

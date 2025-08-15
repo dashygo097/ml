@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import torch
@@ -45,7 +45,6 @@ class GANTrainer(Trainer):
         valid_ds=None,
     ):
         self.model = model
-        self.criterion = criterion
         self.args = args
         self.generator: nn.Module = model.generator
         self.discriminator: nn.Module = model.discriminator
@@ -102,7 +101,7 @@ class GANTrainer(Trainer):
         elif isinstance(schedulers, Tuple):
             self.schedulers = list(schedulers)
 
-    def set_criterion(self, criterion=None):
+    def set_criterion(self, criterion) -> None:
         if criterion is None:
             self.criterion = [nn.BCELoss(), nn.BCELoss()]
             self.criterion_G = self.criterion[0]
@@ -167,7 +166,9 @@ class GANTrainer(Trainer):
                     + (1 - self.args.ema_decay) * model_param.data
                 )
 
-    def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
+    def step(
+        self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
+    ) -> Dict[str, Any]:
         B = batch[0].shape[0]
         batched = (
             batch[0]
@@ -247,20 +248,20 @@ class GANTrainer(Trainer):
         g_loss_avg = g_loss_total / self.args.g2d_ratio
 
         return {
-            "g_loss": g_loss_avg,
-            "d_loss": d_loss,
-            "r_loss": r_loss,
-            "f_loss": f_loss,
+            "g_loss": g_loss_avg.item(),
+            "d_loss": d_loss.item(),
+            "r_loss": r_loss.item(),
+            "f_loss": f_loss.item(),
         }
 
-    def step_info(self, result: Dict) -> None:
+    def step_info(self, result: Dict[str, Any]) -> None:
         self.logger.op(
             "epoch",
             lambda x: {
-                "g_loss": x.get("g_loss", 0) + result["g_loss"].item(),
-                "d_loss": x.get("d_loss", 0) + result["d_loss"].item(),
-                "r_loss": x.get("r_loss", 0) + result["r_loss"].item(),
-                "f_loss": x.get("f_loss", 0) + result["f_loss"].item(),
+                "g_loss": x.get("g_loss", 0) + result["g_loss"],
+                "d_loss": x.get("d_loss", 0) + result["d_loss"],
+                "r_loss": x.get("r_loss", 0) + result["r_loss"],
+                "f_loss": x.get("f_loss", 0) + result["f_loss"],
             },
             index=self.n_epochs,
         )

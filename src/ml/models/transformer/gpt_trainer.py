@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 
 import torch.nn as nn
 from termcolor import colored
@@ -35,7 +35,7 @@ class GPTrainer(Trainer):
 
     # TODO: Implement dataset handling
 
-    def step(self, batch: Dict) -> Dict:
+    def step(self, batch: Dict) -> Dict[str, Any]:
         # TODO: Implement step handling
         if len(batch) == 2:
             inputs_ids, mask = batch
@@ -91,7 +91,7 @@ class GPTrainer(Trainer):
 
         return {"loss": loss.item()}
 
-    def step_info(self, result: Dict) -> None:
+    def step_info(self, result: Dict[str, Any]) -> None:
         # step
         if self.n_steps % 1000 == 0:
             self.logger.op(

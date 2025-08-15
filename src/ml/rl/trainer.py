@@ -1,7 +1,7 @@
 import os
 import threading
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, Generic, List, TypeVar
+from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 import gymnasium as gym
 import torch
@@ -20,8 +20,16 @@ class RLTrainArgs:
         )
         self.device: str = self.args["device"]
         self.n_epochs: int = self.args["n_epochs"]
-        self.lr: float = self.args["lr"]
-        self.weight_decay: float = self.args.get("weight_decay", 0.0)
+        self.max_iterations: int = self.args.get("max_iterations", 1000)
+
+        # env reset options
+        self.options: Dict = self.args.get("options", {})
+
+        # optimizer and scheduler options
+        self.optimizer_options: Dict = self.args.get("optimizer", {})
+        self.scheduler_options: Dict = self.args.get("scheduler", {})
+        self.lr: float = self.optimizer_options.get("lr", 1e-3)
+        self.weight_decay: float = self.optimizer_options.get("weight_decay", 0.0)
 
         self.save_dict: str = self.args.get("save_dict", "./checkpoints")
 
@@ -46,19 +54,17 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
         self,
         agent: T_agent,
         env: T_env,
-        criterion: Callable,
         args: RLTrainArgs,
-        optimizer=None,
-        scheduler=None,
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
     ) -> None:
         self.args: RLTrainArgs = args
 
         self.set_device(args.device)
         self.set_agent(agent)
         self.set_env(env)
-        self.criterion: Callable = criterion
         self.set_optimizer(optimizer)
-        self.set_schedulers(scheduler)
+        self.set_scheduler(scheduler)
 
         self.n_steps: int = 0
         self.n_epochs: int = 0
@@ -74,33 +80,24 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
     def set_env(self, env: T_env) -> None:
         self.env = env
 
-    def set_optimizer(self, optimizer) -> None:
+    def set_optimizer(self, optimizer: Optional[type]) -> None:
         if optimizer is None:
-            self.optimizer = torch.optim.Adam(
+            self.optimizer = None
+        else:
+            self.optimizer = optimizer(
                 self.agent.parameters(),
-                lr=self.args.lr,
-                weight_decay=self.args.weight_decay,
+                **self.args.optimizer_options,
             )
-        elif isinstance(optimizer, torch.optim.Optimizer):
-            self.optimizer = optimizer
-            self.args.lr = self.optimizer.defaults["lr"]
-            self.args.weight_decay = self.optimizer.defaults.get("weight_decay", 0.0)
-        else:
-            raise ValueError("Invalid optimizer")
 
-    def set_schedulers(self, schedulers) -> None:
-        if schedulers is None:
-            self.schedulers = [
-                torch.optim.lr_scheduler.CosineAnnealingLR(
-                    self.optimizer, T_max=self.args.n_epochs
-                )
-            ]
-        else:
-            self.schedulers = [schedulers]
+    def set_scheduler(self, scheduler: Optional[type]) -> None:
+        if scheduler is None:
+            self.schedulers = None
+        elif isinstance(scheduler, type) and self.optimizer is not None:
+            self.schedulers = [scheduler(self.optimizer, **self.args.scheduler_options)]
 
     def save(self) -> None:
         os.makedirs(self.args.save_dict, exist_ok=True)
-        path = os.path.join(self.args.save_dict, f"checkpoint_{self.n_steps}.pt")
+        path = os.path.join(self.args.save_dict, f"checkpoint_{self.n_epochs}.pt")
         torch.save(self.agent.state_dict(), path)
         print(f"[INFO] agent saved at: {path}!")
 
@@ -111,7 +108,7 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
         print(f"[INFO] agent loaded from: {path}!")
 
     @abstractmethod
-    def step(self) -> Dict: ...
+    def step(self) -> Dict[str, Any]: ...
 
     def step_info(self, result: Dict) -> None:
         # TODO: impl this function
@@ -120,6 +117,18 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
     def epoch_info(self) -> None:
         # TODO: impl this function
         ...
+
+    def should_stop(self) -> None:
+        self._stop_training = True
+
+    def should_truncate(self) -> None:
+        self._truncated = True
+
+    def obs(self) -> Dict:
+        return self._obs
+
+    def info(self) -> Dict:
+        return self._info
 
     def log2plot(self, key: str) -> None:
         self.logger.plot(key)
@@ -131,15 +140,20 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
 
         # Main training loop
         self._stop_training = False
-        for epoch in range(self.args.n_epochs):
-            for _ in tqdm(
-                range(self.args.n_epochs),
-                desc=colored(f"epoch: {epoch}", "light_red", attrs=["bold"]),
-                leave=False,
-            ):
+        self._truncated = False
+        for _ in tqdm(
+            range(self.args.n_epochs),
+            desc=colored("Training", "light_red", attrs=["bold"]),
+            leave=False,
+        ):
+            self._truncated = False
+            self._obs, self._info = self.env.reset(options=self.args.options)
+            iteration = 0
+            while self._truncated is False and iteration < self.args.max_iterations:
                 step_result = self.step()
                 self.step_info(step_result)
                 self.n_steps += 1
+                iteration += 1
 
                 if step_result.get("should_stop"):
                     print(
@@ -162,8 +176,9 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
                 )
                 break
 
-            for scheduler in self.schedulers:
-                scheduler.step()
+            if self.schedulers is not None:
+                for scheduler in self.schedulers:
+                    scheduler.step()
 
             self.epoch_info()
             self.logger.save_log(info=False)
@@ -171,6 +186,7 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
             self.n_epochs += 1
 
         # Finalization
+        self.env.close()
         self.save()
         self.logger.save_log(info=True)
         if self.args.is_draw:

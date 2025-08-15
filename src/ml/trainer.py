@@ -1,7 +1,7 @@
 import os
 import threading
 from abc import ABC, abstractmethod
-from typing import Callable, Dict, Generic, List, TypeVar
+from typing import Any, Callable, Dict, Generic, List, TypeVar
 
 import torch
 from termcolor import colored
@@ -164,11 +164,11 @@ class Trainer(ABC, Generic[T_args, T_model]):
         print(f"[INFO] Model loaded from: {path}!")
 
     @abstractmethod
-    def step(self, batch) -> Dict:
+    def step(self, batch) -> Dict[str, Any]:
         # TODO: impl this function
         ...
 
-    def step_info(self, result: Dict) -> None:
+    def step_info(self, result: Dict[str, Any]) -> None:
         # TODO: impl this function
         ...
 
@@ -179,6 +179,9 @@ class Trainer(ABC, Generic[T_args, T_model]):
     def validate(self) -> None:
         # TODO: impl this function
         ...
+
+    def should_stop(self) -> None:
+        self._stop_training = True
 
     def log2plot(self, key: str) -> None:
         self.logger.plot(key)
