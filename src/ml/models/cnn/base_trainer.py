@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -27,7 +27,9 @@ class CNNTrainer(Trainer):
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
         )
 
-    def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
+    def step(
+        self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
+    ) -> Dict[str, Any]:
         self.optimizer.zero_grad()
         inputs, targets = batch
 
@@ -38,12 +40,12 @@ class CNNTrainer(Trainer):
         loss = self.criterion(outputs, targets)
         loss.backward()
         self.optimizer.step()
-        return {"loss": loss}
+        return {"loss": loss.item()}
 
-    def step_info(self, result: Dict) -> None:
+    def step_info(self, result: Dict[str, Any]) -> None:
         self.logger.op(
             "epoch",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
             index=self.n_epochs,
         )
 
@@ -112,11 +114,11 @@ class CNNFinetuner(CNNTrainer):
     def step_info(self, result: Dict) -> None:
         self.logger.op(
             "step",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
             index=self.n_steps,
         )
         self.logger.op(
             "epoch",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
             index=self.n_epochs,
         )

@@ -1,6 +1,6 @@
 import random
 from collections import defaultdict
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import torch
 from termcolor import colored
@@ -67,7 +67,9 @@ class SimCLRTrainer(CNNTrainer):
     ):
         super().__init__(model, ds, criterion, args, optimizer, scheduler, valid_ds)
 
-    def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
+    def step(
+        self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
+    ) -> Dict[str, Any]:
         anchored, positive, negative = batch
         anchored = anchored.to(self.device, dtype=torch.float32)
         positive = positive.to(self.device, dtype=torch.float32)
@@ -85,12 +87,12 @@ class SimCLRTrainer(CNNTrainer):
 
         self.optimizer.step()
 
-        return {"loss": loss}
+        return {"loss": loss.item()}
 
-    def step_info(self, result: Dict) -> None:
+    def step_info(self, result: Dict[str, Any]) -> None:
         self.logger.op(
             "epoch",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
             index=self.n_epochs,
         )
 

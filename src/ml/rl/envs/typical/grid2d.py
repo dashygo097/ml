@@ -24,13 +24,20 @@ class Grid2DEnv(BaseEnv):
         self.action_space = gym.spaces.Discrete(4)
 
         self._action_to_direction = {
-            0: np.array([1, 0]),
-            1: np.array([0, 1]),
-            2: np.array([-1, 0]),
-            3: np.array([0, -1]),
+            0: np.array([0, 0]),
+            1: np.array([1, 0]),
+            2: np.array([0, 1]),
+            3: np.array([-1, 0]),
+            4: np.array([0, -1]),
         }
 
         self._forbidden_area = np.empty((0, 2), dtype=int)
+
+    def get_obs_shape(self) -> Tuple:
+        return (self.size, self.size)
+
+    def get_act_shape(self) -> Tuple:
+        return (self.action_space.n,)
 
     def get_obs(self) -> Dict[str, Any]:
         return {"agent": self._agent_location, "target": self._target_location}
@@ -75,25 +82,32 @@ class Grid2DEnv(BaseEnv):
     def step(self, action) -> Tuple:
         direction = self._action_to_direction[action]
 
+        reward = 0
+        if (
+            (self._agent_location[0] + direction[0] < 0)
+            or (self._agent_location[0] + direction[0] >= self.size)
+            or (self._agent_location[1] + direction[1] < 0)
+            or (self._agent_location[1] + direction[1] >= self.size)
+        ):
+            reward -= 1.0
+
         self._agent_location = np.clip(
             self._agent_location + direction, 0, self.size - 1
         )
 
-        terminated = np.array_equal(self._agent_location, self._target_location)
+        truncated = np.array_equal(self._agent_location, self._target_location)
 
-        truncated = False
-
-        if terminated:
-            reward = 1.0
+        if truncated:
+            reward += 1.0
         elif np.any(np.all(self._agent_location == self._forbidden_area, axis=1)):
-            reward = -1.0
+            reward += -1.0
         else:
-            reward = 0.0
+            reward += -0.02
 
         observation = self.get_obs()
         info = self.get_info()
 
-        return observation, reward, terminated, truncated, info
+        return observation, reward, truncated, info
 
     def _set_forbidden_area(self, value: np.ndarray | List) -> None:
         self._forbidden_area = np.clip(value, 0, self.size - 1)

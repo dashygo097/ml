@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import torch
 from torch import nn
@@ -37,7 +37,9 @@ class GANTrainerCT(GANTrainer):
             valid_ds=valid_ds,
         )
 
-    def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
+    def step(
+        self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
+    ) -> Dict[str, Any]:
         batched, labels = batch
         B = batched.shape[0]
 
@@ -101,6 +103,6 @@ class GANTrainerCT(GANTrainer):
         g_loss_avg = g_loss_total / self.args.g2d_ratio
 
         return {
-            "g_loss": g_loss_avg,
-            "d_loss": d_loss,
+            "g_loss": g_loss_avg.item(),
+            "d_loss": d_loss.item(),
         }

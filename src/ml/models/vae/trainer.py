@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple
+from typing import Any, Dict, List, Tuple
 
 import torch
 from termcolor import colored
@@ -15,7 +15,9 @@ class VAETrainer(Trainer):
     def __init__(self, *args, **kwargs):
         super(VAETrainer, self).__init__(*args, **kwargs)
 
-    def step(self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]) -> Dict:
+    def step(
+        self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
+    ) -> Dict[str, Any]:
         self.optimizer.zero_grad()
         batched = batch[0].to(self.device)
 
@@ -31,12 +33,12 @@ class VAETrainer(Trainer):
 
         self.optimizer.step()
 
-        return {"loss": loss}
+        return {"loss": loss.item()}
 
-    def step_info(self, result: Dict) -> None:
+    def step_info(self, result: Dict[str, Any]) -> None:
         self.logger.op(
             "epoch",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
             index=self.n_epochs,
         )
 

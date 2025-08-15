@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 
 from termcolor import colored
 from torch import nn
@@ -28,14 +28,14 @@ class GNNTrainer(Trainer):
     def set_valid_ds(self, valid_ds) -> None:
         self.valid_data_loader = BaseIterator(valid_ds)
 
-    def step(self, batch) -> Dict: ...
+    def step(self, batch) -> Dict[str, Any]: ...
 
     def validate(self) -> None: ...
 
-    def step_info(self, result: Dict) -> None:
+    def step_info(self, result: Dict[str, Any]) -> None:
         self.logger.op(
             "epoch",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"].item()},
+            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
             index=self.n_epochs,
         )
 

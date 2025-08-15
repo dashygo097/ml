@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 
 from termcolor import colored
 from torch_geometric.utils import dropout_edge
@@ -33,7 +33,7 @@ class GNNClassifyTrainer(GNNTrainer):
         self._best_val_loss = float("inf")
         self._no_improve_epochs = 0
 
-    def step(self, batch) -> Dict:
+    def step(self, batch) -> Dict[str, Any]:
         self.optimizer.zero_grad()
 
         batch.edge_index, _ = dropout_edge(
@@ -63,7 +63,7 @@ class GNNClassifyTrainer(GNNTrainer):
         loss.backward()
         self.optimizer.step()
 
-        return {"loss": loss}
+        return {"loss": loss.item()}
 
     def validate(self) -> None:
         self.model.eval()
@@ -103,4 +103,4 @@ class GNNClassifyTrainer(GNNTrainer):
             print(
                 f"Early stopping triggered after {self._no_improve_epochs} unimproved epochs."
             )
-            self._stop_training = True
+            self.should_stop()

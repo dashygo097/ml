@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Any, Dict
 
 import torch
 from torch_geometric.utils import dropout_edge
@@ -29,7 +29,7 @@ class GraphMAEPretrainer(GNNTrainer):
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
         )
 
-    def step(self, batch) -> Dict:
+    def step(self, batch) -> Dict[str, Any]:
         self.optimizer.zero_grad()
 
         batch.edge_index, _ = dropout_edge(
@@ -47,4 +47,4 @@ class GraphMAEPretrainer(GNNTrainer):
         loss.backward()
         self.optimizer.step()
 
-        return {"loss": loss}
+        return {"loss": loss.item()}
