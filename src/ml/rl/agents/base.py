@@ -14,7 +14,7 @@ class RLAgent(ABC, nn.Module):
 
     def reset(
         self,
-        options: Optional[Dict] = None,
+        options: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.discount_rate = (
             options.get("discount_rate", self.discount_rate)
