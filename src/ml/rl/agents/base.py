@@ -14,10 +14,8 @@ class RLAgent(ABC, nn.Module):
 
     def reset(
         self,
-        seed: Optional[int] = None,
         options: Optional[Dict] = None,
     ) -> None:
-        self.env.reset(seed=seed, options=options)
         self.discount_rate = (
             options.get("discount_rate", self.discount_rate)
             if options

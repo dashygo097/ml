@@ -19,16 +19,27 @@ class RLTrainArgs:
             load_yaml(path_or_dict) if isinstance(path_or_dict, str) else path_or_dict
         )
         self.device: str = self.args["device"]
-        self.n_epochs: int = self.args["n_epochs"]
+        self.epochs: int = self.args["epochs"]
 
-        # env reset options
-        self.options: Dict = self.args.get("options", {})
+        # agent/env reset options
+        self.env_options: Dict = self.args.get("env", {})
+        self.agent_options: Dict = self.args.get("agent", {})
 
-        # optimizer and scheduler options
+        # optimizer/scheduler options
         self.optimizer_options: Dict = self.args.get("optimizer", {})
         self.scheduler_options: Dict = self.args.get("scheduler", {})
-        self.lr: float = self.optimizer_options.get("lr", 1e-3)
-        self.weight_decay: float = self.optimizer_options.get("weight_decay", 0.0)
+
+        # general training options
+        self.lr: float = (
+            self.optimizer_options.get("lr", 1e-3)
+            if hasattr(self.args, "optimizer")
+            else self.args.get("lr", 1e-3)
+        )
+        self.weight_decay: float = (
+            self.optimizer_options.get("weight_decay", 0.0)
+            if hasattr(self.args, "optimizer")
+            else self.args.get("weight_decay", 0.0)
+        )
 
         self.save_dict: str = self.args.get("save_dict", "./checkpoints")
 
@@ -133,13 +144,14 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
         # Main training loop
         self._stop_training = False
         for _ in tqdm(
-            range(self.args.n_epochs),
+            range(self.args.epochs),
             desc=colored("Training", "light_red", attrs=["bold"]),
             leave=False,
         ):
             self._terminated = False
             self._truncated = False
-            self._obs, self._info = self.env.reset(options=self.args.options)
+            self._obs, self._info = self.env.reset(options=self.args.env_options)
+            self.agent.reset(options=self.args.agent_options)
             while not (self._terminated or self._truncated):
                 step_result = self.step()
                 self.step_info(step_result)
