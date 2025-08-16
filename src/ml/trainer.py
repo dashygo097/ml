@@ -20,7 +20,7 @@ class TrainArgs:
         )
         self.device: str = self.args["device"]
         self.batch_size: int = self.args["batch_size"]
-        self.n_epochs: int = self.args["n_epochs"]
+        self.epochs: int = self.args["epochs"]
         self.num_workers: int = self.args.get("num_workers", 2)
         self.lr: float = self.args["lr"]
         self.weight_decay: float = self.args.get("weight_decay", 0.0)
@@ -120,7 +120,7 @@ class Trainer(ABC, Generic[T_args, T_model]):
         if schedulers is None:
             self.schedulers = [
                 torch.optim.lr_scheduler.CosineAnnealingLR(
-                    self.optimizer, T_max=self.args.n_epochs
+                    self.optimizer, T_max=self.args.epochs
                 )
             ]
         else:
@@ -201,7 +201,7 @@ class Trainer(ABC, Generic[T_args, T_model]):
 
         # Main training loop
         self._stop_training = False
-        for epoch in range(self.args.n_epochs):
+        for epoch in range(self.args.epochs):
             for batch in tqdm(
                 self.data_loader,
                 total=len(self.data_loader),
