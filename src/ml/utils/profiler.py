@@ -1,4 +1,7 @@
+import cProfile
 import functools
+import io
+import pstats
 import time
 
 from termcolor import colored
@@ -19,6 +22,24 @@ def timer(func):
             + colored(f"{tok - tik:.6f} s \n", color="red", attrs=["bold"])
         )
 
+        return result
+
+    return wrapper
+
+
+def profile(func):
+    "decorator function that profiles a function"
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        pr = cProfile.Profile()
+        pr.enable()
+        result = func(*args, **kwargs)
+        pr.disable()
+        s = io.StringIO()
+        ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
+        ps.print_stats()
+        print(s.getvalue())
         return result
 
     return wrapper
