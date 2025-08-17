@@ -26,8 +26,7 @@ class QLearning(RLAgent):
         action_space = env.get_act_shape()
 
         self.q_values = nn.Parameter(
-            torch.zeros(observation_space + action_space, dtype=torch.float32),
-            requires_grad=False,
+            torch.zeros(observation_space + action_space), requires_grad=False
         )
 
     def forward(self, obs: Dict[str, Any]) -> int:
@@ -40,16 +39,16 @@ class QLearning(RLAgent):
     def update(self, obs: Dict[str, Any], action: int, **kwargs) -> Dict[str, Any]:
         next_obs, reward, terminated, truncated, info = self.env.step(action)
 
-        q_values_index = tuple(obs["agent"]) + (action,)
-        future_q_values_index = tuple(next_obs["agent"])
+        q_idx = tuple(obs["agent"]) + (action,)
+        future_idx = tuple(next_obs["agent"])
 
         with torch.no_grad():
-            future_q = 0 if terminated else self.q_values[future_q_values_index].max()
+            future_q = 0 if terminated else self.q_values[future_idx].max()
             target = reward + self.discount_rate * future_q
-            error = target - self.q_values[q_values_index]
+            error = target - self.q_values[q_idx]
             loss = error * error
 
-            self.q_values[q_values_index] += kwargs.get("lr", 0.0) * error
+            self.q_values[q_idx] += kwargs.get("lr", 0.0) * error
 
         return {
             "next_obs": next_obs,
