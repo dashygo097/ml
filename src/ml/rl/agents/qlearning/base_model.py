@@ -14,7 +14,7 @@ class QLearning(RLAgent):
         env: BaseDiscreteEnv,
         init_epsilon: float = 1.0,
         final_epsilon: float = 0.0,
-        epsilon_decay: float = 1.0,
+        epsilon_decay: float = 0.999,
         discount_rate: float = 0.99,
     ):
         super().__init__(env, discount_rate)
@@ -34,7 +34,7 @@ class QLearning(RLAgent):
         if random.random() < self.epsilon:
             return self.env.action_space.sample()
         else:
-            return int(torch.argmax(self.q_values[tuple(obs["agent"])]))
+            return int(torch.argmax(self.q_values[tuple(obs["agent"])]).item())
 
     def update_epsilon(self) -> None:
         self.epsilon = max(self.final_epsilon, self.epsilon * self.epsilon_decay)

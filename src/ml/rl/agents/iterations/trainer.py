@@ -1,5 +1,7 @@
 from typing import Any, Dict
 
+import torch
+
 from ...envs import BaseEnv
 from ...trainer import RLTrainArgs, RLTrainer
 from .policy_iter import PolicyIter
@@ -39,6 +41,9 @@ class PolicyIterTrainer(RLTrainer):
             action
         )
 
+        with torch.no_grad():
+            ...
+
         return {}
 
     def step_info(self, result: Dict[str, Any]) -> None:
@@ -71,6 +76,8 @@ class ValueIterTrainer(RLTrainer):
         next_obs, reward, self._terminated, self._truncated, info = self.env.step(
             action
         )
+        with torch.no_grad():
+            ...
         return {}
 
     def step_info(self, result: Dict[str, Any]) -> None:

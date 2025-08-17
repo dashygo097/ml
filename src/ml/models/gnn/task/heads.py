@@ -3,6 +3,8 @@ from typing import Callable, List
 import torch
 from torch import nn
 
+from ...mlp import MLP
+
 
 class ClassifyHead(nn.Module):
     def __init__(
@@ -11,27 +13,19 @@ class ClassifyHead(nn.Module):
         num_classes: int,
         act: Callable = nn.ReLU(),
         out_act: Callable = nn.Identity(),
-        dropout: float = 0.5,
+        dropout: float = 0.0,
     ) -> None:
         super().__init__()
-        self.num_classes = num_classes
-        self.dropout = dropout
-
-        if isinstance(features, int):
-            self.fc = nn.Linear(features, num_classes)
-        elif isinstance(features, list):
-            layers = []
-            for i in range(len(features) - 1):
-                layers.append(nn.Linear(features[i], features[i + 1]))
-                if i < len(features) - 2:
-                    layers.append(act)
-                    layers.append(nn.Dropout(dropout))
-
-            self.fc = nn.Sequential(*layers, nn.Linear(features[-1], num_classes))
-        self.out_act = out_act
+        self.model = MLP(
+            features=features,
+            out_features=num_classes,
+            act=act,
+            out_act=out_act,
+            dropout=dropout,
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.out_act(self.fc(x))
+        return self.model(x)
 
 
 class ScoreBasedRecommendHead(nn.Module):
