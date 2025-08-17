@@ -7,27 +7,25 @@ from torch import nn
 class MLP(nn.Module):
     def __init__(
         self,
-        features: int | List[int],
-        out_features: int,
+        features: List[int],
         act: Callable = nn.ReLU(),
         out_act: Callable = nn.Identity(),
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
-        self.num_classes = out_features
+        assert len(features) >= 2, "Features list must contain at least one element."
+        self.in_features = features[0]
+        self.out_features = features[-1]
         self.dropout = dropout
 
-        if isinstance(features, int):
-            self.fc = nn.Linear(features, out_features)
-        elif isinstance(features, list):
-            layers = []
-            for i in range(len(features) - 1):
-                layers.append(nn.Linear(features[i], features[i + 1]))
-                if i < len(features) - 2:
-                    layers.append(act)
-                    layers.append(nn.Dropout(dropout))
+        layers = []
+        for i in range(len(features) - 2):
+            layers.append(nn.Linear(features[i], features[i + 1]))
+            if i < len(features) - 2:
+                layers.append(act)
+                layers.append(nn.Dropout(dropout))
 
-            self.fc = nn.Sequential(*layers, nn.Linear(features[-1], out_features))
+        self.fc = nn.Sequential(*layers, nn.Linear(features[-2], self.out_features))
         self.out_act = out_act
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

@@ -16,9 +16,14 @@ class ClassifyHead(nn.Module):
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
+
+        mlp_features = (
+            features + [num_classes]
+            if isinstance(features, List)
+            else [features] + [num_classes]
+        )
         self.model = MLP(
-            features=features,
-            out_features=num_classes,
+            features=mlp_features,
             act=act,
             out_act=out_act,
             dropout=dropout,
