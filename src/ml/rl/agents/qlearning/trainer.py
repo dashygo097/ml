@@ -31,35 +31,19 @@ class QLearningTrainer(RLTrainer):
 
     def step(self) -> Dict[str, Any]:
         action = self.agent(self._obs)
-        next_obs, reward, self._terminated, self._truncated, info = self.env.step(
-            action
-        )
+        log = self.agent.update(self._obs, action, lr=self.args.lr)
 
-        # update the agent's Q-values
-        with torch.no_grad():
-            future_q = (
-                0
-                if self._terminated
-                else torch.max(self.agent.q_values[tuple(next_obs["agent"])])
-            )
-            target = reward + self.agent.discount_rate * future_q
-
-            error = target - self.agent.q_values[tuple(self._obs["agent"]) + (action,)]
-            loss = error.pow(2)
-
-            self.agent.q_values[tuple(self._obs["agent"]) + (action,)] += (
-                self.args.lr * error
-            )
-
-        self._obs = next_obs
-        self._info = info
+        self._obs = log["next_obs"]
+        self._info = log["info"]
+        self._terminated = log["terminated"]
+        self._truncated = log["truncated"]
 
         if self._terminated:
             self.agent.update_epsilon()
 
         return {
-            "reward": reward,
-            "loss": loss.item(),
+            "reward": log["reward"],
+            "loss": log["loss"],
         }
 
     def step_info(self, result: Dict[str, Any]) -> None:
