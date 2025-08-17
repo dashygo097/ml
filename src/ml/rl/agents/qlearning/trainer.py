@@ -1,7 +1,5 @@
 from typing import Any, Dict
 
-import torch
-
 from ...envs import BaseEnv
 from ...trainer import RLTrainArgs, RLTrainer
 from .model import QLearning
