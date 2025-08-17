@@ -25,8 +25,10 @@ class QLearning(RLAgent):
         observation_space = env.get_obs_shape()
         action_space = env.get_act_shape()
 
-        self.q_values = nn.Parameter(
-            torch.zeros(observation_space + action_space), requires_grad=False
+        self.q_values: torch.Tensor
+        self.register_buffer(
+            "q_values",
+            torch.zeros(observation_space + action_space, dtype=torch.float32),
         )
 
     def forward(self, obs: Dict[str, Any]) -> int:
