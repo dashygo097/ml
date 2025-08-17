@@ -34,21 +34,22 @@ class QLearning(RLAgent):
         if random.random() < self.epsilon:
             return self.env.action_space.sample()
         else:
-            return int(torch.argmax(self.q_values[tuple(obs["agent"])]).item())
+            agent_obs = tuple(obs["agent"])
+            return int(self.q_values[agent_obs].argmax())
 
     def update(self, obs: Dict[str, Any], action: int, **kwargs) -> Dict[str, Any]:
         next_obs, reward, terminated, truncated, info = self.env.step(action)
-        with torch.no_grad():
-            future_q = (
-                0 if terminated else torch.max(self.q_values[tuple(next_obs["agent"])])
-            )
-            target = reward + self.discount_rate * future_q
-            error = target - self.q_values[tuple(obs["agent"]) + (action,)]
-            loss = error.pow(2)
 
-            self.q_values[tuple(obs["agent"]) + (action,)] += (
-                kwargs.get("lr", 0.0) * error
-            )
+        q_values_index = tuple(obs["agent"]) + (action,)
+        future_q_values_index = tuple(next_obs["agent"])
+
+        with torch.no_grad():
+            future_q = 0 if terminated else self.q_values[future_q_values_index].max()
+            target = reward + self.discount_rate * future_q
+            error = target - self.q_values[q_values_index]
+            loss = error * error
+
+            self.q_values[q_values_index] += kwargs.get("lr", 0.0) * error
 
         return {
             "next_obs": next_obs,
@@ -56,7 +57,7 @@ class QLearning(RLAgent):
             "terminated": terminated,
             "truncated": truncated,
             "info": info,
-            "loss": loss.item(),
+            "loss": float(loss),
         }
 
     def update_epsilon(self) -> None:

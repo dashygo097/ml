@@ -23,7 +23,10 @@ class RLAgent(ABC, nn.Module):
         )
 
     @abstractmethod
-    def forward(self, obs: Dict[str, Any]) -> Any: ...
+    def forward(self, obs: Any) -> Any: ...
+
+    @abstractmethod
+    def update(self, obs: Any, action: Any, **kwargs) -> Dict[str, Any]: ...
 
 
 class PolicyFn(Protocol):
