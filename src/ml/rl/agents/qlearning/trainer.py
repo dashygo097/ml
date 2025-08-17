@@ -35,6 +35,7 @@ class QLearningTrainer(RLTrainer):
             action
         )
 
+        # update the agent's Q-values
         with torch.no_grad():
             future_q = (
                 0

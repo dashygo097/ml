@@ -51,6 +51,7 @@ class RLTrainArgs:
         else:
             self.log_dict: str = self.args["info"]["log_dict"]
 
+        self.epochs_per_log: int = self.args["info"].get("epochs_per_log", 10)
         self.drawing_list: List[str] = self.args["info"].get("drawing_list", [])
         self.is_draw: bool = self.args["info"].get("is_draw", False)
 
@@ -172,8 +173,9 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
                     scheduler.step()
 
             self.epoch_info()
-            self.logger.save_log()
 
+            if self.n_epochs % self.args.epochs_per_log == 0:
+                self.logger.save_log(info=False)
             self.n_epochs += 1
 
         # Finalization

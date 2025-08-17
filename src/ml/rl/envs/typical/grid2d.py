@@ -3,42 +3,41 @@ from typing import Any, Dict, List, Optional, Tuple
 import gymnasium as gym
 import numpy as np
 
-from ..base import BaseEnv
+from ..base import BaseDiscreteEnv
 
 
-class Grid2DEnv(BaseEnv):
+class Grid2DEnv(BaseDiscreteEnv):
     def __init__(self, size: int) -> None:
         super().__init__()
 
         self.size = size
-
         self.observation_space = gym.spaces.Dict(
             {
                 "agent": gym.spaces.Box(0, size - 1, shape=(2,), dtype=int),
                 "target": gym.spaces.Box(0, size - 1, shape=(2,), dtype=int),
             }
         )
-
         self.action_space = gym.spaces.Discrete(5)
-
-        self._agent_location = np.array([-1, -1], dtype=np.int32)
-        self._target_location = np.array([-1, -1], dtype=np.int32)
-        self._action_to_direction = {
+        self.action_to_direction = {
             0: np.array([0, 0]),
             1: np.array([1, 0]),
             2: np.array([0, 1]),
             3: np.array([-1, 0]),
             4: np.array([0, -1]),
         }
+
+        self._agent_location = np.array([-1, -1], dtype=np.int32)
+        self._target_location = np.array([-1, -1], dtype=np.int32)
+
         self._forbidden_area = np.empty((0, 2), dtype=int)
         self._episode_step = 0
         self._max_episode_steps = None
 
-    def get_obs_shape(self) -> Tuple:
-        return (self.size, self.size)
-
-    def get_act_shape(self) -> Tuple:
+    def get_act_shape(self) -> Tuple[int, ...]:
         return (self.action_space.n,)
+
+    def get_obs_shape(self) -> Tuple[int, ...]:
+        return (self.size, self.size)
 
     def get_obs(self) -> Dict[str, Any]:
         return {"agent": self._agent_location, "target": self._target_location}
@@ -86,7 +85,7 @@ class Grid2DEnv(BaseEnv):
         return observation, info
 
     def step(self, action) -> Tuple:
-        direction = self._action_to_direction[action]
+        direction = self.action_to_direction[action]
 
         reward = 0
         if (
