@@ -23,7 +23,7 @@ class RLAgent(ABC, nn.Module):
         )
 
     @abstractmethod
-    def forward(self, obs: Any) -> Any: ...
+    def forward(self, obs: Dict[str, Any]) -> Any: ...
 
 
 class PolicyFn(Protocol):

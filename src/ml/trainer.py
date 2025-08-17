@@ -38,6 +38,7 @@ class TrainArgs:
         else:
             self.log_dict: str = self.args["info"]["log_dict"]
 
+        self.epochs_per_log: int = self.args.get("epochs_per_log", 10)
         self.drawing_list: List[str] = self.args["info"].get("drawing_list", [])
         self.is_draw: bool = self.args["info"].get("is_draw", False)
 

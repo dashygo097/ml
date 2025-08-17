@@ -1,9 +1,9 @@
-import os
-from typing import Callable
-from typing import Dict, List, Optional
-from termcolor import colored
-import matplotlib.pyplot as plt
 import json
+import os
+from typing import Callable, Dict, List, Optional
+
+import matplotlib.pyplot as plt
+from termcolor import colored
 
 
 class TrainLogContent:
@@ -17,7 +17,7 @@ class TrainLogContent:
             raise KeyError(f"[ERROR] Key '{key}' not found in TrainLogContent.")
 
         try:
-            return dict(sorted(self.__dict__[key].items(), key=lambda x: int(x[0])))
+            return self.__dict__[key]
 
         except ValueError:
             print(

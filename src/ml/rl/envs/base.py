@@ -9,12 +9,6 @@ class BaseEnv(ABC, Env):
         super().__init__()
 
     @abstractmethod
-    def get_obs_shape(self) -> Tuple: ...
-
-    @abstractmethod
-    def get_act_shape(self) -> Tuple: ...
-
-    @abstractmethod
     def get_obs(self) -> Dict[str, Any]: ...
 
     @abstractmethod
@@ -28,3 +22,14 @@ class BaseEnv(ABC, Env):
 
     @abstractmethod
     def step(self, action) -> Tuple: ...
+
+
+class BaseDiscreteEnv(BaseEnv):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abstractmethod
+    def get_act_shape(self) -> Tuple[int, ...]: ...
+
+    @abstractmethod
+    def get_obs_shape(self) -> Tuple[int, ...]: ...
