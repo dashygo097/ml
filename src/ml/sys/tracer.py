@@ -263,15 +263,3 @@ class Tracer:
             )
 
         return modules
-
-
-def sparsity_report(self, info: bool = True) -> Dict[str, float]:
-    report = {}
-    for name, param in self.model.named_parameters():
-        total = param.numel()
-        zeros = (param == 0).sum().item()
-        sparsity = zeros / total
-        report[name] = sparsity
-        if info:
-            print(f"{name}: {sparsity * 100:.2f}% sparse")
-    return report
