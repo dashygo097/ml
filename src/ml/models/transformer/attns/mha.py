@@ -52,14 +52,13 @@ class MulHeadAttn(AttnModel):
         QKV = self.W_qkv(x)
         Q, K, V = QKV.chunk(3, dim=-1)
 
-        Q = Q.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
-        K = K.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
-        V = V.view(B, C, self.n_heads, self.head_dim).transpose(1, 2)
+        Q = Q.view(B, C, self.n_heads, self.head_dim)
+        K = K.view(B, C, self.n_heads, self.head_dim)
+        V = V.view(B, C, self.n_heads, self.head_dim)
 
-        Q = self.rope(Q)
-        K = self.rope(K)
+        Q, K = self.rope(Q, K)
 
-        return Q, K, V
+        return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)
 
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
         B, C, E = record.input_logits.shape
