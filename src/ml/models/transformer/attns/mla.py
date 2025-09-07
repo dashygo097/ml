@@ -68,25 +68,20 @@ class MulHeadLatentAttn(AttnModel):
 
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         B, C, _ = x.shape
-        KR = self.rope(
-            self.W_kr(x).view(B, C, self.num_heads, self.split_dim).transpose(1, 2)
-        )
+        Q, QR = torch.chunk(self.W_q(self.W_dq(x)), 2, dim=-1)
+        Q = Q.view(B, C, self.num_heads, self.split_dim)
+
+        QR = QR.view(B, C, self.num_heads, self.split_dim)
+        KR = self.W_kr(x).view(B, C, self.num_heads, self.split_dim)
+        QR, KR = self.rope(QR, KR)
+
         K, V, V_ = self.W_kv(self.W_dkv(x)).chunk(3, dim=-1)
-        K = torch.cat(
-            [K.view(B, C, self.num_heads, self.split_dim).transpose(1, 2), KR], dim=-1
-        )
-        V = (
-            torch.cat([V, V_], dim=-1)
-            .view(B, C, self.num_heads, self.head_dim)
-            .transpose(1, 2)
-        )
+        K = torch.cat([K.view(B, C, self.num_heads, self.split_dim), KR], dim=-1)
+        V = torch.cat([V, V_], dim=-1).view(B, C, self.num_heads, self.head_dim)
 
-        Q, Q_ = torch.chunk(self.W_q(self.W_dq(x)), 2, dim=-1)
-        Q = Q.view(B, C, self.num_heads, self.split_dim).transpose(1, 2)
-        Q_ = Q_.view(B, C, self.num_heads, self.split_dim).transpose(1, 2)
-        Q = torch.cat([Q, self.rope(Q_)], dim=-1)
+        Q = torch.cat([Q, QR], dim=-1)
 
-        return Q, K, V
+        return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)
 
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
         B, C, _ = record.input_logits.shape

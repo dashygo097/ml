@@ -56,11 +56,10 @@ class MulHeadAttn2d(AttnModel):
         QKV = self.W_qkv(x)
         Q, K, V = torch.chunk(QKV, chunks=3, dim=1)
 
-        Q = Q.view(B, self.n_heads, self.head_dim, H * W).permute(0, 1, 3, 2)
-        K = K.view(B, self.n_heads, self.head_dim, H * W).permute(0, 1, 3, 2)
-        V = V.view(B, self.n_heads, self.head_dim, H * W).permute(0, 1, 3, 2)
+        Q = Q.view(B, self.n_heads, self.head_dim, H * W).permute(0, 3, 1, 2)
+        K = K.view(B, self.n_heads, self.head_dim, H * W).permute(0, 3, 1, 2)
+        V = V.view(B, self.n_heads, self.head_dim, H * W).permute(0, 3, 1, 2)
 
-        Q = self.rope(Q)
-        K = self.rope(K)
+        Q, K = self.rope(Q, K)
 
-        return Q, K, V
+        return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)

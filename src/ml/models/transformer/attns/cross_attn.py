@@ -60,20 +60,20 @@ class MulHeadCrossAttn(nn.Module):
         KV = self.W_kv(x_2)
         K, V = KV.chunk(2, dim=-1)
 
-        Q = Q.view(B, C_1, self.n_heads, self.head_dim).transpose(1, 2)
-        K = K.view(B, C_2, self.n_heads, self.head_dim).transpose(1, 2)
-        V = V.view(B, C_2, self.n_heads, self.head_dim).transpose(1, 2)
+        Q = Q.view(B, C_1, self.n_heads, self.head_dim)
+        K = K.view(B, C_2, self.n_heads, self.head_dim)
+        V = V.view(B, C_2, self.n_heads, self.head_dim)
 
-        Q = self.rope(Q)
-        V = self.rope(V)
+        Q, K = self.rope(Q, K)
 
-        return Q, K, V
+        return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)
 
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
         x_1, x_2 = record.input_logits
         B, C_1, E = x_1.shape
         B, C_2, E = x_2.shape
         Q, K, V = self.qkv(x_1, x_2)
+
         outputs, weights = sdp_attn(Q, K, V, mask="^", dropout=self.attn_dropout)
         outputs = (outputs.transpose(1, 2)).reshape(B, C_1, -1)
         outputs = self.W_o(outputs)
