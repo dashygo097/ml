@@ -11,5 +11,6 @@ class SwiGLU(nn.Module):
     def __init__(self):
         super().__init__()
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return swiglu(x)

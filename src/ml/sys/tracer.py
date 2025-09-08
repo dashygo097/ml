@@ -133,11 +133,11 @@ class Tracer:
         input_shape: Tuple[int, ...],
         device: str = "cpu",
         info: bool = False,
-    ) -> Dict:
+    ) -> Dict[str, float]:
         records = defaultdict(float)
         handles = []
         curr_device = next(self.model.parameters()).device
-        input = torch.randn(input_shape).to(device)
+        input_tensor = torch.randn(input_shape).to(device)
 
         def sync():
             if device == "cuda":
@@ -146,48 +146,65 @@ class Tracer:
                 torch.mps.synchronize()
 
         def time_layer(name):
-            def hook(module, input, output):
+            def pre_hook(module, input):
                 sync()
-                start = time.perf_counter()
+                module._start_time = time.perf_counter()
 
+            def post_hook(module, input, output):
                 sync()
-                end = time.perf_counter()
-                records[name] += end - start
+                end_time = time.perf_counter()
+                if hasattr(module, "_start_time"):
+                    records[name] += end_time - module._start_time
+                    delattr(module, "_start_time")
 
-            return hook
+            return pre_hook, post_hook
 
         self.model.to(device)
         self.model.eval()
+
         for name, module in self.model.named_modules():
-            if isinstance(module, nn.Module):
-                handle = module.register_forward_hook(time_layer(name))
-                handles.append(handle)
+            if isinstance(module, nn.Module) and name:
+                pre_hook, post_hook = time_layer(name)
+                handles.append(module.register_forward_pre_hook(pre_hook))
+                handles.append(module.register_forward_hook(post_hook))
 
         with torch.no_grad():
-            self.model(input)
+            for _ in range(3):
+                self.model(input_tensor)
+
+        records.clear()
+
+        with torch.no_grad():
+            self.model(input_tensor)
 
         for handle in handles:
             handle.remove()
 
         if info:
-            for name, t in records.items():
-                if name:
-                    print(f"{name}: {t * 1e6:.3f} µs")
+            sorted_records = sorted(records.items(), key=lambda x: x[1], reverse=True)
+            print("\nLayer Latencies (sorted by time):")
+            print("-" * 50)
+            for name, t in sorted_records:
+                print(f"{name}: {t * 1e6:.3f} µs")
+
+            total_time = sum(records.values())
+            print("-" * 50)
             print(
                 colored(
-                    f"\nTotal: {sum(records.values()) * 1e6:.3f} µs",
+                    f"Total Layer Time Elapsed: {total_time * 1e6:.3f} µs",
                     "light_yellow",
                     attrs=["bold"],
                 )
             )
 
         self.model.to(curr_device)
-
-        return records
+        return dict(records)
 
     def io_latency(
         self,
         input_shape: Tuple[int, ...],
+        iterations: int = 1,
+        warmup: int = 10,
         device: str = "cpu",
         info: bool = False,
     ) -> float:
@@ -197,16 +214,22 @@ class Tracer:
         model = self.model.to(device)
         model.eval()
 
+        times = []
         with torch.no_grad():
+            for _ in range(warmup):
+                model(input)
+
             start = time.perf_counter()
             model(input)
             end = time.perf_counter()
 
-        perf_time = end - start
+            times.append(end - start)
+
+        perf_time = sum(times) / len(times)
         if info:
             print(
                 colored(
-                    f"Latency: {perf_time * 1e3:.3f} ms",
+                    f"IO Latency: {perf_time * 1e3:.3f} ms",
                     "light_yellow",
                     attrs=["bold"],
                 )

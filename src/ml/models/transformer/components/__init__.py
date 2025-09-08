@@ -1,4 +1,4 @@
 from .ffn import *
-from .rmsnorm import *
+from .norm import *
 from .rope import *
 from .swiglu import *

@@ -18,6 +18,7 @@ class RoPE(nn.Module):
             "cache", torch.cat([freqs.cos(), freqs.sin()], dim=-1).unsqueeze_(1)
         )
 
+    @torch.compile
     def forward(
         self, x1: torch.Tensor, x2: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
