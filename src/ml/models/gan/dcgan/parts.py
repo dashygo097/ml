@@ -108,6 +108,7 @@ class DCGANGenerator(nn.Module):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
+    @torch.compile
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         B, L_dim = z.shape
         z = z.view(B, L_dim).unsqueeze(-1).unsqueeze(-1)
@@ -228,5 +229,6 @@ class DCGANDiscriminator(nn.Module):
             if m.bias is not None:
                 nn.init.constant_(m.bias, 0)
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.fc(self.seq(x)).reshape(x.shape[0], 1)

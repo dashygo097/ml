@@ -48,6 +48,7 @@ class MulHeadLatentAttn(AttnModel):
         self.W_o = nn.Linear(self.head_dim * self.num_heads, self.embed_size)
         self.rope = RoPE(self.head_dim // 2)
 
+    @torch.compile
     def forward(
         self,
         x: torch.Tensor,
@@ -66,6 +67,7 @@ class MulHeadLatentAttn(AttnModel):
 
         return self.out_dropout(outputs)
 
+    @torch.compile
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         B, C, _ = x.shape
         Q, QR = torch.chunk(self.W_q(self.W_dq(x)), 2, dim=-1)
@@ -83,6 +85,7 @@ class MulHeadLatentAttn(AttnModel):
 
         return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)
 
+    @torch.compile
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
         B, C, _ = record.input_logits.shape
         Q, K, V = self.qkv(record.input_logits)
@@ -95,6 +98,7 @@ class MulHeadLatentAttn(AttnModel):
         record.output_logits = outputs
         return record
 
+    @torch.compile
     def infer(
         self, record: AttnInfraRecord, use_cache: bool = False
     ) -> AttnInfraRecord:

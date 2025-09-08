@@ -1,6 +1,7 @@
+from typing import Optional
+
 import torch
 from torch import nn
-from typing import Optional
 
 from ..transformer import MulHeadAttn
 
@@ -32,6 +33,7 @@ class LGCM(nn.Module):
         self.attn = MulHeadAttn(self.d_model, n_heads)
         self.proj = nn.Linear(self.d_model, channels)
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, C, H, W = x.shape
         local = self.local(x)

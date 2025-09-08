@@ -51,6 +51,7 @@ class GATBackbone(GNNEncoder):
             else:
                 self.res_proj.append(None)
 
+    @torch.compile
     def forward(
         self,
         x: torch.Tensor,
@@ -73,6 +74,7 @@ class GATBackbone(GNNEncoder):
 
         return x
 
+    @torch.compile
     def feats(
         self,
         x: torch.Tensor,

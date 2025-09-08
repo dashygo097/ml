@@ -38,6 +38,7 @@ class MulHeadCrossAttn(nn.Module):
 
         self.out_dropout = nn.Dropout(dropout)
 
+    @torch.compile
     def forward(self, x_1: torch.Tensor, x_2: torch.Tensor, mask=None) -> torch.Tensor:
         B, C, E = x_1.shape
         Q, K, V = self.qkv(x_1, x_2)
@@ -51,6 +52,7 @@ class MulHeadCrossAttn(nn.Module):
         self.attn_dropout = nn.Dropout(self.dropout)
         return self.out_dropout(outputs)
 
+    @torch.compile
     def qkv(
         self, x_1: torch.Tensor, x_2: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -68,6 +70,7 @@ class MulHeadCrossAttn(nn.Module):
 
         return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)
 
+    @torch.compile
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
         x_1, x_2 = record.input_logits
         B, C_1, E = x_1.shape
@@ -83,6 +86,7 @@ class MulHeadCrossAttn(nn.Module):
         record.output_logits = outputs
         return record
 
+    @torch.compile
     def infer(
         self, record: AttnInfraRecord, use_cache: bool = False
     ) -> AttnInfraRecord:

@@ -1,6 +1,7 @@
+from typing import Tuple
+
 import torch
 import torch.nn.functional as F
-from typing import Tuple
 from torch import nn
 
 
@@ -19,6 +20,7 @@ class VAEEncoder(nn.Module):
             nn.LeakyReLU(0.2, inplace=True),
         )
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.seq(x)
 
@@ -40,6 +42,7 @@ class VAEDecoder(nn.Module):
             nn.Sigmoid(),
         )
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.seq(x)
 
@@ -58,6 +61,7 @@ class VAE(nn.Module):
         self.mean_layer = nn.Linear(latent_dim, 2)
         self.var_layer = nn.Linear(latent_dim, 2)
 
+    @torch.compile
     def forward(
         self, x: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -68,10 +72,12 @@ class VAE(nn.Module):
         X = self.decoder(z)
         return X, mean, var
 
+    @torch.compile
     def encode(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         mean, var = self.mean_layer(self.encoder(x)), self.var_layer(self.encoder(x))
         return mean, var
 
+    @torch.compile
     def decode(self, z: torch.Tensor) -> torch.Tensor:
         return self.decoder(z)
 

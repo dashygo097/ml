@@ -49,9 +49,11 @@ class GNNClassifier(nn.Module):
         )
         self.fusion = fusion
 
+    @torch.compile
     def forward(self, data: Data) -> torch.Tensor:
         return self.head(self.encode(data))
 
+    @torch.compile
     def predict(self, data: Data) -> torch.Tensor:
         logits = self.forward(data)
         return logits.argmax(dim=-1)
