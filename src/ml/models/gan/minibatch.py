@@ -18,6 +18,7 @@ class MiniBatch1d(nn.Module):
             torch.randn(in_features, out_features, inner_dim, requires_grad=True) * 0.1
         )
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, L = x.shape
         x_res = x

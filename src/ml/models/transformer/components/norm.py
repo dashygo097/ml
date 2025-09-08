@@ -40,5 +40,5 @@ class AddNorm(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     @torch.compile
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        return self.norm(x + self.dropout(y))
+    def forward(self, x: torch.Tensor, x_attn: torch.Tensor) -> torch.Tensor:
+        return self.norm(x + self.dropout(x_attn))

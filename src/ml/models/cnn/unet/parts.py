@@ -22,6 +22,7 @@ class UnetConv(nn.Module):
             nn.ReLU(inplace=True),
         )
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.seq(x)
 
@@ -38,6 +39,7 @@ class UnetDownBlock(nn.Module):
             UnetConv(in_channels, out_channels),
         )
 
+    @torch.compile
     def forward(self, x):
         return self.down(x)
 
@@ -54,6 +56,7 @@ class UnetUpBlock(nn.Module):
         )
         self.conv = UnetConv(in_channels, out_channels, mid_channels=in_channels // 2)
 
+    @torch.compile
     def forward(self, x_0: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         x = self.up(x)
         dim_diff_1 = (x_0.shape[-1] - x.shape[-1]) // 2

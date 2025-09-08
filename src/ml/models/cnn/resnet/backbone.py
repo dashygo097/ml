@@ -45,6 +45,7 @@ class BasicBlock(nn.Module):
         self.relu_1 = nn.ReLU(inplace=True)
         self.downsample = downsample
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_id = x.clone()
         if self.downsample is not None:
@@ -110,6 +111,7 @@ class Bottleneck(nn.Module):
         self.relu_2 = nn.ReLU(inplace=True)
         self.downsample = downsample
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x_id = x.clone()
         if self.downsample is not None:

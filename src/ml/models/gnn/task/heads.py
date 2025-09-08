@@ -29,6 +29,7 @@ class ClassifyHead(nn.Module):
             dropout=dropout,
         )
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)
 
@@ -37,6 +38,7 @@ class ScoreBasedRecommendHead(nn.Module):
     def __init__(self) -> None:
         super().__init__()
 
+    @torch.compile
     def forward(
         self,
         user_id: int,
