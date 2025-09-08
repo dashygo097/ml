@@ -26,7 +26,7 @@ class MulHeadAttn(AttnModel):
         self.head_dim = self.d_model // n_heads
 
         self.W_qkv = nn.Linear(self.embed_size, self.d_model * 3, bias=False)
-        self.W_o = nn.Linear(self.d_model, self.embed_size)
+        self.W_o = nn.Linear(self.d_model, self.embed_size, bias=False)
         self.rope = RoPE(self.head_dim)
 
     def forward(

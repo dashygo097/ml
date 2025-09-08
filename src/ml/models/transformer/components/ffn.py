@@ -4,22 +4,6 @@ from torch import nn
 from .swiglu import SwiGLU
 
 
-class AddNorm(nn.Module):
-    def __init__(
-        self,
-        d_model: int,
-        dropout: float = 0.1,
-    ) -> None:
-        super().__init__()
-        self.d_model = d_model
-
-        self.norm = nn.RMSNorm(d_model)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
-        return self.norm(x + self.dropout(y))
-
-
 class FFN(nn.Module):
     def __init__(self, d_model: int, d_inner: int, act=nn.GELU(), dropout: float = 0.1):
         super().__init__()
@@ -31,6 +15,7 @@ class FFN(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.act = act
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.linear1(x)
         x = self.act(x)
@@ -47,6 +32,7 @@ class SwiGLUFFN(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.act = SwiGLU()
 
+    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.linear1(x)
         x = self.act(x)
