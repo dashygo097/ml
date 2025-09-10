@@ -10,4 +10,6 @@ class AWQ(Quantizer):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 
+    def preudo_quantize(self, target: Optional[str] | type) -> None: ...
+
     def quantize(self, target: Optional[str] | type): ...

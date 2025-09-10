@@ -1,12 +1,13 @@
-from .editor import Editor
+import os
+from typing import List, Optional, Tuple
+
 import onnx
 import onnxoptimizer
-from typing import List, Optional
-from termcolor import colored
-from typing import Tuple
 import torch
+from termcolor import colored
 from torch import nn
-import os
+
+from .editor import Editor
 
 
 class OnnxOptimizer(Editor):
