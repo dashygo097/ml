@@ -1,3 +1,4 @@
+import os
 import time
 import warnings
 from collections import defaultdict
@@ -16,6 +17,12 @@ class Tracer:
 
     def load(self, path: str, device: str = "cpu") -> None:
         self.model.load_state_dict(torch.load(path, map_location=device))
+
+    def save(self, path: str = "./checkpoints/model.pth") -> None:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        torch.save(self.model.state_dict(), path)
+
+    def fuzzt_load(self, path: str, device: str = "cpu") -> None: ...
 
     def summary(self) -> None:
         print(self.model)
@@ -203,7 +210,6 @@ class Tracer:
     def io_latency(
         self,
         input_shape: Tuple[int, ...],
-        iterations: int = 1,
         warmup: int = 10,
         device: str = "cpu",
         info: bool = False,
