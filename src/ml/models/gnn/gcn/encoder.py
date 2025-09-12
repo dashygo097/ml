@@ -46,7 +46,6 @@ class GCNBackbone(GNNEncoder):
 
         self.convs = nn.ModuleList(convs)
 
-    @torch.compile
     def forward(
         self,
         x: torch.Tensor,
@@ -65,7 +64,6 @@ class GCNBackbone(GNNEncoder):
 
         return x
 
-    @torch.compile
     def feats(
         self,
         x: torch.Tensor,

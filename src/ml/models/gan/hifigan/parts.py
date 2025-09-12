@@ -15,11 +15,9 @@ class HiFiGAN(nn.Module):
         self.generator = HiFiGANGenerator(config)
         self.discriminator = HiFiGANDiscriminator(config)
 
-    @torch.compile
     def generate(self, x: torch.Tensor) -> torch.Tensor:
         return self.generator(x)
 
-    @torch.compile
     def get_mel_spec(self, x: torch.Tensor) -> torch.Tensor:
         x = x.squeeze(1)
         mel = librosa.feature.melspectrogram(
@@ -68,7 +66,6 @@ class ResUnit(nn.Module):
             )
         self.seq = nn.Sequential(OrderedDict(module_list))
 
-    @torch.compile
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         return z + self.seq(z)
 
@@ -92,7 +89,6 @@ class ResBlock(nn.Module):
 
         self.units = nn.ModuleList(self.units)
 
-    @torch.compile
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         res_outs = [unit(z) for unit in self.units]
         return sum(res_outs) / 3  # pyright: ignore
@@ -174,7 +170,6 @@ class HiFiGANGenerator(nn.Module):
 
         self.seq = nn.Sequential(OrderedDict(module_list))
 
-    @torch.compile
     def forward(self, z: torch.Tensor) -> torch.Tensor:
         z = self.seq(z)
         return z
@@ -254,7 +249,6 @@ class MSDBlock(nn.Module):
         )
         self.seq = nn.Sequential(OrderedDict(module_list))
 
-    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.seq(x)
         return x
@@ -279,7 +273,6 @@ class MSD(nn.Module):
             ]
         )
 
-    @torch.compile
     def forward(self, y: torch.Tensor) -> List[torch.Tensor]:
         y_outs = []
         for i, block in enumerate(self.msd_blocks):
@@ -365,7 +358,6 @@ class MPDBlock(nn.Module):
 
         self.seq = nn.Sequential(OrderedDict(module_list))
 
-    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, C, T = x.shape
         if T % self.period != 0:
@@ -386,7 +378,6 @@ class MPD(nn.Module):
             [MPDBlock(p, config) for p in config.dis_mpd_periods]
         )
 
-    @torch.compile
     def forward(self, y: torch.Tensor) -> List[torch.Tensor]:
         y_outs = []
         for block in self.mpd_blocks:

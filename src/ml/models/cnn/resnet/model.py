@@ -118,7 +118,6 @@ class ResNet(nn.Module):
             )
         return nn.Sequential(OrderedDict(layers))
 
-    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.relu_0(self.bn2d_0(self.conv2d_0(x)))
         x = self.maxpool2d_0(x)

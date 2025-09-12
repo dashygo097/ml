@@ -46,7 +46,6 @@ class UnetCNN(nn.Module):
                 ),
             )
 
-    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.in_conv(x)
         x_ram = [x]

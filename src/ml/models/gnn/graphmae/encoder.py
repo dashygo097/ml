@@ -47,7 +47,6 @@ class GraphMAE(GNNEncoder):
             nn.Linear(features[-2], features[0]),
         )
 
-    @torch.compile
     def forward(
         self,
         x: torch.Tensor,
@@ -63,7 +62,6 @@ class GraphMAE(GNNEncoder):
             x = F.dropout(x, p=self.dropout, training=self.training)
         return x
 
-    @torch.compile
     def reconstruct(
         self,
         x: torch.Tensor,
@@ -85,7 +83,6 @@ class GraphMAE(GNNEncoder):
         x_target = x_original[mask]
         return x_rec, x_target
 
-    @torch.compile
     def feats(
         self,
         x: torch.Tensor,

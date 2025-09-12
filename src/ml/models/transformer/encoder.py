@@ -29,7 +29,6 @@ class EncoderBlock(nn.Module):
         self.addnorm1 = AddNorm(d_model, dropout=dropout)
         self.addnorm2 = AddNorm(d_model, dropout=dropout)
 
-    @torch.compile
     def forward(
         self,
         x: torch.Tensor,

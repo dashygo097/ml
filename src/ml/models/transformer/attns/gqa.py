@@ -31,7 +31,6 @@ class GroupedQueryAttn(AttnModel):
         self.W_kv = nn.Linear(self.embed_size, self.kv_embed_dim * 2, bias=False)
         self.W_o = nn.Linear(self.d_model, self.embed_size)
 
-    @torch.compile
     def forward(
         self,
         x: torch.Tensor,
@@ -56,7 +55,6 @@ class GroupedQueryAttn(AttnModel):
         outputs = self.W_o(outputs)
         return self.out_dropout(outputs)
 
-    @torch.compile
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         B, C, E = x.shape
         Q = (

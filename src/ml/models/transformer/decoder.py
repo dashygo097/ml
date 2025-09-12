@@ -26,14 +26,17 @@ class DecoderBlock(nn.Module):
             MulHeadAttn(d_model, n_heads, dropout=dropout) if attn is None else attn
         )
         self.attn_mask = MulHeadCrossAttn(
-            d_q=d_model, d_kv=d_model, n_heads=n_heads, d_model=d_model, dropout=dropout
+            d_q=d_model,
+            d_kv=d_model,
+            n_heads=n_heads,
+            d_model=d_model,
+            dropout=dropout,
         )
         self.ffn = FFN(d_model, d_inner, dropout=dropout) if ffn is None else ffn
         self.addnorm1 = AddNorm(d_model, dropout=dropout)
         self.addnorm2 = AddNorm(d_model, dropout=dropout)
         self.addnorm3 = AddNorm(d_model, dropout=dropout)
 
-    @torch.compile
     def forward(
         self,
         x: torch.Tensor,
@@ -69,7 +72,6 @@ class DecoderOnlyBlock(nn.Module):
         self.addnorm1 = AddNorm(d_model, dropout=dropout)
         self.addnorm2 = AddNorm(d_model, dropout=dropout)
 
-    @torch.compile
     def forward(
         self,
         x: torch.Tensor,
