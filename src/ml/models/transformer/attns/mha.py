@@ -32,11 +32,12 @@ class MulHeadAttn(AttnModel):
     def forward(
         self,
         x: torch.Tensor,
+        pos: Optional[int] = None,
         mask: Optional[torch.Tensor] = None,
         is_causal: bool = False,
     ) -> torch.Tensor:
         B, C, E = x.shape
-        Q, K, V = self.qkv(x)
+        Q, K, V = self.qkv(x, pos)
 
         outputs = F.scaled_dot_product_attention(
             Q, K, V, attn_mask=mask, dropout_p=self.dropout, is_causal=is_causal
@@ -46,7 +47,9 @@ class MulHeadAttn(AttnModel):
         outputs = self.W_o(outputs)
         return self.out_dropout(outputs)
 
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def qkv(
+        self, x: torch.Tensor, pos: Optional[int] = None
+    ) -> Tuple[torch.Tensor, ...]:
         B, C, E = x.shape
 
         QKV = self.W_qkv(x)
@@ -56,13 +59,13 @@ class MulHeadAttn(AttnModel):
         K = K.view(B, C, self.n_heads, self.head_dim)
         V = V.view(B, C, self.n_heads, self.head_dim)
 
-        Q, K = self.rope(Q, K)
+        Q, K = self.rope(Q, K, pos)
 
         return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)
 
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
         B, C, E = record.input_logits.shape
-        Q, K, V = self.qkv(record.input_logits)
+        Q, K, V = self.qkv(record.input_logits, None)
 
         outputs, weights = sdp_attn(Q, K, V, mask="^")
         outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
@@ -88,7 +91,7 @@ class MulHeadAttn(AttnModel):
             d_length = C - record.k_cache.shape[2]
             new_inputs = record.input_logits[:, -d_length:, :]
 
-            Q, K, V = self.qkv(new_inputs)
+            Q, K, V = self.qkv(new_inputs, pos=C - 1)
 
             K = torch.cat([record.k_cache, K], dim=2)
             V = torch.cat([record.v_cache, V], dim=2)
