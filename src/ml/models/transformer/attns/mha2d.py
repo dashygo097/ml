@@ -33,7 +33,6 @@ class MulHeadAttn2d(AttnModel):
         )
         self.rope = RoPE(self.head_dim)
 
-    @torch.compile
     def forward(
         self,
         x: torch.Tensor,
@@ -51,7 +50,6 @@ class MulHeadAttn2d(AttnModel):
 
         return self.out_dropout(outputs)
 
-    @torch.compile
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         B, C, H, W = x.shape
 

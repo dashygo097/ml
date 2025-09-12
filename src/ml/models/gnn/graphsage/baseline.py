@@ -57,7 +57,6 @@ class GraphSAGEBackbone(GNNEncoder):
             else:
                 self.res_proj.append(None)
 
-    @torch.compile
     def forward(
         self,
         x: torch.Tensor,
@@ -75,7 +74,6 @@ class GraphSAGEBackbone(GNNEncoder):
             x = F.dropout(x, p=self.dropout, training=self.training)
         return x
 
-    @torch.compile
     def feats(
         self,
         x: torch.Tensor,

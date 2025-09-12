@@ -35,7 +35,6 @@ class LeNet(nn.Module):
 
         self.seq = nn.Sequential(OrderedDict(module_list))
 
-    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x.unsqueeze(1)
         return self.seq(x)

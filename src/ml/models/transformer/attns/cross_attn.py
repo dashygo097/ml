@@ -6,11 +6,11 @@ import torch.nn.functional as F
 from torch import nn
 
 from ..components import RoPE
-from .base import AttnInfraRecord
+from .base import CrossAttnInfraRecord, CrossAttnModel
 from .functional import sdp_attn
 
 
-class MulHeadCrossAttn(nn.Module):
+class MulHeadCrossAttn(CrossAttnModel):
     def __init__(
         self,
         d_q: int,
@@ -19,13 +19,9 @@ class MulHeadCrossAttn(nn.Module):
         d_model: Optional[int] = None,
         dropout: float = 0.1,
     ) -> None:
-        super().__init__()
-        self.d_q = d_q
-        self.d_kv = d_kv
+        super().__init__(d_q, d_kv, d_model, dropout)
         self.n_heads = n_heads
-        self.d_model = d_model if d_model is not None else d_q
         self.head_dim = self.d_model // n_heads
-        self.dropout = dropout
         assert self.d_model % self.n_heads == 0, (
             f"[ERROR] d_model {self.d_model} must be divisible by n_heads {self.n_heads}"
         )
@@ -36,10 +32,9 @@ class MulHeadCrossAttn(nn.Module):
 
         self.rope = RoPE(self.head_dim)
 
-        self.out_dropout = nn.Dropout(dropout)
-
-    @torch.compile
-    def forward(self, x_1: torch.Tensor, x_2: torch.Tensor, mask=None) -> torch.Tensor:
+    def forward(
+        self, x_1: torch.Tensor, x_2: torch.Tensor, mask: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         B, C, E = x_1.shape
         Q, K, V = self.qkv(x_1, x_2)
 
@@ -52,7 +47,6 @@ class MulHeadCrossAttn(nn.Module):
         self.attn_dropout = nn.Dropout(self.dropout)
         return self.out_dropout(outputs)
 
-    @torch.compile
     def qkv(
         self, x_1: torch.Tensor, x_2: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -70,8 +64,7 @@ class MulHeadCrossAttn(nn.Module):
 
         return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)
 
-    @torch.compile
-    def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord:
+    def prompt(self, record: CrossAttnInfraRecord) -> CrossAttnInfraRecord:
         x_1, x_2 = record.input_logits
         B, C_1, E = x_1.shape
         B, C_2, E = x_2.shape
@@ -86,10 +79,9 @@ class MulHeadCrossAttn(nn.Module):
         record.output_logits = outputs
         return record
 
-    @torch.compile
     def infer(
-        self, record: AttnInfraRecord, use_cache: bool = False
-    ) -> AttnInfraRecord:
+        self, record: CrossAttnInfraRecord, use_cache: bool = False
+    ) -> CrossAttnInfraRecord:
         x_1, x_2 = record.input_logits
         B, C_1, E = x_1.shape
         B, C_2, E = x_2.shape

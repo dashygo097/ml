@@ -16,7 +16,6 @@ class RMSNorm(nn.Module):
         if element_affine:
             self.weight = nn.Parameter(torch.ones(dim))
 
-    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x * torch.rsqrt(
             torch.mean(torch.pow(x, 2), dim=-1, keepdim=True) + self.eps
@@ -39,6 +38,5 @@ class AddNorm(nn.Module):
         self.norm = nn.RMSNorm(d_model, eps=eps)
         self.dropout = nn.Dropout(dropout)
 
-    @torch.compile
     def forward(self, x: torch.Tensor, x_attn: torch.Tensor) -> torch.Tensor:
         return self.norm(x + self.dropout(x_attn))

@@ -14,7 +14,6 @@ class CBAMChannelAttn(nn.Module):
         )
         self.act = nn.Sigmoid()
 
-    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         avg = self.shared_mlp(self.avg_pool(x))
         max = self.shared_mlp(self.max_pool(x))
@@ -29,7 +28,6 @@ class CBAMSpatialAttn(nn.Module):
         )
         self.act = nn.Sigmoid()
 
-    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         avg = torch.mean(x, dim=1, keepdim=True)
         max, _ = torch.max(x, dim=1, keepdim=True)
@@ -43,7 +41,6 @@ class CBAM(nn.Module):
         self.ca = CBAMChannelAttn(in_planes, ratio)
         self.sa = CBAMSpatialAttn(kernel_size)
 
-    @torch.compile
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.ca(x)
         return self.sa(x)
