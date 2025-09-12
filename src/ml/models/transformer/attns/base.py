@@ -15,15 +15,6 @@ class AttnInfraRecord:
     v_cache: Optional[torch.Tensor] = None
 
 
-@dataclass
-class CrossAttnInfraRecord:
-    input_logits: Tuple[torch.Tensor, torch.Tensor]
-    output_logits: Optional[torch.Tensor] = None
-    attn_weights: Optional[torch.Tensor] = None
-    k_cache: Optional[torch.Tensor] = None
-    v_cache: Optional[torch.Tensor] = None
-
-
 class AttnModel(ABC, nn.Module):
     def __init__(
         self,
@@ -42,12 +33,15 @@ class AttnModel(ABC, nn.Module):
     def forward(
         self,
         x: torch.Tensor,
+        pos: Optional[int] = None,
         mask: Optional[torch.Tensor] = None,
         is_causal: bool = False,
     ) -> torch.Tensor: ...
 
     @abstractmethod
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]: ...
+    def qkv(
+        self, x: torch.Tensor, pos: Optional[int] = None
+    ) -> Tuple[torch.Tensor, ...]: ...
 
     def prompt(self, record: AttnInfraRecord) -> AttnInfraRecord: ...
     def infer(self, record: AttnInfraRecord) -> AttnInfraRecord: ...
@@ -72,13 +66,10 @@ class CrossAttnModel(ABC, nn.Module):
 
     @abstractmethod
     def forward(
-        self, x_1: torch.Tensor, x_2: torch.Tensor, mask: Optional[torch.Tensor] = None
+        self, x1: torch.Tensor, x2: torch.Tensor, mask: Optional[torch.Tensor] = None
     ) -> torch.Tensor: ...
 
     @abstractmethod
     def qkv(
-        self, x_1: torch.Tensor, x_2: torch.Tensor
+        self, x1: torch.Tensor, x2: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: ...
-
-    def prompt(self, record: CrossAttnInfraRecord) -> CrossAttnInfraRecord: ...
-    def infer(self, record: CrossAttnInfraRecord) -> CrossAttnInfraRecord: ...
