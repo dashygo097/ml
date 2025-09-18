@@ -50,6 +50,7 @@ class ViTBackbone(nn.Module):
                             d_model=self.d_model,
                             norm=nn.LayerNorm(embed_size, eps=1e-12),
                             bias=True,
+                            enable_rope=False,
                             dropout=dropout,
                         ),
                     ),
@@ -57,7 +58,10 @@ class ViTBackbone(nn.Module):
             )
 
         self.encoder = nn.Sequential(OrderedDict(module_list))
+        self.post_layernorm = nn.LayerNorm(self.d_model, eps=1e-12)
+        self.fc = nn.Linear(768, 1000)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.embedding(x)
-        return self.encoder(x)
+        x = self.encoder(x)
+        return self.post_layernorm(x)

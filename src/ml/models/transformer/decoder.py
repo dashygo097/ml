@@ -18,6 +18,7 @@ class DecoderBlock(nn.Module):
         ffn: Optional[nn.Module] = None,
         norm: Optional[nn.Module] = None,
         bias: bool = False,
+        enable_rope: bool = True,
         dropout: float = 0.0,
     ):
         super().__init__()
@@ -27,10 +28,18 @@ class DecoderBlock(nn.Module):
         self.dropout = dropout
         self.d_model = d_model if d_model is not None else embed_size
         self.d_inner = d_inner if d_inner is not None else 4 * self.d_model
+        self.bias = bias
+        self.enable_rope = enable_rope
+        self.dropout = dropout
 
         self.attn = (
             MulHeadAttn(
-                embed_size, n_heads, d_model=d_model, bias=bias, dropout=dropout
+                embed_size,
+                n_heads,
+                d_model=d_model,
+                bias=bias,
+                enable_rope=enable_rope,
+                dropout=dropout,
             )
             if attn is None
             else attn
@@ -41,6 +50,7 @@ class DecoderBlock(nn.Module):
             n_heads=n_heads,
             d_model=d_model,
             bias=bias,
+            enable_rope=enable_rope,
             dropout=dropout,
         )
         self.ffn = (
@@ -74,6 +84,7 @@ class DecoderOnlyBlock(nn.Module):
         ffn: Optional[nn.Module] = None,
         norm: Optional[nn.Module] = None,
         bias: bool = False,
+        enable_rope: bool = True,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -82,9 +93,18 @@ class DecoderOnlyBlock(nn.Module):
         self.dropout = dropout
         self.d_model = d_model if d_model is not None else embed_size
         self.d_inner = d_inner if d_inner is not None else 4 * self.d_model
+        self.bias = bias
+        self.enable_rope = enable_rope
+        self.dropout = dropout
 
         self.attn = (
-            MulHeadAttn(self.d_model, n_heads, bias=bias, dropout=dropout)
+            MulHeadAttn(
+                self.d_model,
+                n_heads,
+                bias=bias,
+                enable_rope=enable_rope,
+                dropout=dropout,
+            )
             if attn is None
             else attn
         )

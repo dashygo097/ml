@@ -28,6 +28,9 @@ class Tracer:
         print(self.model)
         self.numal(info=True)
 
+    def state_dict(self) -> Dict[str, torch.Tensor]:
+        return self.model.state_dict()
+
     def fuzzy_fetch(self, target: str) -> nn.Module:
         fetched_module = []
         for name, module in self.model.named_modules():

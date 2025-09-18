@@ -23,7 +23,7 @@ class PatchEmbedding(nn.Module):
         self.dropout = dropout
 
         self.proj = nn.Conv2d(
-            in_channels, embed_size, kernel_size=patch_size, padding=patch_size
+            in_channels, embed_size, kernel_size=patch_size, stride=patch_size
         )
         self.dropout = nn.Dropout(dropout)
 
@@ -39,7 +39,7 @@ class PatchEmbedding(nn.Module):
         )
 
         x = self.proj(x)
-        x.transpose_(1, 3)
+        x = x.flatten(2).transpose(1, 2)
         cls_tokens = self.cls_token.expand(B, -1, -1)
         x = torch.cat([cls_tokens, x], dim=1)
         x += self.pos_embedding
