@@ -15,39 +15,35 @@ class MulHeadLatentAttn(AttnModel):
     def __init__(
         self,
         embed_size: int,
-        num_heads: int,
+        n_heads: int,
         latent_dim: int,
         d_model: Optional[int] = None,
         head_dim: Optional[int] = None,
         bias: bool = False,
+        enable_rope: bool = True,
         dropout: float = 0.0,
     ):
-        super().__init__(embed_size, d_model, bias, dropout)
-        assert self.d_model % num_heads == 0, (
-            "[ERROR] embed_size must be divisible by n_heads"
-        )
-        self.num_heads = num_heads
+        super().__init__(embed_size, n_heads, d_model, bias, enable_rope, dropout)
         self.latent_dim = latent_dim
-        self.head_dim = head_dim if head_dim is not None else self.d_model // num_heads
+        self.head_dim = head_dim if head_dim is not None else self.d_model // n_heads
         self.split_dim = self.head_dim // 2
+        if self.enable_rope:
+            self.rope = RoPE(self.split_dim)
 
         self.W_dkv = nn.Linear(self.embed_size, self.latent_dim, bias=bias)
         self.W_kv = nn.Linear(
-            latent_dim, self.head_dim * self.num_heads // 2 * 3, bias=bias
+            latent_dim, self.head_dim * self.n_heads // 2 * 3, bias=bias
         )
         self.W_kr = nn.Linear(
-            self.embed_size, self.head_dim * self.num_heads // 2, bias=bias
+            self.embed_size, self.head_dim * self.n_heads // 2, bias=bias
         )
 
-        self.W_dq = nn.Linear(
-            self.embed_size, self.head_dim * self.num_heads, bias=bias
-        )
+        self.W_dq = nn.Linear(self.embed_size, self.head_dim * self.n_heads, bias=bias)
         self.W_q = nn.Linear(
-            self.head_dim * self.num_heads, self.head_dim * self.num_heads, bias=bias
+            self.head_dim * self.n_heads, self.head_dim * self.n_heads, bias=bias
         )
 
-        self.W_o = nn.Linear(self.head_dim * self.num_heads, self.embed_size, bias=bias)
-        self.rope = RoPE(self.head_dim // 2)
+        self.W_o = nn.Linear(self.head_dim * self.n_heads, self.embed_size, bias=bias)
 
     def forward(
         self,
@@ -57,13 +53,13 @@ class MulHeadLatentAttn(AttnModel):
         is_causal: bool = False,
     ) -> torch.Tensor:
         B, C, _ = x.shape
-        Q, K, V = self.qkv(x)
+        Q, K, V = self.qkv(x, pos)
 
         outputs = F.scaled_dot_product_attention(
             Q, K, V, attn_mask=mask, dropout_p=self.dropout, is_causal=is_causal
         )
 
-        outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
+        outputs = outputs.transpose(1, 2).reshape(B, C, -1)
         outputs = self.W_o(outputs)
 
         return self.out_dropout(outputs)
@@ -73,15 +69,16 @@ class MulHeadLatentAttn(AttnModel):
     ) -> Tuple[torch.Tensor, ...]:
         B, C, _ = x.shape
         Q, QR = torch.chunk(self.W_q(self.W_dq(x)), 2, dim=-1)
-        Q = Q.view(B, C, self.num_heads, self.split_dim)
+        Q = Q.view(B, C, self.n_heads, self.split_dim)
 
-        QR = QR.view(B, C, self.num_heads, self.split_dim)
-        KR = self.W_kr(x).view(B, C, self.num_heads, self.split_dim)
-        QR, KR = self.rope(QR, KR, pos)
+        QR = QR.view(B, C, self.n_heads, self.split_dim)
+        KR = self.W_kr(x).view(B, C, self.n_heads, self.split_dim)
+        if self.enable_rope:
+            QR, KR = self.rope(QR, KR, pos)
 
         K, V, V_ = self.W_kv(self.W_dkv(x)).chunk(3, dim=-1)
-        K = torch.cat([K.view(B, C, self.num_heads, self.split_dim), KR], dim=-1)
-        V = torch.cat([V, V_], dim=-1).view(B, C, self.num_heads, self.head_dim)
+        K = torch.cat([K.view(B, C, self.n_heads, self.split_dim), KR], dim=-1)
+        V = torch.cat([V, V_], dim=-1).view(B, C, self.n_heads, self.head_dim)
 
         Q = torch.cat([Q, QR], dim=-1)
 
@@ -119,7 +116,7 @@ class MulHeadLatentAttn(AttnModel):
             weights = torch.cat(
                 [
                     record.attn_weights,
-                    torch.zeros(B, self.num_heads, C - d_length, d_length),
+                    torch.zeros(B, self.n_heads, C - d_length, d_length),
                 ],
                 dim=-1,
             )

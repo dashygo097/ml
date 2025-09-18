@@ -1,13 +1,13 @@
 from typing import Optional, OrderedDict, Tuple
 
+import torch
 from torch import nn
 
-from ...heads import ClassifyHead
 from ..components import PatchEmbedding
 from ..encoder import EncoderBlock
 
 
-class ViT(nn.Module):
+class ViTBackbone(nn.Module):
     def __init__(
         self,
         embed_size: int,
@@ -16,10 +16,8 @@ class ViT(nn.Module):
         num_layers: int,
         res: Tuple[int, int],
         in_channels: int,
-        num_classes: int,
         d_inner: Optional[int] = None,
         d_model: Optional[int] = None,
-        bias: bool = True,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -36,7 +34,6 @@ class ViT(nn.Module):
         # Image parameters
         self.res = res
         self.in_channels = in_channels
-        self.num_classes = num_classes
 
         self.embedding = PatchEmbedding(res, patch_size, in_channels, embed_size)
 
@@ -52,6 +49,7 @@ class ViT(nn.Module):
                             self.d_inner,
                             d_model=self.d_model,
                             norm=nn.LayerNorm(embed_size, eps=1e-12),
+                            bias=True,
                             dropout=dropout,
                         ),
                     ),
@@ -59,4 +57,7 @@ class ViT(nn.Module):
             )
 
         self.encoder = nn.Sequential(OrderedDict(module_list))
-        self.fc = ClassifyHead(self.d_model, num_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.embedding(x)
+        return self.encoder(x)

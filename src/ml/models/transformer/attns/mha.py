@@ -5,7 +5,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ..components import RoPE
 from .base import AttnInfraRecord, AttnModel
 from .functional import sdp_attn
 
@@ -17,18 +16,13 @@ class MulHeadAttn(AttnModel):
         n_heads: int,
         d_model: Optional[int] = None,
         bias: bool = False,
+        enable_rope: bool = True,
         dropout: float = 0.0,
     ) -> None:
-        super().__init__(embed_size, d_model, bias, dropout)
-        assert self.d_model % n_heads == 0, (
-            "[ERROR] embed_size must be divisible by n_heads"
-        )
-        self.n_heads = n_heads
-        self.head_dim = self.d_model // n_heads
+        super().__init__(embed_size, n_heads, d_model, bias, enable_rope, dropout)
 
         self.W_qkv = nn.Linear(self.embed_size, self.d_model * 3, bias=bias)
         self.W_o = nn.Linear(self.d_model, self.embed_size, bias=bias)
-        self.rope = RoPE(self.head_dim)
 
     def forward(
         self,
@@ -44,7 +38,7 @@ class MulHeadAttn(AttnModel):
             Q, K, V, attn_mask=mask, dropout_p=self.dropout, is_causal=is_causal
         )
 
-        outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
+        outputs = outputs.transpose(1, 2).reshape(B, C, -1)
         outputs = self.W_o(outputs)
         return self.out_dropout(outputs)
 
@@ -60,7 +54,8 @@ class MulHeadAttn(AttnModel):
         K = K.view(B, C, self.n_heads, self.head_dim)
         V = V.view(B, C, self.n_heads, self.head_dim)
 
-        Q, K = self.rope(Q, K, pos)
+        if self.enable_rope:
+            Q, K = self.rope(Q, K, pos)
 
         return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)
 
@@ -69,7 +64,7 @@ class MulHeadAttn(AttnModel):
         Q, K, V = self.qkv(record.input_logits, None)
 
         outputs, weights = sdp_attn(Q, K, V, mask="^")
-        outputs = (outputs.transpose(1, 2)).reshape(B, C, -1)
+        outputs = outputs.transpose(1, 2).reshape(B, C, -1)
         outputs = self.W_o(outputs)
 
         record.k_cache = K

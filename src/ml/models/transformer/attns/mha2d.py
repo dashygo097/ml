@@ -4,7 +4,6 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
-from ..components import RoPE
 from .base import AttnModel
 
 
@@ -18,10 +17,7 @@ class MulHeadAttn2d(AttnModel):
         enable_rope: bool = False,
         dropout: float = 0.0,
     ) -> None:
-        super().__init__(embed_size, d_model, bias, dropout)
-        self.n_heads = n_heads
-        self.head_dim = self.d_model // n_heads
-
+        super().__init__(embed_size, n_heads, d_model, bias, enable_rope, dropout)
         self.W_qkv = nn.Conv2d(
             in_channels=self.embed_size,
             out_channels=self.d_model * 3,
@@ -34,8 +30,6 @@ class MulHeadAttn2d(AttnModel):
             kernel_size=1,
             bias=bias,
         )
-        if self.enable_rope:
-            self.rope = RoPE(self.head_dim)
 
     def forward(
         self,

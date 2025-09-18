@@ -5,6 +5,8 @@ from typing import Optional, Tuple
 import torch
 from torch import nn
 
+from ..components import RoPE
+
 
 @dataclass
 class AttnInfraRecord:
@@ -19,16 +21,26 @@ class AttnModel(ABC, nn.Module):
     def __init__(
         self,
         embed_size: int,
+        n_heads: int,
         d_model: Optional[int] = None,
         bias: bool = False,
+        enable_rope: bool = True,
         dropout: float = 0.0,
     ):
         super().__init__()
         self.embed_size = embed_size
-        self.d_model: int = d_model if d_model is not None else embed_size
+        self.n_heads = n_heads
+        self.d_model = d_model if d_model is not None else embed_size
+        self.head_dim = self.d_model // self.n_heads
         self.bias = bias
+        self.enable_rope = enable_rope
         self.dropout = dropout
+        assert self.d_model % self.n_heads == 0, (
+            f"[ERROR] d_model {self.d_model} must be divisible by n_heads {self.n_heads}"
+        )
 
+        if self.enable_rope:
+            self.rope = RoPE(self.head_dim)
         self.out_dropout = nn.Dropout(dropout)
 
     @abstractmethod
@@ -54,18 +66,27 @@ class CrossAttnModel(ABC, nn.Module):
         self,
         d_q: int,
         d_kv: int,
+        n_heads: int,
         d_model: Optional[int] = None,
         bias: bool = False,
+        enable_rope: bool = True,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
+        self.embed_size = d_q
         self.d_q = d_q
         self.d_kv = d_kv
-        self.embed_size = d_q
+        self.n_heads = n_heads
         self.d_model = d_model if d_model is not None else d_q
+        self.head_dim = self.d_model // self.n_heads
         self.bias = bias
         self.dropout = dropout
+        assert self.d_model % self.n_heads == 0, (
+            f"[ERROR] d_model {self.d_model} must be divisible by n_heads {self.n_heads}"
+        )
 
+        if enable_rope:
+            self.rope = RoPE(self.head_dim)
         self.out_dropout = nn.Dropout(dropout)
 
     @abstractmethod
