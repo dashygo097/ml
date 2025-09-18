@@ -20,11 +20,13 @@ class AttnModel(ABC, nn.Module):
         self,
         embed_size: int,
         d_model: Optional[int] = None,
+        bias: bool = False,
         dropout: float = 0.0,
     ):
         super().__init__()
         self.embed_size = embed_size
         self.d_model: int = d_model if d_model is not None else embed_size
+        self.bias = bias
         self.dropout = dropout
 
         self.out_dropout = nn.Dropout(dropout)
@@ -53,14 +55,16 @@ class CrossAttnModel(ABC, nn.Module):
         d_q: int,
         d_kv: int,
         d_model: Optional[int] = None,
+        bias: bool = False,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.d_q = d_q
         self.d_kv = d_kv
-        self.dropout = dropout
         self.embed_size = d_q
         self.d_model = d_model if d_model is not None else d_q
+        self.bias = bias
+        self.dropout = dropout
 
         self.out_dropout = nn.Dropout(dropout)
 

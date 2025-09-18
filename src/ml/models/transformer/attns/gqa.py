@@ -14,9 +14,10 @@ class GroupedQueryAttn(AttnModel):
         q_heads: int,
         kv_heads: int,
         d_model: Optional[int] = None,
+        bias: bool = False,
         dropout: float = 0.0,
     ) -> None:
-        super().__init__(embed_size, d_model, dropout)
+        super().__init__(embed_size, d_model, bias, dropout)
         assert self.d_model % q_heads == 0, (
             "[ERROR] embed_size must be divisible by n_heads"
         )
@@ -27,18 +28,19 @@ class GroupedQueryAttn(AttnModel):
         self.head_dim = self.d_model // q_heads
         self.heads_per_group = q_heads // kv_heads
 
-        self.W_q = nn.Linear(self.embed_size, self.d_model, bias=False)
-        self.W_kv = nn.Linear(self.embed_size, self.kv_embed_dim * 2, bias=False)
+        self.W_q = nn.Linear(self.embed_size, self.d_model, bias=bias)
+        self.W_kv = nn.Linear(self.embed_size, self.kv_embed_dim * 2, bias=bias)
         self.W_o = nn.Linear(self.d_model, self.embed_size)
 
     def forward(
         self,
         x: torch.Tensor,
+        pos: Optional[int] = None,
         mask: Optional[torch.Tensor] = None,
         is_causal: bool = False,
     ) -> torch.Tensor:
         B, C, E = x.shape
-        Q, K, V = self.qkv(x)
+        Q, K, V = self.qkv(x, pos)
 
         outputs = F.scaled_dot_product_attention(
             Q,
@@ -55,7 +57,9 @@ class GroupedQueryAttn(AttnModel):
         outputs = self.W_o(outputs)
         return self.out_dropout(outputs)
 
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def qkv(
+        self, x: torch.Tensor, pos: Optional[int] = None
+    ) -> Tuple[torch.Tensor, ...]:
         B, C, E = x.shape
         Q = (
             self.W_q(x)
