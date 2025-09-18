@@ -17,6 +17,7 @@ class DecoderBlock(nn.Module):
         attn: Optional[nn.Module] = None,
         ffn: Optional[nn.Module] = None,
         norm: Optional[nn.Module] = None,
+        bias: bool = False,
         dropout: float = 0.0,
     ):
         super().__init__()
@@ -28,7 +29,9 @@ class DecoderBlock(nn.Module):
         self.d_inner = d_inner if d_inner is not None else 4 * self.d_model
 
         self.attn = (
-            MulHeadAttn(embed_size, n_heads, d_model=d_model, dropout=dropout)
+            MulHeadAttn(
+                embed_size, n_heads, d_model=d_model, bias=bias, dropout=dropout
+            )
             if attn is None
             else attn
         )
@@ -37,6 +40,7 @@ class DecoderBlock(nn.Module):
             d_kv=self.d_model,
             n_heads=n_heads,
             d_model=d_model,
+            bias=bias,
             dropout=dropout,
         )
         self.ffn = (
@@ -69,6 +73,7 @@ class DecoderOnlyBlock(nn.Module):
         attn: Optional[AttnModel] = None,
         ffn: Optional[nn.Module] = None,
         norm: Optional[nn.Module] = None,
+        bias: bool = False,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -79,7 +84,7 @@ class DecoderOnlyBlock(nn.Module):
         self.d_inner = d_inner if d_inner is not None else 4 * self.d_model
 
         self.attn = (
-            MulHeadAttn(self.d_model, n_heads, dropout=dropout)
+            MulHeadAttn(self.d_model, n_heads, bias=bias, dropout=dropout)
             if attn is None
             else attn
         )
