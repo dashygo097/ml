@@ -6,8 +6,8 @@ from torch import nn
 from torch_geometric.data import Data
 from torch_geometric.nn import global_mean_pool
 
+from ...heads import ClassifyHead
 from ..base import GNNEncoder
-from .heads import ClassifyHead
 
 
 class GNNClassifier(nn.Module):

@@ -3,3 +3,4 @@ from .components import *
 from .decoder import *
 from .encoder import *
 from .gpt_trainer import *
+from .models import *

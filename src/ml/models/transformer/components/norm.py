@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from torch import nn
 
@@ -29,13 +31,21 @@ class AddNorm(nn.Module):
     def __init__(
         self,
         d_model: int,
-        eps: float = 1e-6,
-        dropout: float = 0.0,
+        norm: Optional[nn.Module] = None,
+        **kwargs,
     ) -> None:
         super().__init__()
+
         self.d_model = d_model
 
-        self.norm = nn.RMSNorm(d_model, eps=eps)
+        if norm is not None:
+            self.norm = norm
+        else:
+            eps = kwargs.pop("eps", 1e-6)
+            element_affine = kwargs.pop("element_affine", True)
+            self.norm = RMSNorm(d_model, eps=eps, element_affine=element_affine)
+
+        dropout = kwargs.pop("dropout", 0.0)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor, x_attn: torch.Tensor) -> torch.Tensor:
