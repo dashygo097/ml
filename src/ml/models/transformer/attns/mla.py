@@ -19,7 +19,7 @@ class MulHeadLatentAttn(AttnModel):
         latent_dim: int,
         d_model: Optional[int] = None,
         head_dim: Optional[int] = None,
-        dropout: float = 0.1,
+        dropout: float = 0.0,
     ):
         super().__init__(embed_size, d_model, dropout)
         assert self.d_model % num_heads == 0, (

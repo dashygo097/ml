@@ -15,7 +15,7 @@ class MulHeadCrossAttn(CrossAttnModel):
         d_kv: int,
         n_heads: int,
         d_model: Optional[int] = None,
-        dropout: float = 0.1,
+        dropout: float = 0.0,
     ) -> None:
         super().__init__(d_q, d_kv, d_model, dropout)
         self.n_heads = n_heads

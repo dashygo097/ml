@@ -12,7 +12,7 @@ class FFN(nn.Module):
         d_model: int,
         d_inner: int,
         act: Callable = nn.GELU(),
-        dropout: float = 0.1,
+        dropout: float = 0.0,
     ):
         super().__init__()
         self.d_model = d_model
@@ -33,7 +33,7 @@ class SwiGLUFFN(nn.Module):
         self,
         d_model: int,
         d_inner: int,
-        dropout: float = 0.1,
+        dropout: float = 0.0,
     ):
         super().__init__()
         self.d_model = d_model

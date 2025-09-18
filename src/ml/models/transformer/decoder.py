@@ -10,32 +10,37 @@ from .components import FFN, AddNorm
 class DecoderBlock(nn.Module):
     def __init__(
         self,
-        d_model: int,
+        embed_size: int,
         n_heads: int,
         d_inner: int,
+        d_model: Optional[int] = None,
         dropout: float = 0.1,
         attn: Optional[nn.Module] = None,
         ffn: Optional[nn.Module] = None,
     ):
         super().__init__()
-        self.d_model = d_model
+        self.embed_size = embed_size
         self.n_heads = n_heads
         self.d_inner = d_inner
+        self.dropout = dropout
+        self.d_model = d_model if d_model is not None else embed_size
 
         self.attn = (
-            MulHeadAttn(d_model, n_heads, dropout=dropout) if attn is None else attn
+            MulHeadAttn(embed_size, n_heads, d_model=d_model, dropout=dropout)
+            if attn is None
+            else attn
         )
         self.attn_mask = MulHeadCrossAttn(
-            d_q=d_model,
-            d_kv=d_model,
+            d_q=self.d_model,
+            d_kv=self.d_model,
             n_heads=n_heads,
             d_model=d_model,
             dropout=dropout,
         )
-        self.ffn = FFN(d_model, d_inner, dropout=dropout) if ffn is None else ffn
-        self.addnorm1 = AddNorm(d_model, dropout=dropout)
-        self.addnorm2 = AddNorm(d_model, dropout=dropout)
-        self.addnorm3 = AddNorm(d_model, dropout=dropout)
+        self.ffn = FFN(self.d_model, d_inner, dropout=dropout) if ffn is None else ffn
+        self.addnorm1 = AddNorm(self.d_model, dropout=dropout)
+        self.addnorm2 = AddNorm(self.d_model, dropout=dropout)
+        self.addnorm3 = AddNorm(self.d_model, dropout=dropout)
 
     def forward(
         self,
