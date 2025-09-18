@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from .attns import AttnModel, MulHeadAttn, MulHeadCrossAttn
-from .components import FFN, AddNorm
+from .components import FFN, AddPostNorm, AddPreNorm
 
 
 class DecoderBlock(nn.Module):
@@ -19,6 +19,7 @@ class DecoderBlock(nn.Module):
         norm: Optional[nn.Module] = None,
         bias: bool = False,
         enable_rope: bool = True,
+        postnorm: bool = True,
         dropout: float = 0.0,
     ):
         super().__init__()
@@ -56,9 +57,14 @@ class DecoderBlock(nn.Module):
         self.ffn = (
             FFN(self.d_model, self.d_inner, dropout=dropout) if ffn is None else ffn
         )
-        self.addnorm1 = AddNorm(self.d_model, norm=norm, dropout=dropout)
-        self.addnorm2 = AddNorm(self.d_model, norm=norm, dropout=dropout)
-        self.addnorm3 = AddNorm(self.d_model, norm=norm, dropout=dropout)
+        if postnorm:
+            self.addnorm1 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm2 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm3 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
+        else:
+            self.addnorm1 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm2 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm3 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
 
     def forward(
         self,
@@ -85,6 +91,7 @@ class DecoderOnlyBlock(nn.Module):
         norm: Optional[nn.Module] = None,
         bias: bool = False,
         enable_rope: bool = True,
+        postnorm: bool = True,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -111,8 +118,12 @@ class DecoderOnlyBlock(nn.Module):
         self.ffn = (
             FFN(self.d_model, self.d_inner, dropout=dropout) if ffn is None else ffn
         )
-        self.addnorm1 = AddNorm(self.d_model, norm=norm, dropout=dropout)
-        self.addnorm2 = AddNorm(self.d_model, norm=norm, dropout=dropout)
+        if postnorm:
+            self.addnorm1 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm2 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
+        else:
+            self.addnorm1 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm2 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
 
     def forward(
         self,

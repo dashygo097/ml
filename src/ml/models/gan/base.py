@@ -15,12 +15,27 @@ class ImageGANConfig:
             self.config: Dict = config
 
         # Overall settings
+        assert "latent_dim" in self.config, (
+            "[ERROR] 'latent_dim' must be specified in the config."
+        )
         self.latent_dim: int = self.config["latent_dim"]
 
         # Generator
+        assert "generator" in self.config, (
+            "[ERROR] 'generator' must be specified in the config."
+        )
+        assert "type" in self.config["generator"], (
+            "[ERROR] 'type' must be specified in the 'generator' config."
+        )
         self.generator_config: Dict = self.config["generator"]
 
         # Discriminator
+        assert "discriminator" in self.config, (
+            "[ERROR] 'discriminator' must be specified in the config."
+        )
+        assert "type" in self.config["discriminator"], (
+            "[ERROR] 'type' must be specified in the 'discriminator' config."
+        )
         self.discriminator_config: Dict = self.config["discriminator"]
 
         self.dis_use_minibatch: bool = self.config["discriminator"].get(
@@ -34,8 +49,15 @@ class ImageGANConfig:
         )
 
         # IO settings
+        assert "n_channels" in self.config, (
+            "[ERROR] 'n_channels' must be specified in the config."
+        )
+        assert "img_shape" in self.config, (
+            "[ERROR] 'img_shape' must be specified in the config."
+        )
         self.n_channels = self.config["n_channels"]
         self.img_shape: List[int] = self.config["img_shape"]
+
         self.io_dim: int = int(np.prod(self.img_shape))
 
 

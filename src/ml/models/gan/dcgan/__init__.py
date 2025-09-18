@@ -1,2 +1,3 @@
 from .config import *
-from .parts import *
+from .discriminator import *
+from .generator import *
