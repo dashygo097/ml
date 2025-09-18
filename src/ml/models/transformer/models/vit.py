@@ -19,6 +19,7 @@ class ViT(nn.Module):
         num_classes: int,
         d_inner: Optional[int] = None,
         d_model: Optional[int] = None,
+        bias: bool = True,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -29,6 +30,7 @@ class ViT(nn.Module):
         self.num_layers = num_layers
         self.d_model = d_model if d_model is not None else embed_size
         self.d_inner = d_inner if d_inner is not None else 4 * self.d_model
+        self.bias = True
         self.dropout = dropout
 
         # Image parameters

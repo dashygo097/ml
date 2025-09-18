@@ -14,9 +14,11 @@ class MulHeadAttn2d(AttnModel):
         embed_size: int,
         n_heads: int,
         d_model: Optional[int] = None,
+        bias: bool = False,
+        enable_rope: bool = False,
         dropout: float = 0.0,
     ) -> None:
-        super().__init__(embed_size, d_model, dropout)
+        super().__init__(embed_size, d_model, bias, dropout)
         self.n_heads = n_heads
         self.head_dim = self.d_model // n_heads
 
@@ -24,23 +26,26 @@ class MulHeadAttn2d(AttnModel):
             in_channels=self.embed_size,
             out_channels=self.d_model * 3,
             kernel_size=1,
-            bias=False,
+            bias=bias,
         )
         self.W_o = nn.Conv2d(
             in_channels=self.d_model,
             out_channels=self.embed_size,
             kernel_size=1,
+            bias=bias,
         )
-        self.rope = RoPE(self.head_dim)
+        if self.enable_rope:
+            self.rope = RoPE(self.head_dim)
 
     def forward(
         self,
         x: torch.Tensor,
+        pos: Optional[int] = None,
         mask: Optional[torch.Tensor] = None,
         is_causal: bool = False,
     ) -> torch.Tensor:
         B, C, H, W = x.shape
-        Q, K, V = self.qkv(x)
+        Q, K, V = self.qkv(x, pos)
 
         outputs = F.scaled_dot_product_attention(
             Q, K, V, attn_mask=mask, dropout_p=self.dropout, is_causal=is_causal
@@ -50,7 +55,9 @@ class MulHeadAttn2d(AttnModel):
 
         return self.out_dropout(outputs)
 
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def qkv(
+        self, x: torch.Tensor, pos: Optional[int] = None
+    ) -> Tuple[torch.Tensor, ...]:
         B, C, H, W = x.shape
 
         QKV = self.W_qkv(x)
@@ -60,6 +67,7 @@ class MulHeadAttn2d(AttnModel):
         K = K.view(B, self.n_heads, self.head_dim, H * W).permute(0, 3, 1, 2)
         V = V.view(B, self.n_heads, self.head_dim, H * W).permute(0, 3, 1, 2)
 
-        Q, K = self.rope(Q, K)
+        if self.enable_rope:
+            Q, K = self.rope(Q, K, pos)
 
         return Q.transpose(1, 2), K.transpose(1, 2), V.transpose(1, 2)

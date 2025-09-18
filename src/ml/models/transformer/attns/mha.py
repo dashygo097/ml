@@ -16,17 +16,18 @@ class MulHeadAttn(AttnModel):
         embed_size: int,
         n_heads: int,
         d_model: Optional[int] = None,
+        bias: bool = False,
         dropout: float = 0.0,
     ) -> None:
-        super().__init__(embed_size, d_model, dropout)
+        super().__init__(embed_size, d_model, bias, dropout)
         assert self.d_model % n_heads == 0, (
             "[ERROR] embed_size must be divisible by n_heads"
         )
         self.n_heads = n_heads
         self.head_dim = self.d_model // n_heads
 
-        self.W_qkv = nn.Linear(self.embed_size, self.d_model * 3, bias=False)
-        self.W_o = nn.Linear(self.d_model, self.embed_size, bias=False)
+        self.W_qkv = nn.Linear(self.embed_size, self.d_model * 3, bias=bias)
+        self.W_o = nn.Linear(self.d_model, self.embed_size, bias=bias)
         self.rope = RoPE(self.head_dim)
 
     def forward(

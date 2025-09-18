@@ -19,9 +19,10 @@ class MulHeadLatentAttn(AttnModel):
         latent_dim: int,
         d_model: Optional[int] = None,
         head_dim: Optional[int] = None,
+        bias: bool = False,
         dropout: float = 0.0,
     ):
-        super().__init__(embed_size, d_model, dropout)
+        super().__init__(embed_size, d_model, bias, dropout)
         assert self.d_model % num_heads == 0, (
             "[ERROR] embed_size must be divisible by n_heads"
         )
@@ -30,27 +31,28 @@ class MulHeadLatentAttn(AttnModel):
         self.head_dim = head_dim if head_dim is not None else self.d_model // num_heads
         self.split_dim = self.head_dim // 2
 
-        self.W_dkv = nn.Linear(self.embed_size, self.latent_dim, bias=False)
+        self.W_dkv = nn.Linear(self.embed_size, self.latent_dim, bias=bias)
         self.W_kv = nn.Linear(
-            latent_dim, self.head_dim * self.num_heads // 2 * 3, bias=False
+            latent_dim, self.head_dim * self.num_heads // 2 * 3, bias=bias
         )
         self.W_kr = nn.Linear(
-            self.embed_size, self.head_dim * self.num_heads // 2, bias=False
+            self.embed_size, self.head_dim * self.num_heads // 2, bias=bias
         )
 
         self.W_dq = nn.Linear(
-            self.embed_size, self.head_dim * self.num_heads, bias=False
+            self.embed_size, self.head_dim * self.num_heads, bias=bias
         )
         self.W_q = nn.Linear(
-            self.head_dim * self.num_heads, self.head_dim * self.num_heads, bias=False
+            self.head_dim * self.num_heads, self.head_dim * self.num_heads, bias=bias
         )
 
-        self.W_o = nn.Linear(self.head_dim * self.num_heads, self.embed_size)
+        self.W_o = nn.Linear(self.head_dim * self.num_heads, self.embed_size, bias=bias)
         self.rope = RoPE(self.head_dim // 2)
 
     def forward(
         self,
         x: torch.Tensor,
+        pos: Optional[int] = None,
         mask: Optional[torch.Tensor] = None,
         is_causal: bool = False,
     ) -> torch.Tensor:
@@ -66,14 +68,16 @@ class MulHeadLatentAttn(AttnModel):
 
         return self.out_dropout(outputs)
 
-    def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
+    def qkv(
+        self, x: torch.Tensor, pos: Optional[int] = None
+    ) -> Tuple[torch.Tensor, ...]:
         B, C, _ = x.shape
         Q, QR = torch.chunk(self.W_q(self.W_dq(x)), 2, dim=-1)
         Q = Q.view(B, C, self.num_heads, self.split_dim)
 
         QR = QR.view(B, C, self.num_heads, self.split_dim)
         KR = self.W_kr(x).view(B, C, self.num_heads, self.split_dim)
-        QR, KR = self.rope(QR, KR)
+        QR, KR = self.rope(QR, KR, pos)
 
         K, V, V_ = self.W_kv(self.W_dkv(x)).chunk(3, dim=-1)
         K = torch.cat([K.view(B, C, self.num_heads, self.split_dim), KR], dim=-1)
@@ -107,7 +111,7 @@ class MulHeadLatentAttn(AttnModel):
         ):
             d_length = C - record.k_cache.shape[2]
             new_inputs = record.input_logits[:, -d_length:, :]
-            Q, K, V = self.qkv(new_inputs)
+            Q, K, V = self.qkv(new_inputs, pos=C - 1)
             K = torch.cat([record.k_cache, K], dim=2)
             V = torch.cat([record.v_cache, V], dim=2)
             scores = Q @ K.transpose(-2, -1) / math.sqrt(self.head_dim)
