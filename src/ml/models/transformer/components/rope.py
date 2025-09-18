@@ -34,7 +34,7 @@ class RoPE(nn.Module):
         else:
             if C > self.max_length:
                 x1 = x1[:, : self.max_length]
-            cos, sin = self.cache[:min(self.max_length, C)].chunk(2, dim=-1)
+            cos, sin = self.cache[: min(self.max_length, C)].chunk(2, dim=-1)
 
         x11, x12 = x1.chunk(2, dim=-1)
         x21, x22 = x2.chunk(2, dim=-1)

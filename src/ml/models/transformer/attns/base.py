@@ -20,7 +20,7 @@ class AttnModel(ABC, nn.Module):
         self,
         embed_size: int,
         d_model: Optional[int] = None,
-        dropout: float = 0.1,
+        dropout: float = 0.0,
     ):
         super().__init__()
         self.embed_size = embed_size
@@ -53,7 +53,7 @@ class CrossAttnModel(ABC, nn.Module):
         d_q: int,
         d_kv: int,
         d_model: Optional[int] = None,
-        dropout: float = 0.1,
+        dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.d_q = d_q
