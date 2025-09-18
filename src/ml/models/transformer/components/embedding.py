@@ -7,30 +7,30 @@ from torch import nn
 class PatchEmbedding(nn.Module):
     def __init__(
         self,
+        embed_size: int,
         res: Tuple[int, int],
         patch_size: int,
         in_channels: int,
-        embed_size: int,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
         self.res = res
         self.patch_size = patch_size
-        self.num_patches = res[0] * res[1] // patch_size
+        self.num_patches = (res[0] // patch_size) * (res[1] // patch_size)
         self.in_channels = in_channels
         self.d_model = embed_size
         self.embed_size = embed_size
         self.dropout = dropout
 
         self.proj = nn.Conv2d(
-            in_channels, embed_size, kernel_size=patch_size, stride=patch_size
+            in_channels, self.d_model, kernel_size=patch_size, stride=patch_size
         )
-        self.dropout = nn.Dropout(dropout)
+        self.out_dropout = nn.Dropout(dropout)
 
         self.pos_embedding = nn.Parameter(
-            torch.randn(1, self.num_patches + 1, embed_size)
+            torch.randn(1, self.num_patches + 1, self.d_model)
         )
-        self.cls_token = nn.Parameter(torch.randn(1, 1, embed_size))
+        self.cls_token = nn.Parameter(torch.randn(1, 1, self.d_model))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, C, H, W = x.shape
@@ -44,4 +44,4 @@ class PatchEmbedding(nn.Module):
         x = torch.cat([cls_tokens, x], dim=1)
         x += self.pos_embedding
 
-        return x
+        return self.out_dropout(x)
