@@ -1,25 +1,20 @@
 from typing import Any, Dict, List, Tuple
 
 import torch
-from torch import nn
 
-from .base_trainer import GANTrainArgs, GANTrainer
+from .base import ImageGAN
+from .base_trainer import ImageGANTrainArgs, ImageGANTrainer
 
 
-class GANTrainArgsCT(GANTrainArgs):
-    """
-    GANTrainerCT is a specialized trainer for Conditional GANs (cGANs).
-    It inherits from GANTrainer and is designed to handle the training of cGANs.
-    """
-
+class GANTrainArgsCT(ImageGANTrainArgs):
     def __init__(self, path: str) -> None:
         super().__init__(path)
 
 
-class GANTrainerCT(GANTrainer):
+class ImageGANTrainerCT(ImageGANTrainer):
     def __init__(
         self,
-        model: nn.Module,
+        model: ImageGAN,
         dataset,
         args: GANTrainArgsCT,
         criterion=None,

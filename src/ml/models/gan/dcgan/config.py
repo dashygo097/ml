@@ -1,36 +1,54 @@
-from typing import Dict
+from typing import Any, Dict, Tuple
 
-from ..base import ImageGANConfig
+from ....utils import load_yaml
 
 
-class DCGANConfig(ImageGANConfig):
+class DCGANGeneratorConfig:
     def __init__(self, config: str | Dict) -> None:
-        super().__init__(config)
+        self.config: Dict[str, Any] = (
+            config if not isinstance(config, str) else load_yaml(config)
+        )
+        assert "latent_dim" in self.config, (
+            "[ERROR] 'latent_dim' must be specified in the config."
+        )
+        assert "n_layers" in self.config, (
+            "[ERROR] 'n_layers' must be specified in the config."
+        )
+        assert "hidden_dim" in self.config, (
+            "[ERROR] 'hidden_dim' must be specified in the config."
+        )
+        self.res: Tuple[int, int] = self.config["res"]
+        self.n_channels: int = self.config["n_channels"]
 
-        # Generator
-        assert "n_layers" in self.generator_config, (
-            "[ERROR] 'n_layers' must be specified in the generator config."
-        )
-        assert "hidden_channels" in self.generator_config, (
-            "[ERROR] 'hidden_channels' must be specified in the generator config."
-        )
-        self.n_gen_layers: int = self.generator_config["n_layers"]
-        self.gen_hidden_channels: int = self.generator_config["hidden_channels"]
-        self.gen_kernel_size: int = self.generator_config.get("kernel_size", 3)
-        self.gen_dropout: float = self.generator_config.get("dropout", 0.0)
+        self.latent_dim: int = self.config["latent_dim"]
+        self.n_layers: int = self.config["n_layers"]
+        self.hidden_dim: int = self.config["hidden_dim"]
 
-        # Discriminator
-        assert "n_layers" in self.discriminator_config, (
-            "[ERROR] 'n_layers' must be specified in the discriminator config."
-        )
-        assert "hidden_channels" in self.discriminator_config, (
-            "[ERROR] 'hidden_channels' must be specified in the discriminator config."
-        )
-        self.n_dis_layers: int = self.discriminator_config["n_layers"]
-        self.dis_hidden_channels: int = self.discriminator_config["hidden_channels"]
-        self.dis_kernel_size: int = self.discriminator_config.get("kernel_size", 3)
-        self.dis_dropout: float = self.discriminator_config.get("dropout", 0.0)
+        self.kernel_size: int = self.config.get("kernel_size", 3)
+        self.dropout: float = self.config.get("dropout", 0.0)
 
-        self.dis_minibatch_out_features: int = self.discriminator_config.get(
-            "minibatch_out_features", 64
+
+class DCGANDiscriminatorConfig:
+    def __init__(self, config: str | Dict) -> None:
+        self.config: Dict[str, Any] = (
+            config if not isinstance(config, str) else load_yaml(config)
         )
+        assert "n_channels" in self.config, (
+            "[ERROR] 'n_channels' must be specified in the config."
+        )
+        assert "n_layers" in self.config, (
+            "[ERROR] 'n_layers' must be specified in the config."
+        )
+        self.res: Tuple[int, int] = self.config["res"]
+        self.n_channels: int = self.config["n_channels"]
+
+        self.n_layers: int = self.config["n_layers"]
+        self.hidden_dim: int = self.config["hidden_dim"]
+
+        self.kernel_size: int = self.config.get("kernel_size", 3)
+        self.dropout: float = self.config.get("dropout", 0.0)
+        self.use_minibatch: bool = self.config.get("use_minibatch", False)
+
+        self.minibatch_dim: int = self.config.get("minibatch_dim", 64)
+        self.minibatch_inner_dim: int = self.config.get("minibatch_in_features", 16)
+        self.minibatch_out_features: int = self.config.get("minibatch_out_features", 64)

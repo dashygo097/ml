@@ -26,12 +26,6 @@ class MiniBatch1d(nn.Module):
         x = x.view(B, self.out_features, self.inner_dim)
         x = (x.unsqueeze(0) - x.unsqueeze(1)).abs().sum(dim=-1)
 
-        # mask = ~torch.eye(B).bool()
-        # mask = mask.unsqueeze(-1).expand(B, B, self.out_features)
-
-        # x = torch.exp(-x) * mask
-        # x = x.sum(dim=1) / (B - 1)
-
         x = torch.exp(-x).mean(dim=1)
 
         return torch.cat([x_res, x], dim=-1)
