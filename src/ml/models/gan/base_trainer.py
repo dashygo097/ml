@@ -12,12 +12,12 @@ from ...trainer import TrainArgs, Trainer
 from .base import ImageGAN
 
 
-class GANTrainArgs(TrainArgs):
+class ImageGANTrainArgs(TrainArgs):
     def __init__(self, path: str):
         super().__init__(path)
         self.beta_1: float = self.args.get("betas", 0.5)
         self.beta_2: float = self.args.get("betas", 0.999)
-        self.betas = (self.beta_1, self.beta_2)
+        self.betas: Tuple[float, float] = (self.beta_1, self.beta_2)
 
         self.enable_ema: bool = self.args["ema"].get("enable", False)
         self.ema_decay: float = self.args["ema"].get("decay", 0.999)
@@ -33,12 +33,12 @@ class GANTrainArgs(TrainArgs):
         )
 
 
-class GANTrainer(Trainer):
+class ImageGANTrainer(Trainer):
     def __init__(
         self,
         model: ImageGAN,
         dataset,
-        args: GANTrainArgs,
+        args: ImageGANTrainArgs,
         criterion=None,
         optimizer=None,
         scheduler=None,

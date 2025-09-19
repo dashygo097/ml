@@ -4,11 +4,11 @@ import torch
 from torch import nn
 
 from ..minibatch import MiniBatch1d
-from .config import DCGANConfig
+from .config import DCGANDiscriminatorConfig
 
 
 class DCGANDiscriminator(nn.Module):
-    def __init__(self, config: DCGANConfig) -> None:
+    def __init__(self, config: DCGANDiscriminatorConfig) -> None:
         super().__init__()
         self.config = config
         module_list = []
@@ -19,21 +19,21 @@ class DCGANDiscriminator(nn.Module):
                     "conv2d_init",
                     nn.Conv2d(
                         self.config.n_channels,
-                        self.config.dis_hidden_channels,
-                        kernel_size=self.config.dis_kernel_size,
+                        self.config.hidden_dim,
+                        kernel_size=self.config.kernel_size,
                         stride=2,
-                        padding=(self.config.dis_kernel_size - 1) // 2,
+                        padding=(self.config.kernel_size - 1) // 2,
                     ),
                 ),
                 ("silu_init", nn.SiLU(inplace=True)),
-                ("dropout_init", nn.Dropout2d(self.config.dis_dropout)),
+                ("dropout_init", nn.Dropout2d(self.config.dropout)),
             ]
         )
-        in_channels = self.config.dis_hidden_channels
-        out_channels = self.config.dis_hidden_channels * 2
-        img_shape = ((self.config.img_shape[0] + 1) // 2, self.config.img_shape[1] // 2)
+        in_channels = self.config.hidden_dim
+        out_channels = self.config.hidden_dim * 2
+        img_shape = ((self.config.res[0] + 1) // 2, self.config.res[1] // 2)
 
-        for index in range(config.n_dis_layers):
+        for index in range(config.n_layers):
             module_list.extend(
                 [
                     (
@@ -41,16 +41,16 @@ class DCGANDiscriminator(nn.Module):
                         nn.Conv2d(
                             in_channels,
                             out_channels,
-                            kernel_size=self.config.dis_kernel_size,
+                            kernel_size=self.config.kernel_size,
                             stride=2,
-                            padding=(self.config.dis_kernel_size - 1) // 2,
+                            padding=(self.config.kernel_size - 1) // 2,
                         ),
                     ),
                     ("bn2d_" + str(index), nn.BatchNorm2d(out_channels)),
                     ("silu_" + str(index + 1), nn.SiLU(inplace=True)),
                     (
                         "dropout_" + str(index + 1),
-                        nn.Dropout2d(self.config.dis_dropout),
+                        nn.Dropout2d(self.config.dropout),
                     ),
                 ]
             )
@@ -61,7 +61,7 @@ class DCGANDiscriminator(nn.Module):
                 (img_shape[1] + 1) // 2,
             )
 
-        if self.config.dis_use_minibatch:
+        if self.config.use_minibatch:
             fc_list.extend(
                 [
                     ("flatten", nn.Flatten()),
@@ -69,19 +69,19 @@ class DCGANDiscriminator(nn.Module):
                         "minibatch1d_0",
                         MiniBatch1d(
                             in_channels * img_shape[0] * img_shape[1],
-                            self.config.dis_minibatch_dim,
-                            self.config.dis_minibatch_inner_dim,
+                            self.config.minibatch_dim,
+                            self.config.minibatch_inner_dim,
                         ),
                     ),
                     (
                         "linear_0",
                         nn.Linear(
                             in_channels * img_shape[0] * img_shape[1]
-                            + self.config.dis_minibatch_dim,
-                            self.config.dis_minibatch_out_features,
+                            + self.config.minibatch_dim,
+                            self.config.minibatch_out_features,
                         ),
                     ),
-                    ("linear_1", nn.Linear(self.config.dis_minibatch_out_features, 1)),
+                    ("linear_1", nn.Linear(self.config.minibatch_out_features, 1)),
                     ("act_0", nn.Sigmoid()),
                 ]
             )
@@ -94,7 +94,7 @@ class DCGANDiscriminator(nn.Module):
                         nn.Conv2d(
                             in_channels,
                             1,
-                            kernel_size=self.config.dis_kernel_size,
+                            kernel_size=self.config.kernel_size,
                             stride=2,
                             padding=0,
                         ),

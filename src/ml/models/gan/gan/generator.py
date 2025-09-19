@@ -3,12 +3,11 @@ from typing import OrderedDict
 import torch
 from torch import nn
 
-from ..minibatch import MiniBatch1d
-from .config import GANConfig
+from .config import GANGeneratorConfig
 
 
 class GANGenerator(nn.Module):
-    def __init__(self, config: GANConfig) -> None:
+    def __init__(self, config: GANGeneratorConfig) -> None:
         super().__init__()
         self.config = config
 
@@ -17,15 +16,15 @@ class GANGenerator(nn.Module):
             [
                 (
                     "linear_0",
-                    nn.Linear(self.config.latent_dim, self.config.gen_hidden_dim),
+                    nn.Linear(self.config.latent_dim, self.config.hidden_dim),
                 ),
                 ("leaky_relu_0", nn.LeakyReLU(0.2, inplace=True)),
-                ("dropout_0", nn.Dropout(self.config.dis_dropout)),
+                ("dropout_0", nn.Dropout(self.config.dropout)),
             ],
         )
 
-        for index in range(config.n_gen_layers):
-            in_dim = self.config.gen_hidden_dim * (2**index)
+        for index in range(config.n_layers):
+            in_dim = self.config.hidden_dim * (2**index)
             module_list.extend(
                 [
                     ("linear_" + str(index + 1), nn.Linear(in_dim, in_dim * 2)),
@@ -37,10 +36,10 @@ class GANGenerator(nn.Module):
                         "leaky_relu_" + str(index + 1),
                         nn.LeakyReLU(0.2, inplace=True),
                     ),
-                    ("dropout_" + str(index + 1), nn.Dropout(self.config.dis_dropout)),
+                    ("dropout_" + str(index + 1), nn.Dropout(self.config.dropout)),
                 ],
             )
-        fit_dim = self.config.gen_hidden_dim * (2**config.n_gen_layers)
+        fit_dim = self.config.hidden_dim * (2**config.n_layers)
         module_list.extend(
             [
                 ("dense", nn.Linear(fit_dim, config.io_dim)),
@@ -65,7 +64,7 @@ class GANGenerator(nn.Module):
         z = z.view(
             B,
             self.config.n_channels,
-            self.config.img_shape[0],
-            self.config.img_shape[1],
+            self.config.res[0],
+            self.config.res[1],
         )
         return z
