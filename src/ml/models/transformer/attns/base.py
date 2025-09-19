@@ -80,12 +80,13 @@ class CrossAttnModel(ABC, nn.Module):
         self.d_model = d_model if d_model is not None else d_q
         self.head_dim = self.d_model // self.n_heads
         self.bias = bias
+        self.enable_rope = enable_rope
         self.dropout = dropout
         assert self.d_model % self.n_heads == 0, (
             f"[ERROR] d_model {self.d_model} must be divisible by n_heads {self.n_heads}"
         )
 
-        if enable_rope:
+        if self.enable_rope:
             self.rope = RoPE(self.head_dim)
         self.out_dropout = nn.Dropout(dropout)
 

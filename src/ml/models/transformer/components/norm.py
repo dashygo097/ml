@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Callable, Dict, Optional
 
 import torch
 from torch import nn
@@ -12,9 +12,9 @@ class RMSNorm(nn.Module):
         element_affine: bool = True,
     ) -> None:
         super().__init__()
-        self.dim = dim
-        self.eps = eps
-        self.element_affine = element_affine
+        self.dim: int = dim
+        self.eps: float = eps
+        self.element_affine: bool = element_affine
         if element_affine:
             self.weight = nn.Parameter(torch.ones(dim))
 
@@ -35,18 +35,20 @@ class AddPostNorm(nn.Module):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.d_model = d_model
+        self.d_model: int = d_model
         if norm is not None:
-            self.norm = norm
+            self.norm_layer = norm
         else:
-            eps = kwargs.pop("eps", 1e-6)
-            element_affine = kwargs.pop("element_affine", True)
-            self.norm = RMSNorm(d_model, eps=eps, element_affine=element_affine)
-        dropout = kwargs.pop("dropout", 0.0)
+            eps: float = kwargs.pop("eps", 1e-6)
+            element_affine: bool = kwargs.pop("element_affine", True)
+            self.norm_layer = RMSNorm(d_model, eps=eps, element_affine=element_affine)
+        dropout: float = kwargs.pop("dropout", 0.0)
         self.out_dropout = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor, x_attn: torch.Tensor) -> torch.Tensor:
-        return self.norm(x + self.out_dropout(x_attn))
+    def forward(
+        self, x: torch.Tensor, func: Callable, **kwargs: Dict[str, Any]
+    ) -> torch.Tensor:
+        return self.norm_layer(x + self.out_dropout(func(x, **kwargs)))
 
 
 class AddPreNorm(nn.Module):
@@ -57,15 +59,17 @@ class AddPreNorm(nn.Module):
         **kwargs,
     ) -> None:
         super().__init__()
-        self.d_model = d_model
+        self.d_model: int = d_model
         if norm is not None:
-            self.norm = norm
+            self.norm_layer = norm
         else:
-            eps = kwargs.pop("eps", 1e-6)
-            element_affine = kwargs.pop("element_affine", True)
-            self.norm = RMSNorm(d_model, eps=eps, element_affine=element_affine)
-        dropout = kwargs.pop("dropout", 0.0)
+            eps: float = kwargs.pop("eps", 1e-6)
+            element_affine: bool = kwargs.pop("element_affine", True)
+            self.norm_layer = RMSNorm(d_model, eps=eps, element_affine=element_affine)
+        dropout: float = kwargs.pop("dropout", 0.0)
         self.out_dropout = nn.Dropout(dropout)
 
-    def forward(self, x: torch.Tensor, x_attn: torch.Tensor) -> torch.Tensor:
-        return x + self.out_dropout(self.norm(x_attn))
+    def forward(
+        self, x: torch.Tensor, func: Callable, **kwargs: Dict[str, Any]
+    ) -> torch.Tensor:
+        return x + self.out_dropout(func(self.norm_layer(x), **kwargs))

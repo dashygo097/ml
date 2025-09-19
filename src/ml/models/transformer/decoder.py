@@ -16,7 +16,9 @@ class DecoderBlock(nn.Module):
         d_model: Optional[int] = None,
         attn: Optional[nn.Module] = None,
         ffn: Optional[nn.Module] = None,
-        norm: Optional[nn.Module] = None,
+        norm1: Optional[nn.Module] = None,
+        norm2: Optional[nn.Module] = None,
+        norm3: Optional[nn.Module] = None,
         bias: bool = False,
         enable_rope: bool = True,
         postnorm: bool = True,
@@ -45,7 +47,7 @@ class DecoderBlock(nn.Module):
             if attn is None
             else attn
         )
-        self.attn_mask = MulHeadCrossAttn(
+        self.cross_attn = MulHeadCrossAttn(
             d_q=self.d_model,
             d_kv=self.d_model,
             n_heads=n_heads,
@@ -58,13 +60,13 @@ class DecoderBlock(nn.Module):
             FFN(self.d_model, self.d_inner, dropout=dropout) if ffn is None else ffn
         )
         if postnorm:
-            self.addnorm1 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
-            self.addnorm2 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
-            self.addnorm3 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm1 = AddPostNorm(self.d_model, norm=norm1, dropout=dropout)
+            self.addnorm2 = AddPostNorm(self.d_model, norm=norm2, dropout=dropout)
+            self.addnorm3 = AddPostNorm(self.d_model, norm=norm3, dropout=dropout)
         else:
-            self.addnorm1 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
-            self.addnorm2 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
-            self.addnorm3 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm1 = AddPreNorm(self.d_model, norm=norm1, dropout=dropout)
+            self.addnorm2 = AddPreNorm(self.d_model, norm=norm2, dropout=dropout)
+            self.addnorm3 = AddPreNorm(self.d_model, norm=norm3, dropout=dropout)
 
     def forward(
         self,
@@ -74,9 +76,9 @@ class DecoderBlock(nn.Module):
         enc_mask: Optional[torch.Tensor] = None,
         is_causal: bool = True,
     ):
-        x = self.addnorm1(x, self.attn(x, mask=mask, is_causal=is_causal))
-        x = self.addnorm2(x, self.attn_mask(x, enc, mask=enc_mask))
-        return self.addnorm3(x, self.ffn(x))
+        x = self.addnorm1(x, self.attn, mask=mask, is_causal=is_causal)
+        x = self.addnorm2(x, self.cross_attn, x2=enc, mask=enc_mask)
+        return self.addnorm3(x, self.ffn)
 
 
 class DecoderOnlyBlock(nn.Module):
@@ -88,7 +90,8 @@ class DecoderOnlyBlock(nn.Module):
         d_model: Optional[int] = None,
         attn: Optional[AttnModel] = None,
         ffn: Optional[nn.Module] = None,
-        norm: Optional[nn.Module] = None,
+        norm1: Optional[nn.Module] = None,
+        norm2: Optional[nn.Module] = None,
         bias: bool = False,
         enable_rope: bool = True,
         postnorm: bool = True,
@@ -119,11 +122,11 @@ class DecoderOnlyBlock(nn.Module):
             FFN(self.d_model, self.d_inner, dropout=dropout) if ffn is None else ffn
         )
         if postnorm:
-            self.addnorm1 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
-            self.addnorm2 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm1 = AddPostNorm(self.d_model, norm=norm1, dropout=dropout)
+            self.addnorm2 = AddPostNorm(self.d_model, norm=norm2, dropout=dropout)
         else:
-            self.addnorm1 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
-            self.addnorm2 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm1 = AddPreNorm(self.d_model, norm=norm1, dropout=dropout)
+            self.addnorm2 = AddPreNorm(self.d_model, norm=norm2, dropout=dropout)
 
     def forward(
         self,
@@ -131,5 +134,5 @@ class DecoderOnlyBlock(nn.Module):
         mask: Optional[torch.Tensor] = None,
         is_causal: bool = True,
     ) -> torch.Tensor:
-        x = self.addnorm1(x, self.attn(x, mask=mask, is_causal=is_causal))
-        return self.addnorm2(x, self.ffn(x))
+        x = self.addnorm1(x, self.attn, mask=mask, is_causal=is_causal)
+        return self.addnorm2(x, self.ffn)

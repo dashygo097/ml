@@ -16,7 +16,8 @@ class EncoderBlock(nn.Module):
         d_model: Optional[int] = None,
         attn: Optional[AttnModel] = None,
         ffn: Optional[nn.Module] = None,
-        norm: Optional[nn.Module] = None,
+        norm1: Optional[nn.Module] = None,
+        norm2: Optional[nn.Module] = None,
         bias: bool = False,
         enable_rope: bool = True,
         postnorm: bool = True,
@@ -48,11 +49,11 @@ class EncoderBlock(nn.Module):
             FFN(self.d_model, self.d_inner, dropout=dropout) if ffn is None else ffn
         )
         if postnorm:
-            self.addnorm1 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
-            self.addnorm2 = AddPostNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm1 = AddPostNorm(self.d_model, norm=norm1, dropout=dropout)
+            self.addnorm2 = AddPostNorm(self.d_model, norm=norm2, dropout=dropout)
         else:
-            self.addnorm1 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
-            self.addnorm2 = AddPreNorm(self.d_model, norm=norm, dropout=dropout)
+            self.addnorm1 = AddPreNorm(self.d_model, norm=norm1, dropout=dropout)
+            self.addnorm2 = AddPreNorm(self.d_model, norm=norm2, dropout=dropout)
 
     def forward(
         self,
@@ -60,8 +61,8 @@ class EncoderBlock(nn.Module):
         mask: Optional[torch.Tensor] = None,
         is_causal: bool = False,
     ) -> torch.Tensor:
-        x = self.addnorm1(x, self.attn(x, mask=mask, is_causal=is_causal))
-        return self.addnorm2(x, self.ffn(x))
+        x = self.addnorm1(x, self.attn, mask=mask, is_causal=is_causal)
+        return self.addnorm2(x, self.ffn)
 
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         return self.attn.qkv(x)
