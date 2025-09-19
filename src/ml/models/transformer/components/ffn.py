@@ -19,13 +19,13 @@ class FFN(nn.Module):
         self.d_inner = d_inner
         self.act = act
 
-        self.linear1 = nn.Linear(d_model, d_inner)
-        self.linear2 = nn.Linear(d_inner, d_model)
+        self.fc1 = nn.Linear(d_model, d_inner)
+        self.fc2 = nn.Linear(d_inner, d_model)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.act(self.linear1(x))
-        return self.linear2(self.dropout(x))
+        x = self.act(self.fc1(x))
+        return self.fc2(self.dropout(x))
 
 
 class SwiGLUFFN(nn.Module):
@@ -40,10 +40,10 @@ class SwiGLUFFN(nn.Module):
         self.d_inner = d_inner
         self.act = SwiGLU()
 
-        self.linear1 = nn.Linear(d_model, d_inner)
-        self.linear2 = nn.Linear(d_inner // 2, d_model)
+        self.fc1 = nn.Linear(d_model, d_inner)
+        self.fc2 = nn.Linear(d_inner // 2, d_model)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.act(self.linear1(x))
-        return self.linear2(self.dropout(x))
+        x = self.act(self.fc1(x))
+        return self.fc2(self.dropout(x))
