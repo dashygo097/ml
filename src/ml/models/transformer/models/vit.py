@@ -124,7 +124,7 @@ class ViTRawModel(nn.Module):
         return self.vit(x)
 
 
-class VitClassifier(nn.Module):
+class ViTClassifier(nn.Module):
     def __init__(self, config: ViTConfig) -> None:
         super().__init__()
         self.config = config
@@ -143,3 +143,22 @@ class VitClassifier(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.head(self.vit(x)[:, 0, :])
+
+
+class ViTObjectDetector(nn.Module):
+    def __init__(self, config: ViTConfig) -> None:
+        super().__init__()
+        self.vit = ViTBackbone(
+            embed_size=config.embed_size,
+            patch_size=config.patch_size,
+            n_heads=config.n_heads,
+            n_layers=config.num_layers,
+            res=config.res,
+            in_channels=config.in_channels,
+            d_inner=config.d_inner,
+            d_model=config.d_model,
+            dropout=config.dropout,
+        )
+        ...
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor: ...

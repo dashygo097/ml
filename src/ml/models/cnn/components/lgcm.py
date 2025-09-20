@@ -3,7 +3,7 @@ from typing import Optional
 import torch
 from torch import nn
 
-from ..transformer import MulHeadAttn
+from ...transformer import MulHeadAttn
 
 
 class LGCM(nn.Module):
