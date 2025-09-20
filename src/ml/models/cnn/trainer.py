@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -8,8 +8,8 @@ from ...trainer import TrainArgs, Trainer
 
 
 class CNNTrainArgs(TrainArgs):
-    def __init__(self, path: str) -> None:
-        super().__init__(path)
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
+        super().__init__(path_or_dict)
 
 
 class CNNTrainer(Trainer):
@@ -17,7 +17,7 @@ class CNNTrainer(Trainer):
         self,
         model: nn.Module,
         dataset,
-        criterion,
+        criterion: Callable,
         args: TrainArgs,
         optimizer=None,
         scheduler=None,

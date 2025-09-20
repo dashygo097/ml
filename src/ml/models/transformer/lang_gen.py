@@ -8,9 +8,9 @@ from ...trainer import TrainArgs, Trainer
 
 
 class GPTrainArgs(TrainArgs):
-    def __init__(self, path: str) -> None:
-        super().__init__(path)
-        self.use_fp16 = self.args.get("fp16", False)
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
+        super().__init__(path_or_dict)
+        self.use_fp16: bool = self.args.get("fp16", False)
 
 
 class GPTrainer(Trainer):
@@ -32,8 +32,7 @@ class GPTrainer(Trainer):
 
     def set_tokenizer(self, tokenizer) -> None:
         self.tokenizer = tokenizer
-
-    # TODO: Implement dataset handling
+        # TODO: Implement dataset handling
 
     def step(self, batch: Dict) -> Dict[str, Any]:
         # TODO: Implement step handling

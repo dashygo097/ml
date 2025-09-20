@@ -39,10 +39,10 @@ class ScoreBasedRecommendHead(nn.Module):
 
     def forward(
         self,
-        user_id: int,
-        user_emb: torch.Tensor,
-        item_emb: torch.Tensor,
+        id: int,
+        emb1: torch.Tensor,
+        emb2: torch.Tensor,
         topk: int = 1,
-    ) -> List[int]:
-        scores = user_emb[user_id] @ item_emb.T
-        return scores.topk(topk, dim=-1).indices.tolist()
+    ) -> torch.Tensor:
+        scores = emb1[id] @ emb2.T
+        return scores.topk(topk, dim=-1).indices

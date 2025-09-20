@@ -14,7 +14,7 @@ from .utils import load_yaml
 
 
 class TrainArgs:
-    def __init__(self, path_or_dict: str | Dict) -> None:
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
         self.args: Dict[str, Any] = (
             load_yaml(path_or_dict) if isinstance(path_or_dict, str) else path_or_dict
         )

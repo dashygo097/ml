@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 
@@ -7,8 +7,8 @@ from .trainer import ImageGANTrainArgs, ImageGANTrainer
 
 
 class GANTrainArgsCT(ImageGANTrainArgs):
-    def __init__(self, path: str) -> None:
-        super().__init__(path)
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
+        super().__init__(path_or_dict)
 
 
 class ImageGANTrainerCT(ImageGANTrainer):
@@ -17,7 +17,7 @@ class ImageGANTrainerCT(ImageGANTrainer):
         model: ImageGAN,
         dataset,
         args: GANTrainArgsCT,
-        criterion=None,
+        criterion: Optional[List[Callable]] = None,
         optimizer=None,
         scheduler=None,
         valid_ds=None,

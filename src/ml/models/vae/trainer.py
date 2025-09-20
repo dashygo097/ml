@@ -1,19 +1,31 @@
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import torch
 from termcolor import colored
+from torch import nn
 
 from ...trainer import TrainArgs, Trainer
 
 
 class VAETrainArgs(TrainArgs):
-    def __init__(self, path: str):
-        super(VAETrainArgs, self).__init__(path)
+    def __init__(self, path_or_dict: str | Dict[str, Any]):
+        super().__init__(path_or_dict)
 
 
 class VAETrainer(Trainer):
-    def __init__(self, *args, **kwargs):
-        super(VAETrainer, self).__init__(*args, **kwargs)
+    def __init__(
+        self,
+        model: nn.Module,
+        dataset,
+        criterion: Callable,
+        args: VAETrainArgs,
+        optimizer=None,
+        scheduler=None,
+        valid_ds=None,
+    ) -> None:
+        super().__init__(
+            model, dataset, criterion, args, optimizer, scheduler, valid_ds
+        )
 
     def step(
         self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]

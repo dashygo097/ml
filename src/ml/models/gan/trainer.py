@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import torch
@@ -13,8 +13,8 @@ from .base import ImageGAN
 
 
 class ImageGANTrainArgs(TrainArgs):
-    def __init__(self, path: str):
-        super().__init__(path)
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
+        super().__init__(path_or_dict)
         self.beta_1: float = self.args.get("betas", 0.5)
         self.beta_2: float = self.args.get("betas", 0.999)
         self.betas: Tuple[float, float] = (self.beta_1, self.beta_2)
@@ -39,13 +39,13 @@ class ImageGANTrainer(Trainer):
         model: ImageGAN,
         dataset,
         args: ImageGANTrainArgs,
-        criterion=None,
+        criterion: Optional[List[Callable]] = None,
         optimizer=None,
         scheduler=None,
         valid_ds=None,
     ):
-        self.model = model
-        self.args = args
+        self.model: ImageGAN = model
+        self.args: ImageGANTrainArgs = args
         self.generator: nn.Module = model.generator
         self.discriminator: nn.Module = model.discriminator
 
@@ -66,7 +66,7 @@ class ImageGANTrainer(Trainer):
             for param in self.ema_model.parameters():
                 param.requires_grad = False
 
-    def set_optimizer(self, optimizer=None):
+    def set_optimizer(self, optimizer):
         if optimizer is None:
             self.optimizer_G = torch.optim.Adam(
                 self.generator.parameters(),
