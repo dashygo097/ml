@@ -5,16 +5,15 @@ import torch.nn.functional as F
 import torch_geometric.nn as gnn
 from torch import nn
 
-from ..base import GNNEncoder
+from ...base import GNNEncoder
 
 
-class GATBackbone(GNNEncoder):
+class GCNBackbone(GNNEncoder):
     def __init__(
         self,
         features: List[int],
-        heads: int,
-        act: Callable = F.elu,
-        dropout: float = 0.3,
+        act: Callable = F.relu,
+        dropout: float = 0.5,
         normalize: bool = True,
         residue: Optional[List[bool]] = None,
     ) -> None:
@@ -25,31 +24,27 @@ class GATBackbone(GNNEncoder):
         self.out_features = features[-1]
         self.act = act
         self.dropout = dropout
+        self.normalize = normalize
         self.residue = (
             residue if residue is not None else [False] * (self.num_layers - 1)
         )
 
-        self.convs = nn.ModuleList()
+        convs = []
         self.res_proj = nn.ModuleList()
-        self.norms = nn.ModuleList()
         for i in range(self.num_layers - 1):
-            self.convs.extend(
+            convs.extend(
                 [
-                    gnn.GATv2Conv(
-                        features[i], features[i + 1] // heads, heads=heads, concat=True
-                    ),
+                    gnn.GCNConv(features[i], features[i + 1], normalize=normalize),
                 ]
             )
-
-            if normalize:
-                self.norms.append(gnn.LayerNorm(features[i + 1]))
-
             if self.residue[i]:
                 self.res_proj.append(
                     nn.Linear(features[i], features[i + 1], bias=False)
                 )
             else:
                 self.res_proj.append(None)
+
+        self.convs = nn.ModuleList(convs)
 
     def forward(
         self,
@@ -64,10 +59,6 @@ class GATBackbone(GNNEncoder):
                 x = conv(x, edge_index, edge_weight) + self.res_proj[index](x)
             else:
                 x = conv(x, edge_index, edge_weight)
-
-            if self.norms:
-                x = self.norms[index](x)
-
             x = self.act(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 

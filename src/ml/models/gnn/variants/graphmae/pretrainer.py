@@ -3,7 +3,7 @@ from typing import Any, Dict
 import torch
 from torch_geometric.utils import dropout_edge
 
-from ..base_trainer import GNNTrainer, TrainArgs
+from ...trainer import GNNTrainer, TrainArgs
 from .encoder import GraphMAE
 
 
