@@ -4,7 +4,7 @@ from typing import Optional
 from torch import nn
 from torch.nn.utils import spectral_norm
 
-from ...sys.compute_graph import GraphEditor
+from ....sys.compute_graph import GraphEditor
 
 SN_TYPES = set(
     [

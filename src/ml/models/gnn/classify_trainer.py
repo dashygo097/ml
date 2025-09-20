@@ -3,8 +3,8 @@ from typing import Any, Dict
 from termcolor import colored
 from torch_geometric.utils import dropout_edge
 
-from ..base_trainer import GNNTrainer, TrainArgs
-from .classify import GNNClassifier
+from .base_trainer import GNNTrainer, TrainArgs
+from .classifier import GNNClassifier
 
 
 class GNNClassifierTrainArgs(TrainArgs):

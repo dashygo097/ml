@@ -2,7 +2,7 @@ from typing import OrderedDict
 
 from torch import nn
 
-from ..minibatch import MiniBatch1d
+from ..components import MiniBatch1d
 from .config import GANDiscriminatorConfig
 
 
