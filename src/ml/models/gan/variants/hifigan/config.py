@@ -1,6 +1,6 @@
 from typing import List
 
-from ....utils import load_yaml
+from .....utils import load_yaml
 
 
 class HiFiGANConfig:

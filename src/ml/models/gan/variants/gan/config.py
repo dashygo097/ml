@@ -2,7 +2,7 @@ from typing import Any, Dict, Tuple
 
 import numpy as np
 
-from ....utils import load_yaml
+from .....utils import load_yaml
 
 
 class GANGeneratorConfig:

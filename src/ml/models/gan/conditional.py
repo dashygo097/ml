@@ -3,7 +3,7 @@ from typing import Any, Dict, List, Tuple
 import torch
 
 from .base import ImageGAN
-from .base_trainer import ImageGANTrainArgs, ImageGANTrainer
+from .trainer import ImageGANTrainArgs, ImageGANTrainer
 
 
 class GANTrainArgsCT(ImageGANTrainArgs):

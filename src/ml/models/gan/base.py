@@ -5,10 +5,7 @@ import torch
 from torch import nn
 
 from ...utils import load_yaml
-from .dcgan import (DCGANDiscriminator, DCGANDiscriminatorConfig,
-                    DCGANGenerator, DCGANGeneratorConfig)
-from .gan import (GANDiscriminator, GANDiscriminatorConfig, GANGenerator,
-                  GANGeneratorConfig)
+from .variants import *
 
 
 class ImageGANConfig:

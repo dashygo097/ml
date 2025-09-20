@@ -1,6 +1,6 @@
 from typing import Any, Dict, Tuple
 
-from ....utils import load_yaml
+from .....utils import load_yaml
 
 
 class DCGANGeneratorConfig:
