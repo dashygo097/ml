@@ -78,11 +78,11 @@ class GNNClassifier(nn.Module):
 
 
 class GNNClassifierTrainArgs(TrainArgs):
-    def __init__(self, path_or_dict: str | Dict) -> None:
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
         super().__init__(path_or_dict)
-        self.patience = self.args.get("patience", 10)
-        self.min_delta = self.args.get("min_delta", 0.001)
-        self.edge_dropout = self.args.get("edge_dropout", 0.0)
+        self.patience: int = self.args.get("patience", 10)
+        self.min_delta: float = self.args.get("min_delta", 0.001)
+        self.edge_dropout: float = self.args.get("edge_dropout", 0.0)
 
 
 class GNNClassifyTrainer(GNNTrainer):
@@ -90,7 +90,7 @@ class GNNClassifyTrainer(GNNTrainer):
         self,
         model: GNNClassifier,
         dataset,
-        criterion,
+        criterion: Callable,
         args: GNNClassifierTrainArgs,
         optimizer=None,
         scheduler=None,

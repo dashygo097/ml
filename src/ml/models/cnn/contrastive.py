@@ -1,6 +1,6 @@
 import random
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Tuple
 
 import torch
 from termcolor import colored
@@ -48,10 +48,10 @@ class TripletDataset(Dataset):
 
 
 class SimCLRTrainArgs(CNNTrainArgs):
-    def __init__(self, path: str) -> None:
-        super().__init__(path)
-        self.contrast_margin = self.args["contrast"].get("margin", 0.5)
-        self.contrast_weight = self.args["contrast"].get("weight", 1.0)
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
+        super().__init__(path_or_dict)
+        self.contrast_margin: float = self.args["contrast"].get("margin", 0.5)
+        self.contrast_weight: float = self.args["contrast"].get("weight", 1.0)
 
 
 class SimCLRTrainer(CNNTrainer):
@@ -59,7 +59,7 @@ class SimCLRTrainer(CNNTrainer):
         self,
         model: nn.Module,
         ds,
-        criterion,
+        criterion: Callable,
         args: SimCLRTrainArgs,
         optimizer=None,
         scheduler=None,

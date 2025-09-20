@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 from termcolor import colored
 from torch import nn
@@ -12,7 +12,7 @@ class GNNTrainer(Trainer):
         self,
         model: nn.Module,
         dataset,
-        criterion,
+        criterion: Callable,
         args: TrainArgs,
         optimizer=None,
         scheduler=None,

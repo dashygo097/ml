@@ -22,9 +22,12 @@ class ViTConfig:
         assert "in_channels" in self.args, "in_channels must be specified"
 
         self.task: str = self.args.get("task", "none")
-        if self.task not in ["none", "classification"]:
+        if self.task not in ["none", "classification", "obb_detection"]:
             raise ValueError(f"Unsupported task: {self.task}")
         elif self.task == "classification":
+            assert "num_classes" in self.args, "num_classes must be specified"
+            self.num_classes: int = self.args["num_classes"]
+        elif self.task == "obb_detection":
             assert "num_classes" in self.args, "num_classes must be specified"
             self.num_classes: int = self.args["num_classes"]
 
@@ -96,12 +99,12 @@ class ViTBackbone(nn.Module):
             )
 
         self.encoder = nn.Sequential(*module_list)
-        self.post_layernorm = nn.LayerNorm(self.d_model, eps=1e-12)
+        self.post_norm = nn.LayerNorm(self.d_model, eps=1e-12)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.embedding(x)
         x = self.encoder(x)
-        return self.post_layernorm(x)
+        return self.post_norm(x)
 
 
 class ViTRawModel(nn.Module):
@@ -145,7 +148,7 @@ class ViTClassifier(nn.Module):
         return self.head(self.vit(x)[:, 0, :])
 
 
-class ViTObjectDetector(nn.Module):
+class ViTOBBDetector(nn.Module):
     def __init__(self, config: ViTConfig) -> None:
         super().__init__()
         self.vit = ViTBackbone(

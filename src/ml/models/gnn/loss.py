@@ -5,7 +5,7 @@ from torch import nn
 class BPRLoss(nn.Module):
     def __init__(self, reduction: str = "mean"):
         super().__init__()
-        self.reduction = reduction
+        self.reduction: str = reduction
 
     def forward(
         self,
