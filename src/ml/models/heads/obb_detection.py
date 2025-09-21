@@ -50,9 +50,12 @@ class DeTROBBDetectionHead(nn.Module):
 
         self.decoder = nn.ModuleList(decoder_layers)
         self.cls_head = nn.Linear(self.d_model, num_classes + 1)
-        self.bbox_head = nn.Linear(self.d_model, 5)
+        self.bbox_head = nn.Linear(self.d_model, 4)
+        self.angle_head = nn.Linear(self.d_model, 1)
 
-    def forward(self, vit_features: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, vit_features: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         B, C, E = vit_features.shape
         memory = self.input_proj(vit_features)
         queries = self.query_embed.weight.unsqueeze(0).repeat(B, 1, 1)
@@ -62,4 +65,5 @@ class DeTROBBDetectionHead(nn.Module):
 
         cls_logits = self.cls_head(decoder_output)
         bbox_preds = self.bbox_head(decoder_output).sigmoid()
-        return cls_logits, bbox_preds
+        angle_preds = self.angle_head(decoder_output)
+        return cls_logits, bbox_preds, angle_preds
