@@ -14,20 +14,20 @@ from .agents import RLAgent
 
 
 class RLTrainArgs:
-    def __init__(self, path_or_dict: str | Dict) -> None:
-        self.args: Dict = (
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
+        self.args: Dict[str, Any] = (
             load_yaml(path_or_dict) if isinstance(path_or_dict, str) else path_or_dict
         )
         self.device: str = self.args["device"]
         self.epochs: int = self.args["epochs"]
 
         # agent/env reset options
-        self.env_options: Dict = self.args.get("env", {})
-        self.agent_options: Dict = self.args.get("agent", {})
+        self.env_options: Dict[str, Any] = self.args.get("env", {})
+        self.agent_options: Dict[str, Any] = self.args.get("agent", {})
 
         # optimizer/scheduler options
-        self.optimizer_options: Dict = self.args.get("optimizer", {})
-        self.scheduler_options: Dict = self.args.get("scheduler", {})
+        self.optimizer_options: Dict[str, Any] = self.args.get("optimizer", {})
+        self.scheduler_options: Dict[str, Any] = self.args.get("scheduler", {})
 
         # general training options
         self.lr: float = (
@@ -123,7 +123,7 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
     @abstractmethod
     def step(self) -> Dict[str, Any]: ...
 
-    def step_info(self, result: Dict) -> None:
+    def step_info(self, result: Dict[str, Any]) -> None:
         # TODO: impl this function
         ...
 
