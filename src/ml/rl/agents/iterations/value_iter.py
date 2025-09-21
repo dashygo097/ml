@@ -1,5 +1,5 @@
 import random
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 
 import torch
 from torch import nn
@@ -19,12 +19,12 @@ class ValueIter(RLAgent):
     ) -> None:
         super().__init__(env, discount_rate)
 
-        self.final_epsilon = final_epsilon
-        self.epsilon_decay = epsilon_decay
-        self.epsilon = init_epsilon
+        self.final_epsilon: float = final_epsilon
+        self.epsilon_decay: float = epsilon_decay
+        self.epsilon: float = init_epsilon
 
-        state_shape = env.get_obs_shape()
-        act_shape = env.get_act_shape()
+        state_shape: Tuple[int, ...] = env.get_obs_shape()
+        act_shape: Tuple[int, ...] = env.get_act_shape()
 
         self.state_values = nn.Parameter(
             torch.zeros(state_shape, dtype=torch.float32), requires_grad=False
@@ -37,7 +37,7 @@ class ValueIter(RLAgent):
     def reset(self, options: Optional[Dict[str, Any]] = None) -> None:
         super().reset(options)
 
-    def forward(self, obs: Dict) -> int:
+    def forward(self, obs: Dict[str, Any]) -> int:
         if random.random() < self.epsilon:
             return self.env.action_space.sample()
         else:

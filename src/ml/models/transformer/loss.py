@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Callable, Dict
 
 import torch
 import torch.nn.functional as F
@@ -32,7 +32,7 @@ class OBBLoss(nn.Module):
         self.beta: float = beta
         self.gamma: float = gamma
 
-        self.cls_loss_fn = FocalLoss()
+        self.cls_loss_fn: Callable = FocalLoss()
 
     def forward(
         self, preds: Dict[str, torch.Tensor], tgts: Dict[str, torch.Tensor]

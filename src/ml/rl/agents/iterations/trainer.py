@@ -9,12 +9,12 @@ from .value_iter import ValueIter
 
 
 class PolicyIterTrainArgs(RLTrainArgs):
-    def __init__(self, path_or_dict: str | Dict) -> None:
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
         super().__init__(path_or_dict)
 
 
 class ValueIterTrainArgs(RLTrainArgs):
-    def __init__(self, path_or_dict: str | Dict) -> None:
+    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
         super().__init__(path_or_dict)
 
 

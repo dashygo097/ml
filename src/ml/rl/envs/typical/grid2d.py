@@ -10,7 +10,7 @@ class Grid2DEnv(BaseDiscreteEnv):
     def __init__(self, size: int) -> None:
         super().__init__()
 
-        self.size = size
+        self.size: int = size
         self.observation_space = gym.spaces.Dict(
             {
                 "agent": gym.spaces.Box(0, size - 1, shape=(2,), dtype=int),

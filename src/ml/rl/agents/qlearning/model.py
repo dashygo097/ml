@@ -1,5 +1,5 @@
 import random
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import torch
 from torch import nn
@@ -18,12 +18,12 @@ class QLearning(RLAgent):
         discount_rate: float = 0.99,
     ):
         super().__init__(env, discount_rate)
-        self.final_epsilon = final_epsilon
-        self.epsilon_decay = epsilon_decay
-        self.epsilon = init_epsilon
+        self.final_epsilon: float = final_epsilon
+        self.epsilon_decay: float = epsilon_decay
+        self.epsilon: float = init_epsilon
 
-        observation_space = env.get_obs_shape()
-        action_space = env.get_act_shape()
+        observation_space: Tuple[int, ...] = env.get_obs_shape()
+        action_space: Tuple[int, ...] = env.get_act_shape()
 
         self.q_values: torch.Tensor
         self.register_buffer(
