@@ -4,6 +4,7 @@ import torch
 from torch import nn
 
 from ...trainer import TrainArgs, Trainer
+from .loss import OBBLoss
 
 
 class OBBDetectionTrainerArgs(TrainArgs):
@@ -25,6 +26,8 @@ class OBBDetectionTrainer(Trainer):
         super().__init__(
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
         )
+
+    def set_dataset(self, dataset) -> None: ...
 
     def step(self, batch: Tuple[torch.Tensor, Dict[str, Any]]) -> Dict[str, Any]: ...
     def step_info(self, result: Dict[str, Any]) -> None: ...

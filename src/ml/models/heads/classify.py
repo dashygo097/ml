@@ -3,7 +3,7 @@ from typing import Callable, List
 import torch
 from torch import nn
 
-from .mlp import MLP
+from ..mlp import MLP
 
 
 class ClassifyHead(nn.Module):
@@ -31,18 +31,3 @@ class ClassifyHead(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.model(x)
-
-
-class ScoreBasedRecommendHead(nn.Module):
-    def __init__(self) -> None:
-        super().__init__()
-
-    def forward(
-        self,
-        id: int,
-        emb1: torch.Tensor,
-        emb2: torch.Tensor,
-        topk: int = 1,
-    ) -> torch.Tensor:
-        scores = emb1[id] @ emb2.T
-        return scores.topk(topk, dim=-1).indices
