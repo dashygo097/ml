@@ -27,7 +27,7 @@ class OBBLoss(nn.Module):
         gamma: float = 1.0,
     ) -> None:
         super().__init__()
-        self.num_classesa: int = num_classes
+        self.num_classes: int = num_classes
         self.alpha: float = alpha
         self.beta: float = beta
         self.gamma: float = gamma
