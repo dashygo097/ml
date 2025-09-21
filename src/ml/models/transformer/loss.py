@@ -23,14 +23,16 @@ class OBBLoss(nn.Module):
         self,
         num_classes: int,
         w_cls: float = 1.0,
-        w_reg: float = 1.0,
+        w_bbox: float = 1.0,
+        w_angle: float = 1.0,
         alpha: float = 0.25,
         gamma: float = 2.0,
     ) -> None:
         super().__init__()
         self.num_classes: int = num_classes
         self.w_cls = w_cls
-        self.w_reg = w_reg
+        self.w_bbox = w_bbox
+        self.w_angle = w_angle
         self.alpha: float = alpha
         self.gamma: float = gamma
 
@@ -39,22 +41,32 @@ class OBBLoss(nn.Module):
     def forward(
         self,
         pred_cls: torch.Tensor,
-        pred_reg: torch.Tensor,
+        pred_bbox: torch.Tensor,
+        pred_angle: torch.Tensor,
         tgt_cls: torch.Tensor,
-        tgt_reg: torch.Tensor,
+        tgt_bbox: torch.Tensor,
+        tgt_angle: torch.Tensor,
     ) -> torch.Tensor:
         pred_cls_flat = pred_cls.view(-1, pred_cls.shape[-1])
         tgt_cls_flat = tgt_cls.view(-1)
-
         cls_loss = self.cls_loss_fn(pred_cls_flat, tgt_cls_flat)
 
-        pos_mask = (tgt_cls > 0).unsqueeze(-1).expand_as(pred_reg)
-        pos_pred_reg = pred_reg[pos_mask].view(-1, pred_reg.shape[-1])
-        pos_tgt_reg = tgt_reg[pos_mask].view(-1, tgt_reg.shape[-1])
+        pos_mask = tgt_cls > 0
 
-        if pos_pred_reg.numel() > 0:
-            pos_loss = F.smooth_l1_loss(pos_pred_reg, pos_tgt_reg, reduction="mean")
+        if pos_mask.sum() > 0:
+            pos_pred_bbox = pred_bbox[pos_mask]
+            pos_pred_angle = pred_angle[pos_mask]
+            pos_tgt_bbox = tgt_bbox[pos_mask]
+            pos_tgt_angle = tgt_angle[pos_mask]
+
+            bbox_loss = F.smooth_l1_loss(pos_pred_bbox, pos_tgt_bbox, reduction="mean")
+            angle_loss = F.smooth_l1_loss(
+                pos_pred_angle, pos_tgt_angle, reduction="mean"
+            )
         else:
-            pos_loss = torch.tensor(0.0, device=pred_reg.device)
+            bbox_loss = torch.tensor(0.0, device=pred_bbox.device)
+            angle_loss = torch.tensor(0.0, device=pred_angle.device)
 
-        return self.w_cls * cls_loss + self.w_reg * pos_loss
+        return (
+            self.w_cls * cls_loss + self.w_bbox * bbox_loss + self.w_angle * angle_loss
+        )

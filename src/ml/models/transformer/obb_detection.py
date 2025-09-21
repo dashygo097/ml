@@ -45,13 +45,13 @@ class OBBDetectionTrainer(Trainer):
         image = image.to(self.device)
         self.optimizer.zero_grad()
 
-        pred_cls, pred_reg = self.model(image)
+        pred_cls, pred_bbox, pred_angle = self.model(image)
         batch_size, num_queries, num_classes = pred_cls.shape
 
         bbox_dim = None
         for target in targets:
             if len(target["bboxes"]) > 0:
-                bbox_dim = target["bboxes"].shape[-1]
+                bbox_dim = target["bboxes"].shape[-1] - 1
                 break
 
         if bbox_dim is None:
@@ -68,6 +68,11 @@ class OBBDetectionTrainer(Trainer):
             dtype=torch.float32,
             device=self.device,
         )
+        all_angles = torch.zeros(
+            (batch_size, num_queries, 1),
+            dtype=torch.float32,
+            device=self.device,
+        )
 
         for index, target in enumerate(targets):
             if len(target["bboxes"]) == 0:
@@ -75,19 +80,24 @@ class OBBDetectionTrainer(Trainer):
             bboxes = target["bboxes"].to(self.device)
             labels = target["labels"].to(self.device)
             num_objects = min(len(bboxes), num_queries)
-            bboxes = bboxes[:num_objects, :]
+            bboxes = bboxes[:num_objects, :bbox_dim]
             labels = labels[:num_objects]
             all_labels[index, :num_objects] = labels
-            all_bboxes[index, :num_objects, :] = bboxes
+            all_bboxes[index, :num_objects, :bbox_dim] = bboxes
 
-        loss = self.criterion(pred_cls, pred_reg, all_labels, all_bboxes)
+            angles = target["bboxes"][:num_objects, bbox_dim:].to(self.device)
+            all_angles[index, :num_objects] = angles
+
+        loss = self.criterion(
+            pred_cls, pred_bbox, pred_angle, all_labels, all_bboxes, all_angles
+        )
         loss.backward()
         self.optimizer.step()
         return {"loss": loss.item()}
 
     def step_info(self, result: Dict[str, Any]) -> None:
         # step
-        if self.n_steps % 1000 == 0:
+        if self.n_steps % 10 == 0:
             self.logger.op(
                 "step",
                 lambda x: {"loss": x.get("loss", 0) + result["loss"]},
