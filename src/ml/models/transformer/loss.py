@@ -18,6 +18,26 @@ class FocalLoss(nn.Module):
         return focal_loss.mean()
 
 
+class AngleLoss(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+
+    def forward(
+        self, pred_angle: torch.Tensor, tgt_angle: torch.Tensor
+    ) -> torch.Tensor:
+        pred_cos = torch.cos(pred_angle)
+        pred_sin = torch.sin(pred_angle)
+        tgt_cos = torch.cos(tgt_angle)
+        tgt_sin = torch.sin(tgt_angle)
+
+        cos_sim = F.cosine_similarity(
+            torch.stack((pred_cos, pred_sin), dim=-1),
+            torch.stack((tgt_cos, tgt_sin), dim=-1),
+            dim=-1,
+        )
+        return 1.0 - cos_sim.mean()
+
+
 class OBBLoss(nn.Module):
     def __init__(
         self,
@@ -37,6 +57,7 @@ class OBBLoss(nn.Module):
         self.gamma: float = gamma
 
         self.cls_loss_fn: Callable = FocalLoss(alpha, gamma)
+        self.angle_loss_fn: Callable = AngleLoss()
 
     def forward(
         self,
@@ -60,9 +81,8 @@ class OBBLoss(nn.Module):
             pos_tgt_angle = tgt_angle[pos_mask]
 
             bbox_loss = F.smooth_l1_loss(pos_pred_bbox, pos_tgt_bbox, reduction="mean")
-            angle_loss = F.smooth_l1_loss(
-                pos_pred_angle, pos_tgt_angle, reduction="mean"
-            )
+            angle_loss = self.angle_loss_fn(pos_pred_angle, pos_tgt_angle)
+
         else:
             bbox_loss = torch.tensor(0.0, device=pred_bbox.device)
             angle_loss = torch.tensor(0.0, device=pred_angle.device)
