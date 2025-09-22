@@ -21,7 +21,7 @@ class TrainArgs:
         self.device: str = self.args["device"]
         self.batch_size: int = self.args["batch_size"]
         self.epochs: int = self.args["epochs"]
-        self.num_workers: int = self.args.get("num_workers", 2)
+        self.num_workers: int = self.args.get("num_workers", 0)
         self.lr: float = self.args["lr"]
         self.weight_decay: float = self.args.get("weight_decay", 0.0)
 
