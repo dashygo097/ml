@@ -100,50 +100,77 @@ class OBBDetectionTrainer(Trainer):
             angles = target["bboxes"][:num_objects, bbox_dim:].to(self.device)
             all_angles[index, :num_objects] = angles
 
-        loss = self.criterion(
+        loss, cls_loss, bbox_loss, angle_loss = self.criterion(
             pred_cls, pred_bbox, pred_angle, all_labels, all_bboxes, all_angles
         )
         loss.backward()
         self.optimizer.step()
 
-        return {"loss": loss.item()}
+        return {
+            "loss": loss.item(),
+            "cls_loss": cls_loss.item(),
+            "bbox_loss": bbox_loss.item(),
+            "angle_loss": angle_loss.item(),
+        }
 
     def step_info(self, result: Dict[str, Any]) -> None:
         # step
         if self.n_steps % 10 == 0:
             self.logger.op(
                 "step",
-                lambda x: {"loss": x.get("loss", 0) + result["loss"]},
+                lambda x: {
+                    "loss": x.get("loss", 0) + result["loss"],
+                    "cls_loss": x.get("cls_loss", 0) + result["cls_loss"],
+                    "bbox_loss": x.get("bbox_loss", 0) + result["bbox_loss"],
+                    "angle_loss": x.get("angle_loss", 0) + result["angle_loss"],
+                },
                 index=self.n_steps,
             )
             print(
                 f"(Step {self.n_steps}) "
                 + colored("loss", "yellow")
-                + f": {self.logger.content.step[f'{self.n_steps}']['loss']}"
+                + f": {self.logger.content.step[f'{self.n_steps}']['loss']}, "
+                + colored("cls_loss", "cyan")
+                + f": {self.logger.content.step[f'{self.n_steps}']['cls_loss']}, "
+                + colored("bbox_loss", "magenta")
+                + f": {self.logger.content.step[f'{self.n_steps}']['bbox_loss']}, "
+                + colored("angle_loss", "green")
+                + f": {self.logger.content.step[f'{self.n_steps}']['angle_loss']}"
             )
 
         # epoch
         self.logger.op(
             "epoch",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
+            lambda x: {
+                "loss": x.get("loss", 0) + result["loss"],
+                "cls_loss": x.get("cls_loss", 0) + result["cls_loss"],
+                "bbox_loss": x.get("bbox_loss", 0) + result["bbox_loss"],
+                "angle_loss": x.get("angle_loss", 0) + result["angle_loss"],
+            },
             index=self.n_epochs,
         )
 
     def epoch_info(self) -> None:
         self.logger.op(
             "epoch",
-            lambda x: {"loss": x.get("loss", 0) / len(self.data_loader)},
+            lambda x: {
+                "loss": x.get("loss", 0) / len(self.data_loader),
+                "cls_loss": x.get("cls_loss", 0) / len(self.data_loader),
+                "bbox_loss": x.get("bbox_loss", 0) / len(self.data_loader),
+                "angle_loss": x.get("angle_loss", 0) / len(self.data_loader),
+            },
             index=self.n_epochs,
         )
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}, "
+            + colored("cls_loss", "cyan")
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['cls_loss']}, "
+            + colored("bbox_loss", "magenta")
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['bbox_loss']}, "
+            + colored("angle_loss", "green")
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['angle_loss']}"
         )
-
-        if self.n_epochs == 33:
-            for name, module in self.model.named_modules():
-                for param in module.parameters():
-                    param.requires_grad = True
 
     def validate(self) -> None: ...
