@@ -38,6 +38,18 @@ class OBBDetectionTrainer(Trainer):
             collate_fn=self.collate_fn,
         )
 
+    def set_valid_ds(self, valid_ds) -> None:
+        if valid_ds is None:
+            self.valid_data_loader = None
+        else:
+            self.valid_data_loader = torch.utils.data.DataLoader(
+                valid_ds,
+                batch_size=self.args.batch_size,
+                shuffle=False,
+                num_workers=self.args.num_workers,
+                collate_fn=self.collate_fn,
+            )
+
     def step(
         self, batch: Tuple[torch.Tensor, List[Dict[str, torch.Tensor]]]
     ) -> Dict[str, Any]:
@@ -93,6 +105,7 @@ class OBBDetectionTrainer(Trainer):
         )
         loss.backward()
         self.optimizer.step()
+
         return {"loss": loss.item()}
 
     def step_info(self, result: Dict[str, Any]) -> None:
