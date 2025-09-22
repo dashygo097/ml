@@ -6,10 +6,10 @@ import torch.nn.functional as F
 import torch_geometric.nn as gnn
 from torch import nn
 
-from ...base import GNNEncoder
+from ...model import GNNEncoder
 
 
-class GraphSAGEBackbone(GNNEncoder):
+class GraphSAGEncoder(GNNEncoder):
     def __init__(
         self,
         features: List[int],

@@ -9,7 +9,7 @@ from termcolor import colored
 
 from ...logger import TrainLogger
 from ...trainer import TrainArgs, Trainer
-from .base import ImageGAN
+from .model import ImageGAN
 
 
 class ImageGANTrainArgs(TrainArgs):
