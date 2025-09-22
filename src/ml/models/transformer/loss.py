@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -67,7 +67,7 @@ class OBBLoss(nn.Module):
         tgt_cls: torch.Tensor,
         tgt_bbox: torch.Tensor,
         tgt_angle: torch.Tensor,
-    ) -> torch.Tensor:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         pred_cls_flat = pred_cls.view(-1, pred_cls.shape[-1])
         tgt_cls_flat = tgt_cls.view(-1)
         cls_loss = self.cls_loss_fn(pred_cls_flat, tgt_cls_flat)
@@ -87,6 +87,8 @@ class OBBLoss(nn.Module):
             bbox_loss = torch.tensor(0.0, device=pred_bbox.device)
             angle_loss = torch.tensor(0.0, device=pred_angle.device)
 
-        return (
+        total_loss = (
             self.w_cls * cls_loss + self.w_bbox * bbox_loss + self.w_angle * angle_loss
         )
+
+        return total_loss, cls_loss, bbox_loss, angle_loss
