@@ -115,7 +115,7 @@ class OBBDetectionTrainer(Trainer):
 
     def step_info(self, result: Dict[str, Any]) -> None:
         # step
-        if self.n_steps % 10 == 0:
+        if self.n_steps % 10 == 0 and self.n_steps > 0:
             self.logger.op(
                 "step",
                 lambda x: {
