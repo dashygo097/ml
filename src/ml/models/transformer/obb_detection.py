@@ -141,4 +141,9 @@ class OBBDetectionTrainer(Trainer):
             + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
         )
 
+        if self.n_epochs == 33:
+            for name, module in self.model.named_modules():
+                for param in module.parameters():
+                    param.requires_grad = True
+
     def validate(self) -> None: ...
