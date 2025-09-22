@@ -65,5 +65,5 @@ class DeTROBBDetectionHead(nn.Module):
 
         cls_logits = self.cls_head(decoder_output)
         bbox_preds = self.bbox_head(decoder_output).sigmoid()
-        angle_preds = self.angle_head(decoder_output)
+        angle_preds = self.angle_head(decoder_output).sigmoid()
         return cls_logits, bbox_preds, angle_preds
