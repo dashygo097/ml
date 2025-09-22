@@ -92,7 +92,7 @@ class GPTrainer(Trainer):
 
     def step_info(self, result: Dict[str, Any]) -> None:
         # step
-        if self.n_steps % 1000 == 0:
+        if self.n_steps % 1000 == 0 and self.n_steps > 0:
             self.logger.op(
                 "step",
                 lambda x: {"loss": x.get("loss", 0) + result["loss"]},
