@@ -8,7 +8,7 @@ from torch_geometric.nn import global_mean_pool
 from torch_geometric.utils import dropout_edge
 
 from ..heads import ClassifyHead
-from .base import GNNEncoder
+from .model import GNNEncoder
 from .trainer import GNNTrainer, TrainArgs
 
 

@@ -2,7 +2,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 
-from .base import ImageGAN
+from .model import ImageGAN
 from .trainer import ImageGANTrainArgs, ImageGANTrainer
 
 

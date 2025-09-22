@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch_geometric.nn as gnn
 from torch import nn
 
-from ...base import GNNEncoder
+from ...model import GNNEncoder
 
 
 class GraphMAE(GNNEncoder):
