@@ -36,6 +36,9 @@ class OBBDetectionTrainer(Trainer):
             shuffle=self.args.is_shuffle,
             num_workers=self.args.num_workers,
             collate_fn=self.collate_fn,
+            pin_memory=True,
+            persistent_workers=True,
+            prefetch_factor=2,
         )
 
     def set_valid_ds(self, valid_ds) -> None:
