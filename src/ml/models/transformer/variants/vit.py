@@ -1,10 +1,12 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
 from torch import nn
 
 from ....utils import load_yaml
-from ...heads import ClassifyHead, DeTROBBDetectionHead
+from ...heads.change_detection import ViTCNNBasedChangeDetectionHead
+from ...heads.classify import ClassifyHead
+from ...heads.obb_detection import DeTRThetaBasedOBBDetectionHead
 from ..components import PatchEmbedding
 from ..encoder import EncoderBlock
 
@@ -22,18 +24,32 @@ class ViTConfig:
         assert "in_channels" in self.args, "in_channels must be specified"
 
         self.task: str = self.args.get("task", "none")
-        if self.task not in ["none", "classification", "obb_detection"]:
+        if self.task not in [
+            "none",
+            "classification",
+            "obb_detection",
+            "change_detection",
+        ]:
             raise ValueError(f"Unsupported task: {self.task}")
         elif self.task == "classification":
             assert "num_classes" in self.args, "num_classes must be specified"
+            assert "head_type" in self.args, "head_type must be specified"
             self.num_classes: int = self.args["num_classes"]
+            self.head_type: str = self.args["head_type"]
+            self.head_args: Dict[str, Any] = self.args.get("head", {})
         elif self.task == "obb_detection":
             assert "num_classes" in self.args, "num_classes must be specified"
             assert "head_type" in self.args, "head_type must be specified"
-            assert "head" in self.args, "head must be specified"
             self.num_classes: int = self.args["num_classes"]
             self.head_type: str = self.args["head_type"]
-            self.head_args: Dict[str, Any] = self.args["head"]
+            self.head_args: Dict[str, Any] = self.args.get("head", {})
+
+        elif self.task == "change_detection":
+            assert "num_classes" in self.args, "num_classes must be specified"
+            assert "head_type" in self.args, "head_type must be specified"
+            self.num_classes: int = self.args["num_classes"]
+            self.head_type: str = self.args["head_type"]
+            self.head_args: Dict[str, Any] = self.args.get("head", {})
 
         self.embed_size: int = self.args["embed_size"]
         self.patch_size: int = self.args["patch_size"]
@@ -52,11 +68,22 @@ class ViTConfig:
             self.d_inner: int = 4 * self.d_model
         self.dropout: float = self.args.get("dropout", 0.0)
 
-        if self.task == "obb_detection" and self.head_type == "detr_obb":
+        if self.task == "classification" and self.head_type == "mlp":
+            pass
+
+        elif self.task == "obb_detection" and self.head_type == "detr_obb":
             self.head_num_queries: int = self.head_args.get("num_queries", 100)
             self.head_n_heads: int = self.head_args.get("n_heads", 8)
             self.head_d_model: int = self.head_args.get("d_model", self.d_model)
             self.head_n_layers: int = self.head_args.get("n_layers", 6)
+
+        elif self.task == "change_detection" and self.head_type == "cnn_cd":
+            self.head_hidden_features: List[int] = self.head_args.get(
+                "hidden_features", []
+            )
+            self.head_kernel_sizes: int | List[int] = self.head_args.get(
+                "kernel_sizes", 3
+            )
 
 
 class ViTBackbone(nn.Module):
@@ -158,7 +185,7 @@ class ViTClassifier(nn.Module):
         return self.head(self.vit(x)[:, 0, :])
 
 
-class DeTROBBDetector(nn.Module):
+class DeTRThetaBasedOBBDetector(nn.Module):
     def __init__(self, config: ViTConfig) -> None:
         super().__init__()
         self.vit = ViTBackbone(
@@ -172,7 +199,7 @@ class DeTROBBDetector(nn.Module):
             d_model=config.d_model,
             dropout=config.dropout,
         )
-        self.head = DeTROBBDetectionHead(
+        self.head = DeTRThetaBasedOBBDetectionHead(
             embed_size=config.embed_size,
             num_classes=config.num_classes,
             num_queries=config.head_num_queries,
@@ -183,5 +210,31 @@ class DeTROBBDetector(nn.Module):
         )
 
     def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        x = self.vit(x)
+        return self.head(x)
+
+
+class ViTCNNBasedChangeDetector(nn.Module):
+    def __init__(self, config: ViTConfig) -> None:
+        super().__init__()
+        self.vit = ViTBackbone(
+            embed_size=config.embed_size,
+            patch_size=config.patch_size,
+            n_heads=config.n_heads,
+            n_layers=config.num_layers,
+            res=config.res,
+            in_channels=config.in_channels,
+            d_inner=config.d_inner,
+            d_model=config.d_model,
+            dropout=config.dropout,
+        )
+        self.head = ViTCNNBasedChangeDetectionHead(
+            features=[config.embed_size] + config.head_hidden_features,
+            kernel_sizes=config.head_kernel_sizes,
+            num_classes=config.num_classes,
+            patch_size=config.patch_size,
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.vit(x)
         return self.head(x)

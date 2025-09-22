@@ -1,4 +1,5 @@
 from .attns import *
+from .change_detection import *
 from .components import *
 from .decoder import *
 from .encoder import *
