@@ -6,7 +6,7 @@ from torch import nn
 from ..transformer import DecoderBlock
 
 
-class DeTROBBDetectionHead(nn.Module):
+class DeTRThetaBasedOBBDetectionHead(nn.Module):
     def __init__(
         self,
         embed_size: int,
