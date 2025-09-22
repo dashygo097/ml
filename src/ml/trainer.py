@@ -6,7 +6,7 @@ from typing import Any, Callable, Dict, Generic, List, TypeVar
 import torch
 from termcolor import colored
 from torch import nn
-from torch.cuda.amp import GradScaler
+from torch.amp.grad_scaler import GradScaler
 from tqdm import tqdm
 
 from .logger import TrainLogger
@@ -29,6 +29,7 @@ class TrainArgs:
         self.save_dict: str = self.args.get("save_dict", "./checkpoints")
 
         self.epochs_per_validation: int = self.args.get("epochs_per_validation", 1)
+        self.unfreeze_epoch: int = self.args.get("unfreeze_epoch", -1)
 
         if "log_dict" not in self.args["info"].keys():
             self.log_dict: str = "./train_logs"
@@ -68,11 +69,12 @@ class Trainer(ABC, Generic[T_args, T_model]):
         self.set_optimizer(optimizer)
         self.set_schedulers(scheduler)
         self.set_valid_ds(valid_ds)
-        self.scaler = GradScaler() if torch.cuda.is_available() else None
-        if self.scaler is None:
+        try:
+            self.scaler = GradScaler(self.args.device)
+        except Exception:
             print(
                 colored(
-                    "[WARN] CUDA is NOT available, scalar won't be used.",
+                    f"[WARN] `{self.args.device}` is NOT available, scalar won't be used.",
                     "yellow",
                 )
             )
@@ -203,6 +205,22 @@ class Trainer(ABC, Generic[T_args, T_model]):
         # Main training loop
         self._stop_training = False
         for epoch in range(self.args.epochs):
+            if self.args.unfreeze_epoch >= 0 and epoch == self.args.unfreeze_epoch:
+                for param in self.model.parameters():
+                    param.requires_grad = True
+                print(colored("Model unfrozen.", "light_green"))
+
+            if self._stop_training:
+                print(
+                    colored(
+                        "Training stopped by user command.",
+                        "red",
+                        attrs=["bold"],
+                    )
+                )
+                break
+
+            # Training
             for batch in tqdm(
                 self.data_loader,
                 total=len(self.data_loader),
@@ -215,16 +233,6 @@ class Trainer(ABC, Generic[T_args, T_model]):
 
                 if self._stop_training:
                     break
-
-            if self._stop_training:
-                print(
-                    colored(
-                        "Training stopped by user command.",
-                        "red",
-                        attrs=["bold"],
-                    )
-                )
-                break
 
             for scheduler in self.schedulers:
                 scheduler.step()
