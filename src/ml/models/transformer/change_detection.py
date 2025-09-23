@@ -78,7 +78,7 @@ class ChangeDetectionTrainer(Trainer):
 
     def validate(self) -> None:
         self.model.eval()
-        total_loss, total_correct, total_val = 0, 0, 0
+        total_loss, total_correct, total_num_lables, total_val = 0, 0, 0, 0
 
         for batch in self.valid_data_loader:
             imgs1, imgs2, labels = batch[0]
@@ -93,10 +93,11 @@ class ChangeDetectionTrainer(Trainer):
                 total_loss += loss.item() * labels.size(0)
                 preds = torch.argmax(logits, dim=1)
                 total_correct += (preds == labels).sum().item()
-                total_val += labels.size(0) * labels.size(1) * labels.size(2)
+                total_num_lables = labels.numel()
+                total_val += labels.size(0)
 
         val_loss = total_loss / total_val
-        val_acc = total_correct / total_val
+        val_acc = total_correct / total_num_lables
 
         self.logger.log(
             "valid", {"val_loss": val_loss, "val_acc": val_acc}, self.n_epochs
