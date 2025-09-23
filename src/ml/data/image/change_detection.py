@@ -11,9 +11,14 @@ from ..dataset import BaseDataset
 
 class ChangeDetectionDataset(BaseDataset):
     def __init__(
-        self, root: str, split: str = "train", transform: Optional[Callable] = None
+        self,
+        root: str,
+        split: str = "train",
+        transform: Optional[Callable] = None,
+        label_transform: Optional[Callable] = None,
     ):
         super().__init__(root, split, transform)
+        self.label_transform = label_transform
         self.image_time1_dir = os.path.join(root, "images", split, "time1")
         self.image_time2_dir = os.path.join(root, "images", split, "time2")
         self.label_dir = os.path.join(root, "labels", split)
@@ -71,12 +76,15 @@ class ChangeDetectionDataset(BaseDataset):
         image_time2 = Image.open(img_time2_path).convert("RGB")
         label = Image.open(label_path).convert("L")
 
-        label = T.ToTensor()(label).long().squeeze(0)
         if self.transform:
             image_time1 = self.transform(image_time1)
             image_time2 = self.transform(image_time2)
         else:
             image_time1 = T.ToTensor()(image_time1)
             image_time2 = T.ToTensor()(image_time2)
+        if self.label_transform:
+            label = self.label_transform(label)
+        else:
+            label = T.ToTensor()(label)
 
         return (image_time1, image_time2, label), {}
