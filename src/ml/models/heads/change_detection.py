@@ -78,7 +78,7 @@ class ViTCNNBasedChangeDetectionHead(nn.Module):
         if self.forward_type == "subtract":
             feature_map = (x1 - x2)[..., 1:].view(B, E, H, W)
         elif self.forward_type == "concat":
-            feature_map = torch.cat((x1, x2), dim=-1)[..., 1:].view(B, 2 * E, H, W)
+            feature_map = torch.cat((x1, x2), dim=1)[..., 1:].view(B, 2 * E, H, W)
         else:
             raise ValueError(f"Unknown forward_type: {self.forward_type}")
 
