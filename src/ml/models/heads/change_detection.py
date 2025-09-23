@@ -19,11 +19,20 @@ class ViTCNNBasedChangeDetectionHead(nn.Module):
         super().__init__()
         self.forward_type = forward_type
 
-        cnn_features = (
-            features + [num_classes]
-            if isinstance(features, List)
-            else [features] + [num_classes]
-        )
+        if forward_type == "subtract":
+            cnn_features = (
+                features + [num_classes]
+                if isinstance(features, List)
+                else [features] + [num_classes]
+            )
+        elif forward_type == "concat":
+            if isinstance(features, List):
+                cnn_features = [2 * features[0]] + features[1:] + [num_classes]
+            else:
+                cnn_features = [2 * features] + [features] + [num_classes]
+        else:
+            raise ValueError(f"Unknown forward_type: {forward_type}")
+
         cnn_kernels = (
             kernel_sizes
             if isinstance(kernel_sizes, List)

@@ -105,5 +105,5 @@ class SimCLRTrainer(CNNTrainer):
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']:.4f}"
         )

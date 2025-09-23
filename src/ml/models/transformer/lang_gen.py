@@ -101,7 +101,7 @@ class GPTrainer(Trainer):
             print(
                 f"(Step {self.n_steps}) "
                 + colored("loss", "yellow")
-                + f": {self.logger.content.step[f'{self.n_steps}']['loss']}"
+                + f": {self.logger.content.step[f'{self.n_steps}']['loss']:.4f}"
             )
 
         # epoch
@@ -120,7 +120,7 @@ class GPTrainer(Trainer):
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']:.4f}"
         )
 
     def validate(self) -> None: ...

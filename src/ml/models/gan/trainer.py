@@ -294,11 +294,11 @@ class ImageGANTrainer(Trainer):
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("g_loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['g_loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['g_loss']:.4f}, "
             + colored("d_loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['d_loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['d_loss']:.4f}, "
             + colored("r_loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['r_loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['r_loss']:.4f}, "
             + colored("f_loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['f_loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['f_loss']:.4f}"
         )

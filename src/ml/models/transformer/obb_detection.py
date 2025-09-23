@@ -129,13 +129,13 @@ class OBBDetectionTrainer(Trainer):
             print(
                 f"(Step {self.n_steps}) "
                 + colored("loss", "yellow")
-                + f": {self.logger.content.step[f'{self.n_steps}']['loss']}, "
+                + f": {self.logger.content.step[f'{self.n_steps}']['loss']:.5f}, "
                 + colored("cls_loss", "cyan")
-                + f": {self.logger.content.step[f'{self.n_steps}']['cls_loss']}, "
+                + f": {self.logger.content.step[f'{self.n_steps}']['cls_loss']:.5f}, "
                 + colored("bbox_loss", "magenta")
-                + f": {self.logger.content.step[f'{self.n_steps}']['bbox_loss']}, "
+                + f": {self.logger.content.step[f'{self.n_steps}']['bbox_loss']:.5f}, "
                 + colored("angle_loss", "green")
-                + f": {self.logger.content.step[f'{self.n_steps}']['angle_loss']}"
+                + f": {self.logger.content.step[f'{self.n_steps}']['angle_loss']:.5f}"
             )
 
         # epoch
@@ -164,13 +164,13 @@ class OBBDetectionTrainer(Trainer):
         print(
             f"(Epoch {self.n_epochs}) "
             + colored("loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']:.5f}, "
             + colored("cls_loss", "cyan")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['cls_loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['cls_loss']:.5f}, "
             + colored("bbox_loss", "magenta")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['bbox_loss']}, "
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['bbox_loss']:.5f}, "
             + colored("angle_loss", "green")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['angle_loss']}"
+            + f": {self.logger.content.epoch[f'{self.n_epochs}']['angle_loss']:.5f}"
         )
 
     def validate(self) -> None: ...
