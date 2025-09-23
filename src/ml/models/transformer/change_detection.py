@@ -29,7 +29,7 @@ class ChangeDetectionTrainer(Trainer):
 
     def step(self, batch) -> Dict[str, Any]:
         imgs1, imgs2, labels = batch[0]
-        return {}
+        return {"loss": 0.0, "cls_loss": 0.0}
 
     def step_info(self, result: Dict[str, Any]) -> None:
         if self.n_steps % 10 == 0 and self.n_steps > 0:
