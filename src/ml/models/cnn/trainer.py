@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -19,9 +19,9 @@ class CNNTrainer(Trainer):
         dataset,
         criterion: Callable,
         args: TrainArgs,
-        optimizer=None,
-        scheduler=None,
-        valid_ds=None,
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ) -> None:
         super().__init__(
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
@@ -104,14 +104,17 @@ class CNNFinetuner(CNNTrainer):
         self,
         model: nn.Module,
         dataset,
-        criterion,
+        criterion: Callable,
         args: TrainArgs,
-        optimizer=None,
-        scheduler=None,
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ) -> None:
-        super().__init__(model, dataset, criterion, args, optimizer, scheduler)
+        super().__init__(
+            model, dataset, criterion, args, optimizer, scheduler, valid_ds
+        )
 
-    def step_info(self, result: Dict) -> None:
+    def step_info(self, result: Dict[str, Any]) -> None:
         self.logger.op(
             "step",
             lambda x: {"loss": x.get("loss", 0) + result["loss"]},

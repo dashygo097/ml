@@ -1,6 +1,6 @@
 import random
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 from termcolor import colored
@@ -61,9 +61,9 @@ class SimCLRTrainer(CNNTrainer):
         ds,
         criterion: Callable,
         args: SimCLRTrainArgs,
-        optimizer=None,
-        scheduler=None,
-        valid_ds=None,
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ):
         super().__init__(model, ds, criterion, args, optimizer, scheduler, valid_ds)
 

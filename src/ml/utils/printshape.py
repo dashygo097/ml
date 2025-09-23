@@ -1,8 +1,10 @@
+from typing import Optional
+
 from torch import nn
 
 
 class PrintShape(nn.Module):
-    def __init__(self, name=None):
+    def __init__(self, name: Optional[str] = None):
         super().__init__()
         self.name = name
 

@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import torch
 
@@ -24,8 +24,8 @@ class PolicyIterTrainer(RLTrainer):
         agent: PolicyIter,
         env: BaseEnv,
         args: RLTrainArgs,
-        optimizer=None,
-        scheduler=None,
+        optimizer: Optional[Any] = None,
+        scheduler: Optional[Any] = None,
     ) -> None:
         super().__init__(
             agent=agent,
@@ -60,8 +60,8 @@ class ValueIterTrainer(RLTrainer):
         agent: ValueIter,
         env: BaseEnv,
         args: RLTrainArgs,
-        optimizer=None,
-        scheduler=None,
+        optimizer: Optional[Any] = None,
+        scheduler: Optional[Any] = None,
     ) -> None:
         super().__init__(
             agent=agent,

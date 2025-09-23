@@ -17,16 +17,16 @@ class ImageGANTrainerCT(ImageGANTrainer):
         model: ImageGAN,
         dataset,
         args: GANTrainArgsCT,
-        criterion: Optional[List[Callable]] = None,
-        optimizer=None,
-        scheduler=None,
-        valid_ds=None,
+        criterions: List[Callable],
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ) -> None:
         super().__init__(
             model=model,
             dataset=dataset,
             args=args,
-            criterion=criterion,
+            criterions=criterions,
             optimizer=optimizer,
             scheduler=scheduler,
             valid_ds=valid_ds,
@@ -77,7 +77,7 @@ class ImageGANTrainerCT(ImageGANTrainer):
         d_loss.backward()
         self.optimizer_D.step()
 
-        g_loss_total = 0.0
+        g_loss_total = torch.tensor(0.0, device=self.device)
         for _ in range(self.args.g2d_ratio):
             self.optimizer_G.zero_grad()
 

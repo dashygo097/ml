@@ -1,7 +1,7 @@
 import os
 import threading
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Generic, List, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Optional, TypeVar
 
 import torch
 from termcolor import colored
@@ -22,8 +22,17 @@ class TrainArgs:
         self.batch_size: int = self.args["batch_size"]
         self.epochs: int = self.args["epochs"]
         self.num_workers: int = self.args.get("num_workers", 0)
-        self.lr: float = self.args["lr"]
-        self.weight_decay: float = self.args.get("weight_decay", 0.0)
+
+        # optimizer/scheduler options
+        assert "optimizer" in self.args.keys(), "`optimizer` must be specified in args!"
+        self.optimizer_options: Dict[str, Any] = self.args.get("optimizer", {})
+        self.scheduler_options: Dict[str, Any] = self.args.get("scheduler", {})
+
+        assert "lr" in self.optimizer_options.keys(), (
+            "`lr` must be specified in optimizer options!"
+        )
+        self.lr: float = self.optimizer_options.get("lr", 0.0)
+        self.weight_decay: float = self.optimizer_options.get("weight_decay", 0.0)
 
         self.is_shuffle: bool = self.args.get("is_shuffle", False)
         self.save_dict: str = self.args.get("save_dict", "./checkpoints")
@@ -52,12 +61,12 @@ class Trainer(ABC, Generic[T_args, T_model]):
     def __init__(
         self,
         model: T_model,
-        dataset,
+        dataset: Any,
         criterion: Callable,
         args: T_args,
-        optimizer=None,
-        scheduler=None,
-        valid_ds=None,
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ) -> None:
         self.model: T_model = model
         self.criterion: Callable = criterion
@@ -67,7 +76,7 @@ class Trainer(ABC, Generic[T_args, T_model]):
         self.set_model(model)
         self.set_dataset(dataset)
         self.set_optimizer(optimizer)
-        self.set_schedulers(scheduler)
+        self.set_scheduler(scheduler)
         self.set_valid_ds(valid_ds)
         try:
             self.scaler = GradScaler(self.args.device)
@@ -103,31 +112,22 @@ class Trainer(ABC, Generic[T_args, T_model]):
         else:
             raise ValueError("Invalid device")
 
-    def set_optimizer(self, optimizer) -> None:
+    def set_optimizer(self, optimizer: Optional[type]) -> None:
         if optimizer is None:
             self.optimizer = torch.optim.Adam(
+                self.model.parameters(), **self.args.optimizer_options
+            )
+        else:
+            self.optimizer = optimizer(
                 self.model.parameters(),
-                lr=self.args.lr,
-                weight_decay=self.args.weight_decay,
+                **self.args.optimizer_options,
             )
 
-        elif isinstance(optimizer, torch.optim.Optimizer):
-            self.optimizer = optimizer
-            self.args.lr = self.optimizer.defaults["lr"]
-            self.args.weight_decay = self.optimizer.defaults.get("weight_decay", 0.0)
-
-        else:
-            raise ValueError("Invalid optimizer")
-
-    def set_schedulers(self, schedulers) -> None:
-        if schedulers is None:
-            self.schedulers = [
-                torch.optim.lr_scheduler.CosineAnnealingLR(
-                    self.optimizer, T_max=self.args.epochs
-                )
-            ]
-        else:
-            self.schedulers = [schedulers]
+    def set_scheduler(self, scheduler: Optional[type]) -> None:
+        if scheduler is None:
+            self.scheduler = None
+        elif isinstance(scheduler, type) and self.optimizer is not None:
+            self.scheduler = scheduler(self.optimizer, **self.args.scheduler_options)
 
     def set_model(self, model: T_model) -> None:
         self.model = model.to(self.device)
@@ -167,7 +167,7 @@ class Trainer(ABC, Generic[T_args, T_model]):
         print(f"[INFO] Model loaded from: {path}!")
 
     @abstractmethod
-    def step(self, batch) -> Dict[str, Any]:
+    def step(self, batch: Any) -> Dict[str, Any]:
         # TODO: impl this function
         ...
 
@@ -234,8 +234,8 @@ class Trainer(ABC, Generic[T_args, T_model]):
                 if self._stop_training:
                     break
 
-            for scheduler in self.schedulers:
-                scheduler.step()
+            if self.scheduler is not None:
+                self.scheduler.step()
 
             self.epoch_info()
             self.logger.save_log()

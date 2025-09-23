@@ -3,6 +3,7 @@ from typing import Any, Callable, Dict
 from termcolor import colored
 from torch import nn
 
+from ...data import ChangeDetectionDataset
 from ...trainer import TrainArgs, Trainer
 
 
@@ -15,7 +16,7 @@ class ChangeDetectionTrainer(Trainer):
     def __init__(
         self,
         model: nn.Module,
-        dataset,
+        dataset: ChangeDetectionDataset,
         criterion: Callable,
         args: ChangeDetectionTrainerArgs,
         optimizer=None,
@@ -26,7 +27,9 @@ class ChangeDetectionTrainer(Trainer):
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
         )
 
-    def step(self, batch) -> Dict[str, Any]: ...
+    def step(self, batch) -> Dict[str, Any]:
+        imgs1, imgs2, labels = batch[0]
+        return {}
 
     def step_info(self, result: Dict[str, Any]) -> None:
         if self.n_steps % 10 == 0 and self.n_steps > 0:

@@ -92,9 +92,9 @@ class GNNClassifyTrainer(GNNTrainer):
         dataset,
         criterion: Callable,
         args: GNNClassifierTrainArgs,
-        optimizer=None,
-        scheduler=None,
-        valid_ds=None,
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ) -> None:
         super().__init__(
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
@@ -115,20 +115,6 @@ class GNNClassifyTrainer(GNNTrainer):
             loss = self.criterion(out[batch.train_mask], batch.y[batch.train_mask])
         else:
             loss = self.criterion(out, batch.y)
-
-        """
-        # KD loss
-        if self.teacher is not None:
-            with torch.no_grad():
-                t_out = self.teacher(batch.to(self.device))
-            kd_loss = F.kl_div(
-                F.log_softmax(out, dim=-1),
-                F.softmax(t_out, dim=-1),
-                reduction="batchmean",
-            )
-            loss = loss * (1 - alpha) + kd_loss * alpha
-
-        """
 
         loss.backward()
         self.optimizer.step()

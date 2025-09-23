@@ -3,11 +3,12 @@ import functools
 import io
 import pstats
 import time
+from typing import Callable
 
 from termcolor import colored
 
 
-def timer(func):
+def timer(func: Callable):
     "decorator function that counts the time of a function"
 
     @functools.wraps(func)
@@ -27,7 +28,7 @@ def timer(func):
     return wrapper
 
 
-def profile(func):
+def profile(func: Callable):
     "decorator function that profiles a function"
 
     @functools.wraps(func)

@@ -15,9 +15,22 @@ from .model import ImageGAN
 class ImageGANTrainArgs(TrainArgs):
     def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
         super().__init__(path_or_dict)
-        self.beta_1: float = self.args.get("betas", 0.5)
-        self.beta_2: float = self.args.get("betas", 0.999)
-        self.betas: Tuple[float, float] = (self.beta_1, self.beta_2)
+
+        self.betas: Tuple[float, float] = self.optimizer_options.get(
+            "betas", (0.5, 0.999)
+        )
+        assert "generator" in self.optimizer_options.keys(), (
+            "`generator` must be specified in optimizer options!"
+        )
+        assert "discriminator" in self.optimizer_options.keys(), (
+            "`discriminator` must be specified in optimizer options!"
+        )
+        self.optim_gen_options: Dict[str, Any] = self.optimizer_options.get(
+            "generator", {}
+        )
+        self.optim_disc_options: Dict[str, Any] = self.optimizer_options.get(
+            "discriminator", {}
+        )
 
         self.enable_ema: bool = self.args["ema"].get("enable", False)
         self.ema_decay: float = self.args["ema"].get("decay", 0.999)
@@ -39,22 +52,23 @@ class ImageGANTrainer(Trainer):
         model: ImageGAN,
         dataset,
         args: ImageGANTrainArgs,
-        criterion: Optional[List[Callable]] = None,
-        optimizer=None,
-        scheduler=None,
-        valid_ds=None,
+        criterions: List[Callable],
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ):
         self.model: ImageGAN = model
         self.args: ImageGANTrainArgs = args
         self.generator: nn.Module = model.generator
         self.discriminator: nn.Module = model.discriminator
+        self.criterions: List[Callable] = criterions
 
         self.set_device(args.device)
         self.set_model(model)
         self.set_dataset(dataset)
-        self.set_criterion(criterion)
+        self.set_criterions(criterions)
         self.set_optimizer(optimizer)
-        self.set_schedulers(scheduler)
+        self.set_scheduler(scheduler)
         self.set_valid_ds(valid_ds)
 
         self.n_steps: int = 0
@@ -78,39 +92,38 @@ class ImageGANTrainer(Trainer):
                 lr=self.args.lr * 2,
                 betas=self.args.betas,
             )
-        elif isinstance(optimizer, List):
-            self.optimizer_G = optimizer[0]
-            self.optimizer_D = optimizer[1]
-
         else:
-            raise ValueError("Invalid optimizer")
+            self.optimizer_G = optimizer(
+                self.generator.parameters(), **self.args.optim_gen_options
+            )
+            self.optimizer_D = optimizer(
+                self.discriminator.parameters(), **self.args.optim_disc_options
+            )
 
-    def set_schedulers(self, schedulers: Optional[Union[List, Tuple]]):
-        if schedulers is None:
+    def set_scheduler(self, scheduler):
+        if scheduler is None:
             scheduler_G = torch.optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer_G, T_max=self.args.n_epochs
             )
             scheduler_D = torch.optim.lr_scheduler.CosineAnnealingLR(
                 self.optimizer_D, T_max=self.args.n_epochs
             )
-            self.schedulers = [scheduler_G, scheduler_D]
+        else:
+            scheduler_G = scheduler(self.optimizer_G, **self.args.scheduler_options)
+            scheduler_D = scheduler(self.optimizer_D, **self.args.scheduler_options)
 
-        elif isinstance(schedulers, List):
-            self.schedulers = schedulers
+        self.scheduler = [scheduler_G, scheduler_D]
 
-        elif isinstance(schedulers, Tuple):
-            self.schedulers = list(schedulers)
+    def set_criterions(self, criterions) -> None:
+        if criterions is None:
+            self.criterions = [nn.BCELoss(), nn.BCELoss()]
+            self.criterion_G = self.criterions[0]
+            self.criterion_D = self.criterions[1]
 
-    def set_criterion(self, criterion) -> None:
-        if criterion is None:
-            self.criterion = [nn.BCELoss(), nn.BCELoss()]
-            self.criterion_G = self.criterion[0]
-            self.criterion_D = self.criterion[1]
-
-        elif isinstance(criterion, List):
-            self.criterion = criterion
-            self.criterion_G = self.criterion[0]
-            self.criterion_D = self.criterion[1]
+        elif isinstance(criterions, List):
+            self.criterions = criterions
+            self.criterion_G = self.criterions[0]
+            self.criterion_D = self.criterions[1]
 
         else:
             raise ValueError("Invalid criterion")
@@ -222,7 +235,7 @@ class ImageGANTrainer(Trainer):
         d_loss.backward()
         self.optimizer_D.step()
 
-        g_loss_total = 0
+        g_loss_total = torch.tensor(0.0, device=self.device)
         for _ in range(self.args.g2d_ratio):
             self.optimizer_G.zero_grad()
 

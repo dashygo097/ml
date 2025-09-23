@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Callable, Dict, Optional
 
 import torch.nn as nn
 from termcolor import colored
@@ -19,11 +19,11 @@ class GPTrainer(Trainer):
         model: nn.Module,
         tokenizer,
         dataset,
-        criterion,
+        criterion: Callable,
         args: GPTrainArgs,
-        optimizer=None,
-        scheduler=None,
-        valid_ds=None,
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ) -> None:
         super().__init__(
             model, dataset, criterion, args, optimizer, scheduler, valid_ds
