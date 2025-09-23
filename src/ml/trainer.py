@@ -10,6 +10,7 @@ from torch.amp.grad_scaler import GradScaler
 from tqdm import tqdm
 
 from .logger import TrainLogger
+from .sys import Tracer
 from .utils import load_yaml
 
 
@@ -91,6 +92,7 @@ class Trainer(ABC, Generic[T_args, T_model]):
         self.n_steps: int = 0
         self.n_epochs: int = 0
         self.logger: TrainLogger = TrainLogger(self.args.log_dict)
+        self.tracer: Tracer = Tracer(self.model)
 
     def set_device(self, device) -> None:
         if device is None:
@@ -202,14 +204,18 @@ class Trainer(ABC, Generic[T_args, T_model]):
                 )
             )
 
+        self.tracer.numal(info=True)
+
         # Main training loop
         self._stop_training = False
         for epoch in range(self.args.epochs):
+            # Unfreeze model if needed
             if self.args.unfreeze_epoch >= 0 and epoch == self.args.unfreeze_epoch:
                 for param in self.model.parameters():
                     param.requires_grad = True
                 print(colored("Model unfrozen.", "light_green"))
 
+            # Check for stop command
             if self._stop_training:
                 print(
                     colored(
