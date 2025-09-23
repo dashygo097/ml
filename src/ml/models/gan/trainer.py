@@ -103,10 +103,10 @@ class ImageGANTrainer(Trainer):
     def set_scheduler(self, scheduler):
         if scheduler is None:
             scheduler_G = torch.optim.lr_scheduler.CosineAnnealingLR(
-                self.optimizer_G, T_max=self.args.n_epochs
+                self.optimizer_G, T_max=self.args.epochs
             )
             scheduler_D = torch.optim.lr_scheduler.CosineAnnealingLR(
-                self.optimizer_D, T_max=self.args.n_epochs
+                self.optimizer_D, T_max=self.args.epochs
             )
         else:
             scheduler_G = scheduler(self.optimizer_G, **self.args.scheduler_options)
