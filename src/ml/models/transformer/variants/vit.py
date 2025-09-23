@@ -43,7 +43,6 @@ class ViTConfig:
             self.num_classes: int = self.args["num_classes"]
             self.head_type: str = self.args["head_type"]
             self.head_args: Dict[str, Any] = self.args.get("head", {})
-
         elif self.task == "change_detection":
             assert "num_classes" in self.args, "num_classes must be specified"
             assert "head_type" in self.args, "head_type must be specified"
@@ -84,6 +83,10 @@ class ViTConfig:
             )
             self.head_kernel_sizes: int | List[int] = self.head_args.get(
                 "kernel_sizes", 3
+            )
+        elif self.task == "change_detection" and self.head_type == "fpn_cd":
+            raise NotImplementedError(
+                "FPN-based change detection head is not implemented yet."
             )
 
 
@@ -243,3 +246,18 @@ class ViTCNNBasedChangeDetector(nn.Module):
         x = torch.cat([x1, x2], dim=0)
         x1, x2 = self.vit(x).chunk(2, dim=0)
         return self.head(x1, x2)
+
+
+class ViTFPNBasedChangeDetector(nn.Module):
+    def __init__(self, config: ViTConfig) -> None:
+        super().__init__()
+        raise NotImplementedError(
+            "FPN-based change detection head is not implemented yet."
+        )
+
+    def forward(
+        self, x1: torch.Tensor, x2: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        raise NotImplementedError(
+            "FPN-based change detection head is not implemented yet."
+        )
