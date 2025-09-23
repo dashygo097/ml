@@ -1,13 +1,13 @@
 import json
 import os
 import sys
-from typing import Dict
-import pandas as pd
+from typing import Any, Dict
 
+import pandas as pd
 import yaml
 
 
-def load_json(file_path: str) -> Dict:
+def load_json(file_path: str) -> Dict[str, Any]:
     script_dir = sys.path[0]
     file_path = os.path.join(script_dir, file_path)
     with open(file_path, "r") as f:
@@ -16,7 +16,7 @@ def load_json(file_path: str) -> Dict:
     return file
 
 
-def load_yaml(file_path: str) -> Dict:
+def load_yaml(file_path: str) -> Dict[str, Any]:
     script_dir = sys.path[0]
     file_path = os.path.join(script_dir, file_path)
     with open(file_path, "r") as f:

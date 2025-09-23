@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Optional
 
 from termcolor import colored
 from torch import nn
@@ -14,9 +14,9 @@ class GNNTrainer(Trainer):
         dataset,
         criterion: Callable,
         args: TrainArgs,
-        optimizer=None,
-        scheduler=None,
-        valid_ds=None,
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ) -> None:
         super().__init__(
             model, dataset, criterion, args, optimizer, scheduler, valid_ds

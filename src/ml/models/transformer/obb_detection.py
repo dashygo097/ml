@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import torch
 from termcolor import colored
@@ -20,9 +20,9 @@ class OBBDetectionTrainer(Trainer):
         criterion: Callable,
         args: OBBDetectionTrainerArgs,
         collate_fn: Callable = lambda x: x,
-        optimizer=None,
-        scheduler=None,
-        valid_ds=None,
+        optimizer: Optional[type] = None,
+        scheduler: Optional[type] = None,
+        valid_ds: Optional[Any] = None,
     ) -> None:
         self.collate_fn: Callable = collate_fn
         super().__init__(

@@ -26,20 +26,18 @@ class RLTrainArgs:
         self.agent_options: Dict[str, Any] = self.args.get("agent", {})
 
         # optimizer/scheduler options
+        assert "optimizer" in self.args.keys(), (
+            "Optimizer options must be specified in args."
+        )
         self.optimizer_options: Dict[str, Any] = self.args.get("optimizer", {})
         self.scheduler_options: Dict[str, Any] = self.args.get("scheduler", {})
 
         # general training options
-        self.lr: float = (
-            self.optimizer_options.get("lr", 1e-3)
-            if hasattr(self.args, "optimizer")
-            else self.args.get("lr", 1e-3)
+        assert "lr" in self.optimizer_options.keys(), (
+            "Learning rate 'lr' must be specified in optimizer options."
         )
-        self.weight_decay: float = (
-            self.optimizer_options.get("weight_decay", 0.0)
-            if hasattr(self.args, "optimizer")
-            else self.args.get("weight_decay", 0.0)
-        )
+        self.lr: float = self.optimizer_options.get("lr", 0.0)
+        self.weight_decay: float = self.scheduler_options.get("weight_decay", 0.0)
 
         self.save_dict: str = self.args.get("save_dict", "./checkpoints")
 
@@ -104,9 +102,9 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
 
     def set_scheduler(self, scheduler: Optional[type]) -> None:
         if scheduler is None:
-            self.schedulers = None
+            self.scheduler = None
         elif isinstance(scheduler, type) and self.optimizer is not None:
-            self.schedulers = [scheduler(self.optimizer, **self.args.scheduler_options)]
+            self.scheduler = scheduler(self.optimizer, **self.args.scheduler_options)
 
     def save(self) -> None:
         os.makedirs(self.args.save_dict, exist_ok=True)
@@ -168,9 +166,8 @@ class RLTrainer(Generic[T_env, T_agent], ABC):
                 )
                 break
 
-            if self.schedulers is not None:
-                for scheduler in self.schedulers:
-                    scheduler.step()
+            if self.scheduler is not None:
+                self.scheduler.step()
 
             self.epoch_info()
 

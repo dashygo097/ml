@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import matplotlib.pyplot as plt
 from termcolor import colored
@@ -8,11 +8,11 @@ from termcolor import colored
 
 class TrainLogContent:
     def __init__(self) -> None:
-        self.epoch: Dict = {}
-        self.step: Dict = {}
-        self.valid: Dict = {}
+        self.epoch: Dict[Any, Any] = {}
+        self.step: Dict[Any, Any] = {}
+        self.valid: Dict[Any, Any] = {}
 
-    def __getitem__(self, key: str) -> Dict:
+    def __getitem__(self, key: str) -> Dict[Any, Any]:
         if key not in self.__dict__:
             raise KeyError(f"[ERROR] Key '{key}' not found in TrainLogContent.")
 
@@ -28,7 +28,7 @@ class TrainLogContent:
             )
             return {}
 
-    def __setitem__(self, key: str, value: Dict) -> None:
+    def __setitem__(self, key: str, value: Dict[Any, Any]) -> None:
         if key not in self.__dict__:
             raise KeyError(f"[ERROR] Key '{key}' not found in TrainLogContent.")
         self.__dict__[key] = value
@@ -72,7 +72,7 @@ class TrainLogger:
 
         self.content[key] = current_records
 
-    def log(self, key: str, value: Dict, index: Optional[int] = None) -> None:
+    def log(self, key: str, value: Dict[Any, Any], index: Optional[int] = None) -> None:
         if index is None:
             index_key = str(len(self.content[key]))
         else:

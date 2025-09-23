@@ -11,11 +11,13 @@ class ViTCNNBasedChangeDetectionHead(nn.Module):
         kernel_sizes: int | List[int],
         num_classes: int,
         patch_size: int,
+        forward_type: str = "subtract",
         act: Callable = nn.Identity(),
         out_act: Callable = nn.Identity(),
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
+        self.forward_type = forward_type
 
         cnn_features = (
             features + [num_classes]
@@ -56,10 +58,21 @@ class ViTCNNBasedChangeDetectionHead(nn.Module):
         self.decoder = nn.Sequential(*decoder_layers)
         self.out_act = out_act
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        B, C, E = x.shape
+    def forward(
+        self, x1: torch.Tensor, x2: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        B, C, E = x1.shape
         H = W = int((C - 1) ** 0.5)
-        x.transpose_(1, 2)
-        x = x.contiguous()
-        feature_map = x[..., 1:].view(B, E, H, W)
+        x1.transpose_(1, 2)
+        x2.transpose_(1, 2)
+        x1 = x1.contiguous()
+        x2 = x2.contiguous()
+
+        if self.feature_type == "substract":
+            feature_map = (x1 - x2)[..., 1:].view(B, E, H, W)
+        elif self.feature_type == "concat":
+            feature_map = torch.cat((x1, x2), dim=-1)[..., 1:].view(B, 2 * E, H, W)
+        else:
+            raise ValueError(f"Unknown forward_type: {self.forward_type}")
+
         return self.out_act(self.decoder(feature_map))
