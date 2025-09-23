@@ -63,10 +63,8 @@ class ViTCNNBasedChangeDetectionHead(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         B, C, E = x1.shape
         H = W = int((C - 1) ** 0.5)
-        x1.transpose_(1, 2)
-        x2.transpose_(1, 2)
-        x1 = x1.contiguous()
-        x2 = x2.contiguous()
+        x1 = x1.transpose(1, 2).contiguous()
+        x2 = x2.transpose(1, 2).contiguous()
 
         if self.forward_type == "subtract":
             feature_map = (x1 - x2)[..., 1:].view(B, E, H, W)

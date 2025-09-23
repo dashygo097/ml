@@ -1,5 +1,6 @@
 from typing import Any, Callable, Dict
 
+import torch
 from termcolor import colored
 from torch import nn
 
@@ -75,4 +76,33 @@ class ChangeDetectionTrainer(Trainer):
             + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']}"
         )
 
-    def validate(self) -> None: ...
+    def validate(self) -> None:
+        self.model.eval()
+        total_loss, total_correct, total_val = 0, 0, 0
+
+        for batch in self.valid_data_loader:
+            imgs1, imgs2, labels = batch[0]
+            imgs1, imgs2, labels = (
+                imgs1.to(self.device),
+                imgs2.to(self.device),
+                labels.to(self.device),
+            )
+            with torch.no_grad():
+                logits = self.model(imgs1, imgs2)
+                loss = self.criterion(logits, labels)
+                total_loss += loss.item() * labels.size(0)
+                preds = torch.argmax(logits, dim=1)
+                total_correct += (preds == labels).sum().item()
+                total_val += labels.size(0) * labels.size(1) * labels.size(2)
+
+        val_loss = total_loss / total_val
+        val_acc = total_correct / total_val
+
+        self.logger.log(
+            "valid", {"val_loss": val_loss, "val_acc": val_acc}, self.n_epochs
+        )
+        print(
+            f"(Validation {self.n_epochs}) "
+            + f" {colored('loss', 'red')}: {val_loss:.4f} "
+            + f", {colored('accuracy', 'green')}: {val_acc:.4f}"
+        )
