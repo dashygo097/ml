@@ -36,13 +36,12 @@ class ChangeDetectionTrainer(Trainer):
         )
         self.optimizer.zero_grad()
         logits = self.model(imgs1, imgs2)
-        cls_loss = self.criterion(logits, labels)
-        loss = cls_loss
+        loss = self.criterion(logits, labels)
 
         loss.backward()
         self.optimizer.step()
 
-        return {"loss": 0.0}
+        return {"loss": loss.item()}
 
     def step_info(self, result: Dict[str, Any]) -> None:
         if self.n_steps % 10 == 0 and self.n_steps > 0:
