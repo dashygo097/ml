@@ -77,7 +77,6 @@ class ViTConfig:
             self.head_n_layers: int = self.head_args.get("n_layers", 6)
 
         elif self.task == "change_detection" and self.head_type == "cnn_cd":
-            self.forward_type: str = self.head_args.get("forward_type", "subtract")
             self.head_hidden_features: List[int] = self.head_args.get(
                 "hidden_features", []
             )
@@ -232,12 +231,13 @@ class ViTCNNBasedChangeDetector(nn.Module):
             d_model=config.d_model,
             dropout=config.dropout,
         )
+
         self.head = ViTCNNBasedChangeDetectionHead(
-            forward_type=config.forward_type,
             features=[config.embed_size] + config.head_hidden_features,
             kernel_sizes=config.head_kernel_sizes,
             num_classes=config.num_classes,
             patch_size=config.patch_size,
+            act=nn.GELU(),
         )
 
     def forward(

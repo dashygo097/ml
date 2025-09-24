@@ -1,4 +1,4 @@
-from typing import Callable, List, Tuple
+from typing import Callable, List
 
 import torch
 from torch import nn
@@ -11,78 +11,122 @@ class ViTCNNBasedChangeDetectionHead(nn.Module):
         kernel_sizes: int | List[int],
         num_classes: int,
         patch_size: int,
-        forward_type: str = "subtract",
         act: Callable = nn.Identity(),
         out_act: Callable = nn.Identity(),
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
-        self.forward_type = forward_type
+        self.patch_size: int = patch_size
 
-        if forward_type == "subtract":
-            cnn_features = (
-                features + [num_classes]
-                if isinstance(features, List)
-                else [features] + [num_classes]
-            )
-        elif forward_type == "concat":
-            if isinstance(features, List):
-                cnn_features = [2 * features[0]] + features[1:] + [num_classes]
-            else:
-                cnn_features = [2 * features] + [features] + [num_classes]
-        else:
-            raise ValueError(f"Unknown forward_type: {forward_type}")
-
-        cnn_kernels = (
-            kernel_sizes
-            if isinstance(kernel_sizes, List)
-            else [kernel_sizes] * (len(cnn_features) - 1)
+        init_channels: int = features[0] if isinstance(features, List) else features
+        self.decoder = self._build_progressive_decoder(
+            init_channels, features, kernel_sizes, num_classes, act, dropout
         )
 
-        decoder_layers = []
-        for i in range(len(cnn_features) - 1):
-            decoder_layers.extend(
+        branch_layers = []
+        diff_layers = []
+        branch_layers.extend(
+            [
+                nn.Conv2d(init_channels, init_channels // 2, 3, padding=1),
+                nn.BatchNorm2d(init_channels // 2),
+                act,
+            ]
+        )
+        diff_layers.extend(
+            [
+                nn.Conv2d(init_channels // 2, init_channels, 3, padding=1),
+                nn.BatchNorm2d(init_channels),
+                act,
+            ]
+        )
+
+        self.branch_conv = nn.Sequential(*branch_layers)
+        self.diff_conv = nn.Sequential(*diff_layers)
+        self.out_act = out_act
+
+    def _build_progressive_decoder(
+        self,
+        init_channels: int,
+        features: int | List[int],
+        kernel_sizes: int | List[int],
+        num_classes: int,
+        act: Callable,
+        dropout: float,
+    ):
+        if isinstance(features, List):
+            decoder_features = [init_channels] + features + [num_classes]
+        else:
+            decoder_features = [init_channels] + [features] * 3 + [num_classes]
+
+        if isinstance(kernel_sizes, List):
+            decoder_kernels = kernel_sizes + [3] * (
+                len(decoder_features) - len(kernel_sizes) - 1
+            )
+        else:
+            decoder_kernels = [kernel_sizes] * (len(decoder_features) - 1)
+
+        layers = []
+        current_scale = 1
+
+        for i in range(len(decoder_features) - 1):
+            layers.extend(
                 [
                     nn.Conv2d(
-                        in_channels=cnn_features[i],
-                        out_channels=cnn_features[i + 1],
-                        kernel_size=cnn_kernels[i],
-                        padding=cnn_kernels[i] // 2,
+                        decoder_features[i],
+                        decoder_features[i + 1],
+                        decoder_kernels[i],
+                        padding=decoder_kernels[i] // 2,
                     ),
+                    nn.BatchNorm2d(decoder_features[i + 1]),
                     act,
                     nn.Dropout2d(dropout),
                 ]
             )
-        decoder_layers.append(
-            nn.Conv2d(
-                in_channels=cnn_features[-1],
-                out_channels=num_classes,
-                kernel_size=1,
+
+            if (
+                current_scale < self.patch_size
+                and decoder_features[i + 1] != num_classes
+            ):
+                scale_factor = 2
+                layers.append(
+                    nn.Upsample(
+                        scale_factor=scale_factor, mode="bilinear", align_corners=False
+                    )
+                )
+                current_scale *= scale_factor
+
+        if current_scale < self.patch_size:
+            final_scale = self.patch_size // current_scale
+            layers.append(
+                nn.Upsample(
+                    scale_factor=final_scale, mode="bilinear", align_corners=False
+                )
             )
-        )
-        decoder_layers.append(
-            nn.Upsample(scale_factor=patch_size, mode="bilinear", align_corners=False)
-        )
 
-        self.decoder = nn.Sequential(*decoder_layers)
-        self.out_act = out_act
+        return nn.Sequential(*layers)
 
-    def forward(
-        self, x1: torch.Tensor, x2: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        B, C, E = x1.shape
-        H = W = int((C - 1) ** 0.5)
-        x1 = x1.transpose(1, 2).contiguous()
-        x2 = x2.transpose(1, 2).contiguous()
+    def _reshape_vit_features(self, x: torch.Tensor) -> torch.Tensor:
+        B, N, C = x.shape
+        H = W = int((N - 1) ** 0.5)
 
-        if self.forward_type == "subtract":
-            feature_map = (x1 - x2)[..., 1:].view(B, E, H, W)
-        elif self.forward_type == "concat":
-            feature_map = torch.cat((x1, x2), dim=1)[..., 1:].view(B, 2 * E, H, W)
-        else:
-            raise ValueError(f"Unknown forward_type: {self.forward_type}")
+        x = x[:, 1:].transpose(1, 2).contiguous()
+        x = x.view(B, C, H, W)
 
-        return self.out_act(self.decoder(feature_map))
+        return x
+
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        x1_spatial = self._reshape_vit_features(x1)
+        x2_spatial = self._reshape_vit_features(x2)
+
+        feat1_processed = self.branch_conv(x1_spatial)
+        feat2_processed = self.branch_conv(x2_spatial)
+
+        feature_diff = torch.abs(feat1_processed - feat2_processed)
+        feature_map = self.diff_conv(feature_diff)
+
+        output = self.decoder(feature_map)
+
+        return self.out_act(output)
 
 
 class ViTFPNBasedChangeDetection(nn.Module):

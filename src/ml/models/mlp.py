@@ -8,7 +8,7 @@ class MLP(nn.Module):
     def __init__(
         self,
         features: List[int],
-        act: Callable = nn.ReLU(),
+        act: Callable = nn.Identity(),
         out_act: Callable = nn.Identity(),
         dropout: float = 0.0,
     ) -> None:
