@@ -29,7 +29,7 @@ class ChangeDetectionTrainer(Trainer):
         )
 
     def step(self, batch) -> Dict[str, Any]:
-        imgs1, imgs2, labels = batch[0]
+        (imgs1, imgs2, labels), info = batch
         imgs1, imgs2, labels = (
             imgs1.to(self.device),
             imgs2.to(self.device),
@@ -81,7 +81,7 @@ class ChangeDetectionTrainer(Trainer):
         total_loss, total_correct, total_num_labels, total_val = 0, 0, 0, 0
 
         for batch in self.valid_data_loader:
-            imgs1, imgs2, labels = batch[0]
+            (imgs1, imgs2, labels), info = batch
             imgs1, imgs2, labels = (
                 imgs1.to(self.device),
                 imgs2.to(self.device),
