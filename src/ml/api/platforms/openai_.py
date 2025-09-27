@@ -10,7 +10,7 @@ class OpenAIClient(LLMClient):
         super().__init__(api_key)
         self.client = OpenAI(api_key=api_key)
 
-    def chat_completion(self, model: str, messages: List, **options) -> Dict[str, str]:
+    def chat_completion(self, messages: List, model: str, **options) -> Dict[str, str]:
         response = self.client.chat.completions.create(
             model=model, messages=messages, **options
         )
