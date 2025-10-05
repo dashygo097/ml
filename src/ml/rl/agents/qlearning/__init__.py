@@ -1,3 +1,4 @@
-from .dqn import *
+from .functional import *
 from .model import *
-from .trainer import *
+from .replay_buffer import *
+from .tabular import *
