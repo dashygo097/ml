@@ -63,3 +63,26 @@ class QLearning(RLAgent):
 
     def update_epsilon(self) -> None:
         self.epsilon = max(self.final_epsilon, self.epsilon * self.epsilon_decay)
+
+
+class DeepQLearning(RLAgent):
+    def __init__(
+        self,
+        env: BaseDiscreteEnv,
+        dqn: nn.Module,
+        init_epsilon: float = 1.0,
+        final_epsilon: float = 0.0,
+        epsilon_decay: float = 0.999,
+        discount_rate: float = 0.99,
+    ):
+        super().__init__(env, discount_rate)
+        self.dqn = dqn
+        self.final_epsilon: float = final_epsilon
+        self.epsilon_decay: float = epsilon_decay
+        self.epsilon: float = init_epsilon
+
+    def forward(self, obs: Dict[str, Any]) -> torch.Tensor: ...
+
+    def update(
+        self, obs: Dict[str, Any], action: torch.Tensor, **kwargs
+    ) -> Dict[str, Any]: ...

@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from ...envs import BaseEnv
+from ...envs import BaseDiscreteEnv
 from ...trainer import RLTrainArgs, RLTrainer
 from .model import QLearning
 
@@ -14,7 +14,7 @@ class QLearningTrainer(RLTrainer):
     def __init__(
         self,
         agent: QLearning,
-        env: BaseEnv,
+        env: BaseDiscreteEnv,
         args: RLTrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
