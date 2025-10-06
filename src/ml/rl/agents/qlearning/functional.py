@@ -66,7 +66,6 @@ class DQNTrainer(RLTrainer):
             len(self.replay_buffer) >= self.args.learning_starts
             and self.n_steps % self.args.train_freq == 0
         ):
-            # FIXME: impl batch sampling
             batch = self.replay_buffer.sample(self.args.batch_size)
             q_values = (
                 self.agent.dqn(batch["obs"])
