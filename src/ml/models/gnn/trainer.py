@@ -12,15 +12,13 @@ class GNNTrainer(Trainer):
         self,
         model: nn.Module,
         dataset,
-        criterion: Callable,
+        loss_fn: Callable,
         args: TrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ) -> None:
-        super().__init__(
-            model, dataset, criterion, args, optimizer, scheduler, valid_ds
-        )
+        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def set_dataset(self, dataset) -> None:
         self.data_loader = BaseIterator(dataset)

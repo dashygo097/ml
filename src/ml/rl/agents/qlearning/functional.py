@@ -23,7 +23,7 @@ class DQNTrainer(RLTrainer):
         self,
         agent: DeepQLearning,
         env: BaseDiscreteEnv,
-        criterion: Callable,
+        loss_fn: Callable,
         args: DQNTrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
@@ -35,7 +35,7 @@ class DQNTrainer(RLTrainer):
             optimizer=optimizer,
             scheduler=scheduler,
         )
-        self.criterion = criterion
+        self.loss_fn = loss_fn
 
         # Initialize replay buffer
         observation_shape = env.get_obs_shape()
@@ -81,7 +81,7 @@ class DQNTrainer(RLTrainer):
                     batch["reward"] + self.agent.discount_rate * next_q_values
                 )
 
-            loss = self.criterion(q_values, target_q_values)
+            loss = self.loss_fn(q_values, target_q_values)
             if self.optimizer is not None:
                 self.optimizer.zero_grad()
                 loss.backward()

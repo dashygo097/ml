@@ -17,7 +17,7 @@ class ImageGANTrainerCT(ImageGANTrainer):
         model: ImageGAN,
         dataset,
         args: GANTrainArgsCT,
-        criterions: List[Callable],
+        loss_fns: List[Callable],
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
@@ -26,7 +26,7 @@ class ImageGANTrainerCT(ImageGANTrainer):
             model=model,
             dataset=dataset,
             args=args,
-            criterions=criterions,
+            loss_fns=loss_fns,
             optimizer=optimizer,
             scheduler=scheduler,
             valid_ds=valid_ds,
@@ -64,14 +64,14 @@ class ImageGANTrainerCT(ImageGANTrainer):
 
         self.optimizer_D.zero_grad()
         r_preds = self.discriminator(batched, labels)
-        r_loss = self.criterion_D(r_preds, r_labels)
+        r_loss = self.loss_fn_D(r_preds, r_labels)
 
         z = torch.randn(B, self.model.config.latent_dim, device=self.device)
         z += torch.randn_like(z) * self.args.latent_noise_stddev
 
         f_images = self.generator(z, labels)
         f_preds = self.discriminator(f_images, labels)
-        f_loss = self.criterion_D(f_preds, f_labels)
+        f_loss = self.loss_fn_D(f_preds, f_labels)
 
         d_loss = r_loss + f_loss
         d_loss.backward()
@@ -87,7 +87,7 @@ class ImageGANTrainerCT(ImageGANTrainer):
                 f_images = self.generator(z, labels)
 
             f_preds = self.discriminator(f_images, labels)
-            g_loss = self.criterion_G(f_preds, r_labels)
+            g_loss = self.loss_fn_G(f_preds, r_labels)
             g_loss.backward()
             self.optimizer_G.step()
             g_loss_total += g_loss.item()

@@ -17,15 +17,13 @@ class VAETrainer(Trainer):
         self,
         model: nn.Module,
         dataset,
-        criterion: Callable,
+        loss_fn: Callable,
         args: VAETrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ) -> None:
-        super().__init__(
-            model, dataset, criterion, args, optimizer, scheduler, valid_ds
-        )
+        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def step(
         self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
@@ -39,7 +37,7 @@ class VAETrainer(Trainer):
             mean.to(self.device),
             var.to(self.device),
         )
-        loss = self.criterion(batched, output, mean, var)
+        loss = self.loss_fn(batched, output, mean, var)
 
         loss.backward()
 

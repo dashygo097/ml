@@ -19,15 +19,13 @@ class GPTrainer(Trainer):
         model: nn.Module,
         tokenizer,
         dataset,
-        criterion: Callable,
+        loss_fn: Callable,
         args: GPTrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ) -> None:
-        super().__init__(
-            model, dataset, criterion, args, optimizer, scheduler, valid_ds
-        )
+        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
         self.set_tokenizer(tokenizer)
 
     def set_tokenizer(self, tokenizer) -> None:
@@ -62,7 +60,7 @@ class GPTrainer(Trainer):
             shift_logits = logits[..., :-1, :].contiguous()
             shift_labels = inputs_ids[..., 1:].contiguous()
 
-            loss = self.criterion(
+            loss = self.loss_fn(
                 shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1)
             )
 
@@ -74,7 +72,7 @@ class GPTrainer(Trainer):
                 logits = self.model(inputs_ids)
                 shift_logits = logits[..., :-1, :].contiguous()
                 shift_labels = inputs_ids[..., 1:].contiguous()
-                loss = self.criterion(
+                loss = self.loss_fn(
                     shift_logits.view(-1, shift_logits.size(-1)),
                     shift_labels.view(-1),
                 )

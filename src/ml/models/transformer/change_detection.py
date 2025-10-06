@@ -18,15 +18,13 @@ class ChangeDetectionTrainer(Trainer):
         self,
         model: nn.Module,
         dataset: ChangeDetectionDataset,
-        criterion: Callable,
+        loss_fn: Callable,
         args: ChangeDetectionTrainerArgs,
         optimizer=None,
         scheduler=None,
         valid_ds=None,
     ) -> None:
-        super().__init__(
-            model, dataset, criterion, args, optimizer, scheduler, valid_ds
-        )
+        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def step(self, batch) -> Dict[str, Any]:
         (imgs1, imgs2, labels), info = batch
@@ -37,7 +35,7 @@ class ChangeDetectionTrainer(Trainer):
         )
         self.optimizer.zero_grad()
         logits = self.model(imgs1, imgs2)
-        loss = self.criterion(logits, labels)
+        loss = self.loss_fn(logits, labels)
 
         loss.backward()
         self.optimizer.step()
@@ -89,7 +87,7 @@ class ChangeDetectionTrainer(Trainer):
             )
             with torch.no_grad():
                 logits = self.model(imgs1, imgs2)
-                loss = self.criterion(logits, labels)
+                loss = self.loss_fn(logits, labels)
                 total_loss += loss.item() * labels.size(0)
                 preds = torch.argmax(logits, dim=1)
                 total_correct += (preds == labels).sum().item()

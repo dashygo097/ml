@@ -90,15 +90,13 @@ class GNNClassifyTrainer(GNNTrainer):
         self,
         model: GNNClassifier,
         dataset,
-        criterion: Callable,
+        loss_fn: Callable,
         args: GNNClassifierTrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ) -> None:
-        super().__init__(
-            model, dataset, criterion, args, optimizer, scheduler, valid_ds
-        )
+        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
 
         self._best_val_loss = float("inf")
         self._no_improve_epochs = 0
@@ -112,9 +110,9 @@ class GNNClassifyTrainer(GNNTrainer):
 
         out = self.model(batch.to(self.device))
         if hasattr(batch, "train_mask"):
-            loss = self.criterion(out[batch.train_mask], batch.y[batch.train_mask])
+            loss = self.loss_fn(out[batch.train_mask], batch.y[batch.train_mask])
         else:
-            loss = self.criterion(out, batch.y)
+            loss = self.loss_fn(out, batch.y)
 
         loss.backward()
         self.optimizer.step()
@@ -128,7 +126,7 @@ class GNNClassifyTrainer(GNNTrainer):
         for data in self.valid_data_loader:
             data = data.to(self.device)
             out = self.model(data)
-            loss = self.criterion(out[data.val_mask], data.y[data.val_mask])
+            loss = self.loss_fn(out[data.val_mask], data.y[data.val_mask])
             total_loss += loss.item() * data.val_mask.sum().item()
 
             preds = out.argmax(dim=-1)

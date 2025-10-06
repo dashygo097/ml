@@ -17,7 +17,7 @@ class OBBDetectionTrainer(Trainer):
         self,
         model: nn.Module,
         dataset,
-        criterion: Callable,
+        loss_fn: Callable,
         args: OBBDetectionTrainerArgs,
         collate_fn: Callable = lambda x: x,
         optimizer: Optional[type] = None,
@@ -25,9 +25,7 @@ class OBBDetectionTrainer(Trainer):
         valid_ds: Optional[Any] = None,
     ) -> None:
         self.collate_fn: Callable = collate_fn
-        super().__init__(
-            model, dataset, criterion, args, optimizer, scheduler, valid_ds
-        )
+        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def set_dataset(self, dataset) -> None:
         self.data_loader = torch.utils.data.DataLoader(
@@ -100,7 +98,7 @@ class OBBDetectionTrainer(Trainer):
             angles = target["bboxes"][:num_objects, bbox_dim:].to(self.device)
             all_angles[index, :num_objects] = angles
 
-        loss, cls_loss, bbox_loss, angle_loss = self.criterion(
+        loss, cls_loss, bbox_loss, angle_loss = self.loss_fn(
             pred_cls, pred_bbox, pred_angle, all_labels, all_bboxes, all_angles
         )
         loss.backward()
