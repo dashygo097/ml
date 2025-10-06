@@ -62,14 +62,14 @@ class Trainer(ABC, Generic[T_model, T_args]):
         self,
         model: T_model,
         dataset: Any,
-        criterion: Callable,
+        loss_fn: Callable,
         args: T_args,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ) -> None:
         self.model: T_model = model
-        self.criterion: Callable = criterion
+        self.loss_fn: Callable = loss_fn
         self.args: T_args = args
 
         self.set_device(args.device)

@@ -52,7 +52,7 @@ class ImageGANTrainer(Trainer):
         model: ImageGAN,
         dataset,
         args: ImageGANTrainArgs,
-        criterions: List[Callable],
+        loss_fns: List[Callable],
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
@@ -61,12 +61,12 @@ class ImageGANTrainer(Trainer):
         self.args: ImageGANTrainArgs = args
         self.generator: nn.Module = model.generator
         self.discriminator: nn.Module = model.discriminator
-        self.criterions: List[Callable] = criterions
+        self.loss_fns: List[Callable] = loss_fns
 
         self.set_device(args.device)
         self.set_model(model)
         self.set_dataset(dataset)
-        self.set_criterions(criterions)
+        self.set_loss_fns(loss_fns)
         self.set_optimizer(optimizer)
         self.set_scheduler(scheduler)
         self.set_valid_ds(valid_ds)
@@ -114,19 +114,19 @@ class ImageGANTrainer(Trainer):
 
         self.scheduler = [scheduler_G, scheduler_D]
 
-    def set_criterions(self, criterions) -> None:
-        if criterions is None:
-            self.criterions = [nn.BCELoss(), nn.BCELoss()]
-            self.criterion_G = self.criterions[0]
-            self.criterion_D = self.criterions[1]
+    def set_loss_fns(self, loss_fns) -> None:
+        if loss_fns is None:
+            self.loss_fns = [nn.BCELoss(), nn.BCELoss()]
+            self.loss_fn_G = self.loss_fns[0]
+            self.loss_fn_D = self.loss_fns[1]
 
-        elif isinstance(criterions, List):
-            self.criterions = criterions
-            self.criterion_G = self.criterions[0]
-            self.criterion_D = self.criterions[1]
+        elif isinstance(loss_fns, List):
+            self.loss_fns = loss_fns
+            self.loss_fn_G = self.loss_fns[0]
+            self.loss_fn_D = self.loss_fns[1]
 
         else:
-            raise ValueError("Invalid criterion")
+            raise ValueError("Invalid loss_fn")
 
     def save(self) -> None:
         os.makedirs(self.args.save_dict, exist_ok=True)
@@ -217,7 +217,7 @@ class ImageGANTrainer(Trainer):
 
         self.optimizer_D.zero_grad()
         r_preds = self.discriminator(batched)
-        r_loss = self.criterion_D(r_preds, r_labels)
+        r_loss = self.loss_fn_D(r_preds, r_labels)
 
         z = torch.randn(
             B,
@@ -229,7 +229,7 @@ class ImageGANTrainer(Trainer):
 
         f_images = self.generator(z)
         f_preds = self.discriminator(f_images.detach())
-        f_loss = self.criterion_D(f_preds, f_labels)
+        f_loss = self.loss_fn_D(f_preds, f_labels)
 
         d_loss = r_loss + f_loss
         d_loss.backward()
@@ -249,7 +249,7 @@ class ImageGANTrainer(Trainer):
                 f_images = self.generator(z)
 
             f_preds = self.discriminator(f_images)
-            g_loss = self.criterion_G(f_preds, r_labels)
+            g_loss = self.loss_fn_G(f_preds, r_labels)
             g_loss.backward()
             self.optimizer_G.step()
 

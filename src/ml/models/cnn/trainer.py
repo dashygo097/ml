@@ -17,15 +17,13 @@ class CNNTrainer(Trainer):
         self,
         model: nn.Module,
         dataset,
-        criterion: Callable,
+        loss_fn: Callable,
         args: TrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ) -> None:
-        super().__init__(
-            model, dataset, criterion, args, optimizer, scheduler, valid_ds
-        )
+        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def step(
         self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
@@ -37,7 +35,7 @@ class CNNTrainer(Trainer):
         targets = targets.to(self.device)
 
         outputs = self.model(inputs)
-        loss = self.criterion(outputs, targets)
+        loss = self.loss_fn(outputs, targets)
         loss.backward()
         self.optimizer.step()
         return {"loss": loss.item()}
@@ -76,7 +74,7 @@ class CNNTrainer(Trainer):
             labels = labels.to(self.device)
             with torch.no_grad():
                 outputs = self.model(inputs)
-                loss = self.criterion(outputs, labels)
+                loss = self.loss_fn(outputs, labels)
 
                 _, predicted = torch.max(outputs.data, 1)
                 predicted = predicted.to(self.device)
@@ -104,15 +102,13 @@ class CNNFinetuner(CNNTrainer):
         self,
         model: nn.Module,
         dataset,
-        criterion: Callable,
+        loss_fn: Callable,
         args: TrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ) -> None:
-        super().__init__(
-            model, dataset, criterion, args, optimizer, scheduler, valid_ds
-        )
+        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def step_info(self, result: Dict[str, Any]) -> None:
         self.logger.op(

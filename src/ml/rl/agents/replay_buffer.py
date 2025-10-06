@@ -31,6 +31,7 @@ class ReplayBuffer:
         keys = self.buffer[0].keys()
 
         for key in keys:
+            # FIXME: dtype handling
             ret_dict[key] = torch.tensor([self.buffer[idx][key] for idx in indices]).to(
                 self.device
             )

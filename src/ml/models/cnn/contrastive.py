@@ -59,13 +59,13 @@ class SimCLRTrainer(CNNTrainer):
         self,
         model: nn.Module,
         ds,
-        criterion: Callable,
+        loss_fn: Callable,
         args: SimCLRTrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ):
-        super().__init__(model, ds, criterion, args, optimizer, scheduler, valid_ds)
+        super().__init__(model, ds, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def step(
         self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
@@ -81,7 +81,7 @@ class SimCLRTrainer(CNNTrainer):
         positive_out = self.model(positive).view(positive.shape[0], -1)
         negative_out = self.model(negative).view(negative.shape[0], -1)
 
-        loss = self.criterion(anchor_out, positive_out, negative_out)
+        loss = self.loss_fn(anchor_out, positive_out, negative_out)
 
         loss.backward()
 
