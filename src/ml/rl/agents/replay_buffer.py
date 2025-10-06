@@ -4,11 +4,15 @@ import torch
 
 
 class ReplayBuffer:
-    def __init__(self, capacity: int, obs_shape: Tuple[int, ...]) -> None:
+    def __init__(
+        self, capacity: int, observation_shape: Tuple[int, ...], device
+    ) -> None:
         self.capacity: int = capacity
-        self.obs_shape: Tuple[int, ...] = obs_shape
+        self.observation_shape: Tuple[int, ...] = observation_shape
         self.buffer: List[Dict[str, Any]] = []
         self.pos: int = 0
+
+        self.device = device
 
     def append(self, transition: Dict[str, Any]) -> None:
         if len(self.buffer) < self.capacity:
@@ -27,8 +31,8 @@ class ReplayBuffer:
         keys = self.buffer[0].keys()
 
         for key in keys:
-            ret_dict[key] = torch.stack(
-                [torch.tensor(self.buffer[idx][key]) for idx in indices]
+            ret_dict[key] = torch.tensor([self.buffer[idx][key] for idx in indices]).to(
+                self.device
             )
 
         return ret_dict

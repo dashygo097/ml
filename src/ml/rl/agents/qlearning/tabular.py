@@ -1,5 +1,7 @@
 from typing import Any, Dict, Optional
 
+import torch
+
 from ...envs import BaseDiscreteEnv
 from ...trainer import RLTrainArgs, RLTrainer
 from .model import QLearning
@@ -29,19 +31,30 @@ class QLearningTrainer(RLTrainer):
 
     def step(self) -> Dict[str, Any]:
         action = self.agent(self._obs)
-        log = self.agent.update(self._obs, action, lr=self.args.lr)
+        next_obs, reward, terminated, truncated, info = self.env.step(action)
 
-        self._obs = log["next_obs"]
-        self._info = log["info"]
-        self._terminated = log["terminated"]
-        self._truncated = log["truncated"]
+        q_idx = tuple(self._obs["agent"]) + (action,)
+        future_idx = tuple(next_obs["agent"])
+
+        with torch.no_grad():
+            future_q = 0 if terminated else self.agent.q_values[future_idx].max()
+            target = reward + self.agent.discount_rate * future_q
+            error = target - self.agent.q_values[q_idx]
+            loss = error * error
+
+            self.agent.q_values[q_idx] += self.args.lr * error
+
+        self._obs = next_obs
+        self._info = info
+        self._terminated = terminated
+        self._truncated = truncated
 
         if self._terminated:
             self.agent.update_epsilon()
 
         return {
-            "reward": log["reward"],
-            "loss": log["loss"],
+            "reward": reward,
+            "loss": loss.item(),
         }
 
     def step_info(self, result: Dict[str, Any]) -> None:

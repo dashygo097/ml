@@ -53,11 +53,11 @@ class TrainArgs:
         self.is_draw: bool = self.args["info"].get("is_draw", False)
 
 
-T_args = TypeVar("T_args", bound=TrainArgs)
 T_model = TypeVar("T_model", bound=nn.Module)
+T_args = TypeVar("T_args", bound=TrainArgs)
 
 
-class Trainer(ABC, Generic[T_args, T_model]):
+class Trainer(ABC, Generic[T_model, T_args]):
     def __init__(
         self,
         model: T_model,
