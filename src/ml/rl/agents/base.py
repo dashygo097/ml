@@ -25,8 +25,23 @@ class RLAgent(ABC, nn.Module):
     @abstractmethod
     def forward(self, obs: Any) -> Any: ...
 
-    @abstractmethod
-    def update(self, obs: Any, action: Any, **kwargs) -> Dict[str, Any]: ...
+
+class EpsilonGreedyAgent(RLAgent):
+    def __init__(
+        self,
+        env: BaseEnv,
+        init_epsilon: float,
+        final_epsilon: float,
+        epsilon_decay: float,
+        discount_rate: float,
+    ):
+        super().__init__(env, discount_rate)
+        self.final_epsilon: float = final_epsilon
+        self.epsilon_decay: float = epsilon_decay
+        self.epsilon: float = init_epsilon
+
+    def update_epsilon(self) -> None:
+        self.epsilon = max(self.final_epsilon, self.epsilon * self.epsilon_decay)
 
 
 class PolicyFn(Protocol):

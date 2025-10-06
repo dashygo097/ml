@@ -54,20 +54,21 @@ class RLTrainArgs:
         self.is_draw: bool = self.args["info"].get("is_draw", False)
 
 
-T_env = TypeVar("T_env", bound=gym.Env)
 T_agent = TypeVar("T_agent", bound=RLAgent)
+T_env = TypeVar("T_env", bound=gym.Env)
+T_args = TypeVar("T_args", bound=RLTrainArgs)
 
 
-class RLTrainer(Generic[T_env, T_agent], ABC):
+class RLTrainer(Generic[T_agent, T_env, T_args], ABC):
     def __init__(
         self,
         agent: T_agent,
         env: T_env,
-        args: RLTrainArgs,
+        args: T_args,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
     ) -> None:
-        self.args: RLTrainArgs = args
+        self.args: T_args = args
 
         self.set_device(args.device)
         self.set_agent(agent)
