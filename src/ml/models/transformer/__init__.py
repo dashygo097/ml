@@ -5,5 +5,5 @@ from .decoder import *
 from .encoder import *
 from .lang_gen import *
 from .loss import *
-from .obb_detection import *
+from .obj_detection import *
 from .variants import *
