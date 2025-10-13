@@ -6,7 +6,7 @@ from torch import nn
 from ....utils import load_yaml
 from ...heads.change_detection import ViTCNNBasedChangeDetectionHead
 from ...heads.classify import ClassifyHead
-from ...heads.obb_detection import DeTRThetaBasedOBBDetectionHead
+from ...heads.obj_detection import DeTRThetaBasedOBBDetectionHead
 from ..components import PatchEmbedding
 from ..encoder import EncoderBlock
 
