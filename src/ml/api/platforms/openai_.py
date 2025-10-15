@@ -6,9 +6,11 @@ from ..client import LLMClient
 
 
 class OpenAIClient(LLMClient):
-    def __init__(self, api_key: Optional[str] = None):
-        super().__init__(api_key)
-        self.client = OpenAI(api_key=api_key)
+    def __init__(
+        self, api_key: Optional[str] = None, api_base: Optional[str] = None
+    ) -> None:
+        super().__init__(api_key, api_base)
+        self.client = OpenAI(api_key=api_key, base_url=api_base)
 
     def chat_completion(self, messages: List, model: str, **options) -> Dict[str, str]:
         response = self.client.chat.completions.create(
