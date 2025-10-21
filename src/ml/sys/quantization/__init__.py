@@ -1,2 +1,3 @@
-from .awq import *
+from .ptq import *
+from .qat import *
 from .quantizer import *

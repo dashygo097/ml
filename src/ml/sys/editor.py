@@ -12,15 +12,8 @@ class Editor(Tracer):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 
-    def save(self, save_dict: str, name: str = "edited_model") -> None:
-        os.makedirs(save_dict, exist_ok=True)
-        path = save_dict + "/" + name + ".pt"
-        torch.save(self.model.state_dict(), path)
-        print(
-            "[INFO] Model saved at: "
-            + colored(path, "light_green", attrs=["underline"])
-            + "!"
-        )
+    def save(self, path: str = "./checkpoints/edited_model.pth") -> None:
+        super().save(path)
 
     @overload
     def replace(
