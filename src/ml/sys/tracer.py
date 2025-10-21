@@ -21,6 +21,11 @@ class Tracer:
     def save(self, path: str = "./checkpoints/model.pth") -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save(self.model.state_dict(), path)
+        print(
+            "[INFO] Model saved at: "
+            + colored(path, "light_green", attrs=["underline"])
+            + "!"
+        )
 
     def fuzzt_load(self, path: str, device: str = "cpu") -> None: ...
 

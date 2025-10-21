@@ -1,10 +1,28 @@
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 import torch
 from torch import nn
 
 from ..transformer import DecoderBlock
 
+class ObjDetecttionHead2D(nn.Module):
+    def __init__(
+        self, 
+        features: int | List[int],
+        num_classes: int,
+        num_queries: int,
+        dropout: float = 0.
+        ) -> None:
+        super().__init__()
+        self.features = features
+        self.num_classes = num_classes
+        self.num_queries = num_queries
+        self.dropout = dropout
+        ...
+
+    def forward(self, features: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        ...
+    
 
 class DeTRThetaBasedOBBDetectionHead(nn.Module):
     def __init__(
