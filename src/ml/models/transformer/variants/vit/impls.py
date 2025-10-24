@@ -1,11 +1,14 @@
-import torch
 from typing import Tuple
+
+import torch
 from torch import nn
-from .model import ViTBackbone, ViTConfig
 
 from ....heads.change_detection import ViTCNNBasedChangeDetectionHead
 from ....heads.classify import ClassifyHead
-from ....heads.obj_detection import DeTRThetaBasedOBBDetectionHead, ObjDetecttionHead2D
+from ....heads.obj_detection import (DeTRThetaBasedOBBDetectionHead,
+                                     ObjDetectionHead2D)
+from .model import ViTBackbone, ViTConfig
+
 
 class ViTRawModel(nn.Module):
     def __init__(self, config: ViTConfig) -> None:
@@ -26,7 +29,6 @@ class ViTRawModel(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.vit(x)
 
- 
 
 class ViTClassifier(nn.Module):
     def __init__(self, config: ViTConfig) -> None:
@@ -65,8 +67,8 @@ class ViTObjDetector2D(nn.Module):
         )
         ...
 
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        ...
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]: ...
+
 
 class ViTDeTRThetaBasedOBBDetector(nn.Module):
     def __init__(self, config: ViTConfig) -> None:
@@ -126,5 +128,3 @@ class ViTCNNBasedChangeDetector(nn.Module):
         x = torch.cat([x1, x2], dim=0)
         x1, x2 = self.vit(x).chunk(2, dim=0)
         return self.head(x1, x2)
-
-

@@ -3,7 +3,7 @@ from typing import Optional, overload
 import torch
 from torch import nn
 
-from .quantizer import Quantizer
+from ..quantizer import Quantizer
 
 
 class AWQ(Quantizer):

@@ -127,20 +127,3 @@ class ViTCNNBasedChangeDetectionHead(nn.Module):
         output = self.decoder(feature_map)
 
         return self.out_act(output)
-
-
-class ViTFPNBasedChangeDetection(nn.Module):
-    def __init__(
-        self,
-        features: int,
-        num_classes: int,
-        patch_size: int,
-        act: Callable = nn.Identity(),
-        out_act: Callable = nn.Identity(),
-        dropout: float = 0.0,
-    ) -> None:
-        super().__init__()
-
-    def forward(
-        self, x1: List[torch.Tensor], x2: List[torch.Tensor]
-    ) -> torch.Tensor: ...
