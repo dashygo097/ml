@@ -65,7 +65,9 @@ class ViTConfig:
         self.dropout: float = self.args.get("dropout", 0.0)
 
         if self.task == "classification" and self.head_type == "mlp":
-            pass
+            self.head_hidden_features: List[int] = self.head_args.get(
+                "hidden_features", []
+            )
 
         elif self.task == "obb_detection" and self.head_type == "detr_obb":
             self.head_num_queries: int = self.head_args.get("num_queries", 100)
@@ -142,5 +144,3 @@ class ViTBackbone(nn.Module):
         x = self.embedding(x)
         x = self.encoder(x)
         return self.post_norm(x)
-
-

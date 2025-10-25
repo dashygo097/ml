@@ -3,11 +3,8 @@ from typing import Tuple
 import torch
 from torch import nn
 
-from ....heads.change_detection import ViTCNNBasedChangeDetectionHead
-from ....heads.classify import ClassifyHead
-from ....heads.obj_detection import (DeTRThetaBasedOBBDetectionHead,
-                                     ObjDetectionHead2D)
-from .model import ViTBackbone, ViTConfig
+from ...models import ViTBackbone, ViTConfig
+from ..heads import *
 
 
 class ViTRawModel(nn.Module):
@@ -45,29 +42,14 @@ class ViTClassifier(nn.Module):
             d_model=config.d_model,
             dropout=config.dropout,
         )
-        self.head = ClassifyHead(config.embed_size, config.num_classes)
+        self.head = ClassifyHead(
+            [config.embed_size] + self.config.head_hidden_features,
+            config.num_classes,
+            dropout=config.dropout,
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.head(self.vit(x)[:, 0, :])
-
-
-class ViTObjDetector2D(nn.Module):
-    def __init__(self, config: ViTConfig) -> None:
-        self.config = config
-        self.vit = ViTBackbone(
-            embed_size=config.embed_size,
-            patch_size=config.patch_size,
-            n_heads=config.n_heads,
-            n_layers=config.num_layers,
-            res=config.res,
-            in_channels=config.in_channels,
-            d_inner=config.d_inner,
-            d_model=config.d_model,
-            dropout=config.dropout,
-        )
-        ...
-
-    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]: ...
 
 
 class ViTDeTRThetaBasedOBBDetector(nn.Module):
@@ -114,12 +96,13 @@ class ViTCNNBasedChangeDetector(nn.Module):
             dropout=config.dropout,
         )
 
-        self.head = ViTCNNBasedChangeDetectionHead(
+        self.head = CNNBasedChangeDetectionHead(
             features=[config.embed_size] + config.head_hidden_features,
             kernel_sizes=config.head_kernel_sizes,
             num_classes=config.num_classes,
             patch_size=config.patch_size,
             act=nn.GELU(),
+            dropout=config.dropout,
         )
 
     def forward(

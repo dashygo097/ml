@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 
-class ViTCNNBasedChangeDetectionHead(nn.Module):
+class CNNBasedChangeDetectionHead(nn.Module):
     def __init__(
         self,
         features: int | List[int],
@@ -105,7 +105,7 @@ class ViTCNNBasedChangeDetectionHead(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def _reshape_vit_features(self, x: torch.Tensor) -> torch.Tensor:
+    def _reshape_features(self, x: torch.Tensor) -> torch.Tensor:
         B, N, C = x.shape
         H = W = int((N - 1) ** 0.5)
 
@@ -115,8 +115,8 @@ class ViTCNNBasedChangeDetectionHead(nn.Module):
         return x
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
-        x1_spatial = self._reshape_vit_features(x1)
-        x2_spatial = self._reshape_vit_features(x2)
+        x1_spatial = self._reshape_features(x1)
+        x2_spatial = self._reshape_features(x2)
 
         feat1_processed = self.branch_conv(x1_spatial)
         feat2_processed = self.branch_conv(x2_spatial)

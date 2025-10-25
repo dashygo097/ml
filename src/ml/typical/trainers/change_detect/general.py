@@ -4,8 +4,8 @@ import torch
 from termcolor import colored
 from torch import nn
 
+from ....trainer import TrainArgs, Trainer
 from ...data import ChangeDetectionDataset
-from ...trainer import TrainArgs, Trainer
 
 
 class ChangeDetectionTrainerArgs(TrainArgs):

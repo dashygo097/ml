@@ -4,7 +4,7 @@ import torch.nn as nn
 from termcolor import colored
 from torch.cuda.amp import autocast
 
-from ...trainer import TrainArgs, Trainer
+from ....trainer import TrainArgs, Trainer
 
 
 class GPTrainArgs(TrainArgs):

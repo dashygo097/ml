@@ -4,19 +4,20 @@ import torch
 import torch.nn as nn
 from termcolor import colored
 
-from ...trainer import TrainArgs, Trainer
+from ....trainer import TrainArgs, Trainer
+from ...data import BaseDataset
 
 
-class CNNTrainArgs(TrainArgs):
+class ClassificationTrainArgs(TrainArgs):
     def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
         super().__init__(path_or_dict)
 
 
-class CNNTrainer(Trainer):
+class ClassificationTrainer(Trainer):
     def __init__(
         self,
         model: nn.Module,
-        dataset,
+        dataset: BaseDataset,
         loss_fn: Callable,
         args: TrainArgs,
         optimizer: Optional[type] = None,
@@ -29,7 +30,7 @@ class CNNTrainer(Trainer):
         self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
     ) -> Dict[str, Any]:
         self.optimizer.zero_grad()
-        inputs, targets = batch
+        (inputs, targets), info = batch
 
         inputs = inputs.to(self.device)
         targets = targets.to(self.device)
@@ -97,11 +98,11 @@ class CNNTrainer(Trainer):
         )
 
 
-class CNNFinetuner(CNNTrainer):
+class ClassificationFinetuner(ClassificationTrainer):
     def __init__(
         self,
         model: nn.Module,
-        dataset,
+        dataset: BaseDataset,
         loss_fn: Callable,
         args: TrainArgs,
         optimizer: Optional[type] = None,
