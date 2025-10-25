@@ -7,9 +7,9 @@ from torch_geometric.data import Data
 from torch_geometric.nn import global_mean_pool
 from torch_geometric.utils import dropout_edge
 
-from ..heads import ClassifyHead
-from .model import GNNEncoder
-from .trainer import GNNTrainer, TrainArgs
+from ....models import GNNEncoder
+from ...heads import ClassifyHead
+from ..gnn import GNNTrainArgs, GNNTrainer
 
 
 class GNNClassifier(nn.Module):
@@ -77,7 +77,7 @@ class GNNClassifier(nn.Module):
             )
 
 
-class GNNClassifierTrainArgs(TrainArgs):
+class GNNClassifierTrainArgs(GNNTrainArgs):
     def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
         super().__init__(path_or_dict)
         self.patience: int = self.args.get("patience", 10)

@@ -4,7 +4,7 @@ import torch
 from termcolor import colored
 from torch import nn
 
-from ...trainer import TrainArgs, Trainer
+from ....trainer import TrainArgs, Trainer
 
 
 class OBBDetectionTrainerArgs(TrainArgs):

@@ -3,7 +3,7 @@ from typing import Callable, List
 import torch
 from torch import nn
 
-from ..mlp import MLP
+from ....models import MLP
 
 
 class ClassifyHead(nn.Module):

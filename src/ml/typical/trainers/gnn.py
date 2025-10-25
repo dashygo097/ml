@@ -3,8 +3,13 @@ from typing import Any, Callable, Dict, Optional
 from termcolor import colored
 from torch import nn
 
-from ...data import BaseIterator
 from ...trainer import TrainArgs, Trainer
+from ..data import BaseIterator
+
+
+class GNNTrainArgs(TrainArgs):
+    def __init__(self, path_or_dict: str | Dict) -> None:
+        super().__init__(path_or_dict)
 
 
 class GNNTrainer(Trainer):

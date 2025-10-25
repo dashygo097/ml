@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import torch
@@ -8,8 +8,8 @@ import torch.nn as nn
 from termcolor import colored
 
 from ...logger import TrainLogger
+from ...models import ImageGAN
 from ...trainer import TrainArgs, Trainer
-from .model import ImageGAN
 
 
 class ImageGANTrainArgs(TrainArgs):
