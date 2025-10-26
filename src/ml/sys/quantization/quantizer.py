@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional, overload
+from typing import List, Optional, Union, overload
 
 from torch import nn
 
@@ -10,7 +10,7 @@ class Quantizer(ABC, Editor):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 
-    def save(self, path: str = "./checkpoints/quantized_model.pth") -> None:
+    def save(self, path: str = "./results_dir/quantized_model.pth") -> None:
         super().save(path)
 
     @overload
@@ -22,7 +22,7 @@ class Quantizer(ABC, Editor):
         return self.quantize(target)
 
     @abstractmethod
-    def quantize(self, target: Optional[str] | type) -> List[str]:
+    def quantize(self, target: Optional[Union[str, type]]) -> List[str]:
         if target is None:
             ...
 

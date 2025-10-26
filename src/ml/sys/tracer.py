@@ -18,7 +18,7 @@ class Tracer:
     def load(self, path: str, device: str = "cpu") -> None:
         self.model.load_state_dict(torch.load(path, map_location=device))
 
-    def save(self, path: str = "./checkpoints/model.pth") -> None:
+    def save(self, path: str = "./results_dir/model.pth") -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save(self.model.state_dict(), path)
         print(
