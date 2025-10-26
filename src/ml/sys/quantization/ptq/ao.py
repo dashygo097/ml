@@ -19,7 +19,7 @@ class AOPTQ(Quantizer):
         model: nn.Module,
         *,
         scheme: str = "weight_only",
-        dtype: _DtypeLike = "int8",
+        default_dtype: _DtypeLike = "int8",
         weight_dtype: Optional[_DtypeLike] = None,
         act_dtype: Optional[_DtypeLike] = None,
         group_size: Optional[int] = None,
@@ -34,9 +34,9 @@ class AOPTQ(Quantizer):
 
         self.scheme = self._validate_scheme(scheme)
 
-        self.weight_dtype = self._normalize_dtype(weight_dtype or dtype)
+        self.weight_dtype = self._normalize_dtype(weight_dtype or default_dtype)
         self.act_dtype = (
-            self._normalize_dtype(act_dtype or dtype) if act_dtype else None
+            self._normalize_dtype(act_dtype or default_dtype) if act_dtype else None
         )
 
         self.group_size = group_size
@@ -139,14 +139,10 @@ class AOPTQ(Quantizer):
         self, target: Union[str, type, None]
     ) -> Callable[[nn.Module, str], bool]:
         if target is None:
-            return lambda mod, name: True
+            return lambda mod, name: hasattr(mod, "weight")
 
         if isinstance(target, str):
             return lambda mod, name: name == target
 
         if isinstance(target, type):
             return lambda mod, name: isinstance(mod, target)
-
-        raise TypeError(
-            f"Target must be str, type, or None, got {type(target).__name__}"
-        )

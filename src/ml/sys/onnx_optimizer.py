@@ -15,7 +15,7 @@ class OnnxOptimizer(Editor):
         self.model = model
         self.onnx_model = None
 
-    def export(self, save_dir: str = "./checkpoints/onnx", name: str = "model") -> None:
+    def export(self, save_dir: str = "./results_dir/onnx", name: str = "model") -> None:
         if self.onnx_model is None:
             raise ValueError(
                 "[ERROR] ONNX model is not loaded. Please load an ONNX model first."

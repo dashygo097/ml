@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple, overload
+from typing import Callable, List, Optional, Tuple, Union, overload
 
 from termcolor import colored
 from torch import nn
@@ -10,7 +10,7 @@ class Editor(Tracer):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 
-    def save(self, path: str = "./checkpoints/edited_model.pth") -> None:
+    def save(self, path: str = "./results_dir/edited_model.pth") -> None:
         super().save(path)
 
     @overload
@@ -37,7 +37,7 @@ class Editor(Tracer):
     def freeze(self, target: type) -> List[str]:
         self.freeze(target)
 
-    def freeze(self, target: str | type) -> List[str]:
+    def freeze(self, target: Union[str, type]) -> List[str]:
         frozen_modules = []
         if isinstance(target, str):
             for name, module in self.model.named_modules():
@@ -64,7 +64,7 @@ class Editor(Tracer):
 
     def replace(
         self,
-        target: str | type,
+        target: Union[str, type],
         new_constructor: Callable[[], nn.Module | nn.Module],
     ) -> List[str]:
         replaced_modules = []
