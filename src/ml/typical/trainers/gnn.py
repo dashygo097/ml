@@ -3,8 +3,8 @@ from typing import Any, Callable, Dict, Optional
 from termcolor import colored
 from torch import nn
 
+from ...iterator import BaseIterator
 from ...trainer import TrainArgs, Trainer
-from ..data import BaseIterator
 
 
 class GNNTrainArgs(TrainArgs):
