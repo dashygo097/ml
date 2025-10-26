@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Optional, overload
+from typing import List, Optional, overload
 
 from torch import nn
 
@@ -14,15 +14,15 @@ class Quantizer(ABC, Editor):
         super().save(path)
 
     @overload
-    def quantize(self, target: Optional[str]):
+    def quantize(self, target: Optional[str]) -> List[str]:
         return self.quantize(target)
 
     @overload
-    def quantize(self, target: type):
+    def quantize(self, target: type) -> List[str]:
         return self.quantize(target)
 
     @abstractmethod
-    def quantize(self, target: Optional[str] | type):
+    def quantize(self, target: Optional[str] | type) -> List[str]:
         if target is None:
             ...
 
