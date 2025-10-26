@@ -1,12 +1,11 @@
-from typing import Optional, overload
+from typing import Optional
 
-import torch
 from torch import nn
 
-from ..quantizer import Quantizer
+from ..base import PTQ
 
 
-class AWQ(Quantizer):
+class AWQ(PTQ):
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 
