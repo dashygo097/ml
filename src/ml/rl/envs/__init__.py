@@ -1,5 +1,5 @@
 from .base import *
-from .typicals import *
+from .typical import *
 
 try:
     import trtrt
