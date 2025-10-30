@@ -14,6 +14,8 @@ from .utils import should_pass
 
 
 class GraphPruner(GraphEditor):
+    SUPPORTED_MODULES = (nn.Linear, nn.Conv2d, nn.BatchNorm1d, nn.BatchNorm2d)
+
     def __init__(self, model: nn.Module) -> None:
         super().__init__(model)
 
