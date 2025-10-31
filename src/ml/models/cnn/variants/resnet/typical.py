@@ -8,7 +8,6 @@ from .model import ResNet
 
 def resnet18(
     in_channels: int,
-    n_classes: int,
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
@@ -17,7 +16,6 @@ def resnet18(
         block=BasicBlock,
         layers=[2, 2, 2, 2],
         in_channels=in_channels,
-        n_classes=n_classes,
         **kwargs,
     )
     if checkpoint is not None:
@@ -28,7 +26,6 @@ def resnet18(
 
 def resnet34(
     in_channels: int,
-    n_classes: int,
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
@@ -37,7 +34,6 @@ def resnet34(
         block=BasicBlock,
         layers=[3, 4, 6, 3],
         in_channels=in_channels,
-        n_classes=n_classes,
         **kwargs,
     )
     if checkpoint is not None:
@@ -47,7 +43,6 @@ def resnet34(
 
 def resnet50(
     in_channels: int,
-    n_classes: int,
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
@@ -56,7 +51,6 @@ def resnet50(
         block=Bottleneck,
         layers=[3, 4, 6, 3],
         in_channels=in_channels,
-        n_classes=n_classes,
         **kwargs,
     )
     if checkpoint is not None:
@@ -66,7 +60,6 @@ def resnet50(
 
 def resetnet101(
     in_channels: int,
-    n_classes: int,
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
@@ -75,7 +68,6 @@ def resetnet101(
         block=Bottleneck,
         layers=[3, 4, 23, 3],
         in_channels=in_channels,
-        n_classes=n_classes,
         **kwargs,
     )
     if checkpoint is not None:
@@ -85,7 +77,6 @@ def resetnet101(
 
 def resnet152(
     in_channels: int,
-    n_classes: int,
     checkpoint: Optional[str] = None,
     device: str = "cpu",
     **kwargs,
@@ -94,7 +85,6 @@ def resnet152(
         block=Bottleneck,
         layers=[3, 8, 36, 3],
         in_channels=in_channels,
-        n_classes=n_classes,
         **kwargs,
     )
     if checkpoint is not None:
