@@ -14,7 +14,6 @@ class ResNet(nn.Module):
         base_width: int = 64,
         groups: int = 1,
         in_channels: int = 1,
-        n_classes: int = 10,
     ):
         super().__init__()
 
@@ -55,9 +54,6 @@ class ResNet(nn.Module):
 
         self.seq = nn.Sequential(OrderedDict(module_list))
         self.avgpool2d_0 = nn.AdaptiveAvgPool2d((1, 1))
-        self.flatten = nn.Flatten()
-        self.dropout = nn.Dropout(0.5)
-        self.fc = nn.Linear(self.in_channels, n_classes)
 
     def _make_layer(
         self,
@@ -123,6 +119,4 @@ class ResNet(nn.Module):
         x = self.maxpool2d_0(x)
         x = self.seq(x)
         x = self.avgpool2d_0(x)
-        x = self.flatten(x)
-        x = self.fc(self.dropout(x))
         return x
