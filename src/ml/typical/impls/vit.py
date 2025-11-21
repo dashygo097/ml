@@ -111,3 +111,29 @@ class ViTCNNBasedChangeDetector(nn.Module):
         x = torch.cat([x1, x2], dim=0)
         x1, x2 = self.vit(x).chunk(2, dim=0)
         return self.head(x1, x2)
+
+class ViTMLPDepthEstimator(nn.Module):
+    def __init__(self, config: ViTConfig) -> None:
+        super().__init__()
+        self.vit = ViTBackbone(
+            embed_size=config.embed_size,
+            patch_size=config.patch_size,
+            n_heads=config.n_heads,
+            n_layers=config.num_layers,
+            res=config.res,
+            in_channels=config.in_channels,
+            d_inner=config.d_inner,
+            d_model=config.d_model,
+            dropout=config.dropout,
+        )
+        self.head = DepthEstimationMLPHead(
+            embed_size=config.embed_size,
+            patch_size=config.patch_size,
+            input_res = config.res,
+            hidden_features =config.head_hidden_features,
+            use_bilinear=config.head_use_bilinear,
+            act=nn.GELU,
+        )
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.vit(x)
+        return self.head(x)
