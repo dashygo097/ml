@@ -26,6 +26,7 @@ class ViTConfig:
             "classification",
             "obb_detection",
             "change_detection",
+            "depth_estimation"
         ]:
             raise ValueError(f"Unsupported task: {self.task}")
         elif self.task == "classification":
@@ -44,6 +45,10 @@ class ViTConfig:
             assert "num_classes" in self.args, "num_classes must be specified"
             assert "head_type" in self.args, "head_type must be specified"
             self.num_classes: int = self.args["num_classes"]
+            self.head_type: str = self.args["head_type"]
+            self.head_args: Dict[str, Any] = self.args.get("head", {})
+        elif self.task == "depth_estimation":
+            assert "head_type" in self.args, "head_type must be specified"
             self.head_type: str = self.args["head_type"]
             self.head_args: Dict[str, Any] = self.args.get("head", {})
 
@@ -86,6 +91,13 @@ class ViTConfig:
             raise NotImplementedError(
                 "FPN-based change detection head is not implemented yet."
             )
+
+        elif self.task == "depth_estimation" and self.head_type == "mlp_1x1":
+
+            self.head_hidden_features: List[int] = self.head_args.get(
+                "hidden_features", []
+            )
+            self.head_use_bilinear: bool = self.head_args.get("use_bilinear", True)
 
 
 class ViTBackbone(nn.Module):

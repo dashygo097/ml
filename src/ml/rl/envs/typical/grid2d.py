@@ -84,7 +84,7 @@ class Grid2DEnv(BaseDiscreteEnv):
 
         return observation, info
 
-    def step(self, action) -> Tuple:
+    def step(self, action: Any) -> Tuple:
         direction = self.action_to_direction[action]
 
         reward = 0
