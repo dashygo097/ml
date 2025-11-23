@@ -17,7 +17,7 @@ class DepthEstDataset(BaseDataset):
         label_transform: Optional[Callable] = None) -> None:
         super().__init__(root, split, transform)
         self.label_transform = label_transform
-        self.image_dir = os.path.join(root, "images", split, "time1")
+        self.image_dir = os.path.join(root, "images", split)
         self.label_dir = os.path.join(root, "labels", split)
 
         if not os.path.exists(self.image_dir):
