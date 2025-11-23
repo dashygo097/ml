@@ -1,45 +1,41 @@
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import torch
 from torch import nn
 
-from ...trainer import TrainArgs, Trainer
-
-
-class VAETrainArgs(TrainArgs):
-    def __init__(self, path_or_dict: str | Dict[str, Any]):
-        super().__init__(path_or_dict)
+from .base import TrainArgs, Trainer
 
 
 class VAETrainer(Trainer):
     def __init__(
         self,
         model: nn.Module,
-        dataset,
+        train_ds: Any,
         loss_fn: Callable,
-        args: VAETrainArgs,
+        args: TrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ) -> None:
-        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
+        super().__init__(model, train_ds, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def step(
-        self, batch: Tuple[torch.Tensor, ...] | List[torch.Tensor]
+        self, batch: Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]
     ) -> Dict[str, Any]:
         self.optimizer.zero_grad()
-        batched = batch[0].to(self.device)
 
-        output, mean, var = self.model(batched)
+        (imgs, _), _ = batch
+        imgs = imgs.to(self.device)
+
+        output, mean, var = self.model(imgs)
         output, mean, var = (
             output.to(self.device),
             mean.to(self.device),
             var.to(self.device),
         )
-        loss = self.loss_fn(batched, output, mean, var)
+        loss = self.loss_fn(imgs, output, mean, var)
 
         loss.backward()
-
         self.optimizer.step()
 
         return {"loss": loss.item()}

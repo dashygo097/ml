@@ -53,7 +53,7 @@ class TrainLogger:
         json.dump(self.content.__dict__, open(path, "w"))
         if info:
             print(
-                "[INFO] Log saved at: "
+                "[INFO ] Log saved at: "
                 + colored(path, "light_green", attrs=["underline"])
                 + "!"
             )
@@ -129,8 +129,8 @@ class TrainLogger:
 
         print(
             colored(
-                f"[INFO] Plots saved at: {self._log_dict}!",
-                "light_yellow",
+                f"[INFO ] Plots saved at: {self._log_dict}!",
+                "blue",
                 attrs=["underline"],
             )
         )
