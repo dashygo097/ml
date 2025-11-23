@@ -35,13 +35,16 @@ class DepthEstimationMLPHead(nn.Module):
         in_dim = embed_size
         
         for hidden_dim in hidden_features:
-            layers.extend([
-                nn.Conv2d(in_dim, hidden_dim, kernel_size=1, bias=True),
-                self.act()
-            ])
+            conv = nn.Conv2d(in_dim, hidden_dim, kernel_size=1, bias=True)
+            nn.init.kaiming_normal_(conv.weight, mode='fan_out', nonlinearity='relu')
+            nn.init.constant_(conv.bias, 0)
+            layers.extend([conv, self.act()])
             in_dim = hidden_dim
         
-        layers.append(nn.Conv2d(in_dim, 1, kernel_size=1, bias=True))
+        final_conv = nn.Conv2d(in_dim, 1, kernel_size=1, bias=True)
+        nn.init.kaiming_normal_(final_conv.weight, mode='fan_out', nonlinearity='relu')
+        nn.init.constant_(final_conv.bias, 0.5)
+        layers.append(final_conv)
         
         self.mlp = nn.Sequential(*layers)
         
@@ -66,9 +69,9 @@ class DepthEstimationMLPHead(nn.Module):
         batch_size, num_patches, embed_size = x.shape
         
         if num_patches == self.feat_h * self.feat_w + 1:
-            x = x[:, 1:, :] 
+            x = x[:, 1:, :]  # Remove class token
         
-        x = x.transpose(1, 2).contiguous()  # [B, embed_size, num_patches]
+        x = x.transpose(1, 2).contiguous()
         x = x.view(batch_size, embed_size, self.feat_h, self.feat_w)
         
         depth_low_res = self.mlp(x)
