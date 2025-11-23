@@ -42,38 +42,6 @@ class ChangeDetectionTrainer(Trainer):
 
         return {"loss": loss.item()}
 
-    def step_info(self, result: Dict[str, Any]) -> None:
-        if self.n_steps % 10 == 0 and self.n_steps > 0:
-            self.logger.op(
-                "step",
-                lambda x: {"loss": x.get("loss", 0) + result["loss"]},
-                index=self.n_steps,
-            )
-            print(
-                f"(Step {self.n_steps}) "
-                + colored("loss", "yellow")
-                + f": {self.logger.content.step[f'{self.n_steps}']['loss']:.4f}"
-            )
-
-        # epoch
-        self.logger.op(
-            "epoch",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
-            index=self.n_epochs,
-        )
-
-    def epoch_info(self) -> None:
-        self.logger.op(
-            "epoch",
-            lambda x: {"loss": x.get("loss", 0) / len(self.data_loader)},
-            index=self.n_epochs,
-        )
-        print(
-            f"(Epoch {self.n_epochs}) "
-            + colored("loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']:.4f}"
-        )
-
     def validate(self) -> None:
         self.model.eval()
         total_loss, total_correct, total_num_labels, total_val = 0, 0, 0, 0

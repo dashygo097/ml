@@ -101,33 +101,6 @@ class HFarm2DEnv(BaseDiscreteEnv):
 
         return observation, info
 
-    def step(self, action: Any) -> Tuple:
-        move_action_space_size = len(HFARM2D_MOVE_ACTIONS)
-        plant_action_space_size = len(HFARM2D_PLANT_ACTIONS)
-        farm_action_space_size = len(HFARM2D_FARM_ACTIONS)
-
-        reward = 0
-
-        if action < move_action_space_size:
-            direction = self.action_to_direction[action]
-            new_location = self._agent_location + direction
-            new_location = np.clip(new_location, [0, 0], np.array(HFARM2D_SIZE) - 1)
-            self._agent_location = new_location
-        elif action < move_action_space_size + plant_action_space_size:
-
-            
-
-        terminated = False 
-        truncated = self._episode_step >= self._max_episode_steps
-
-        observation = self.get_obs()
-        info = self.get_info()
-
-        self._episode_step += 1
-
-        return observation, reward, terminated, truncated, info
-
-
     def _compute_shortest_path_to_water(self) -> int:
         min_distance = float('inf')
         for water_pos in HFRAM2D_WATER_AREAS:

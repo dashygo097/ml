@@ -266,39 +266,3 @@ class ImageGANTrainer(Trainer):
             "r_loss": r_loss.item(),
             "f_loss": f_loss.item(),
         }
-
-    def step_info(self, result: Dict[str, Any]) -> None:
-        self.logger.op(
-            "epoch",
-            lambda x: {
-                "g_loss": x.get("g_loss", 0) + result["g_loss"],
-                "d_loss": x.get("d_loss", 0) + result["d_loss"],
-                "r_loss": x.get("r_loss", 0) + result["r_loss"],
-                "f_loss": x.get("f_loss", 0) + result["f_loss"],
-            },
-            index=self.n_epochs,
-        )
-
-    def epoch_info(self) -> None:
-        self.logger.op(
-            "epoch",
-            lambda x: {
-                "g_loss": x.get("g_loss", 0) / len(self.data_loader),
-                "d_loss": x.get("d_loss", 0) / len(self.data_loader),
-                "r_loss": x.get("r_loss", 0) / len(self.data_loader),
-                "f_loss": x.get("f_loss", 0) / len(self.data_loader),
-            },
-            index=self.n_epochs,
-        )
-
-        print(
-            f"(Epoch {self.n_epochs}) "
-            + colored("g_loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['g_loss']:.4f}, "
-            + colored("d_loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['d_loss']:.4f}, "
-            + colored("r_loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['r_loss']:.4f}, "
-            + colored("f_loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['f_loss']:.4f}"
-        )

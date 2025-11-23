@@ -41,25 +41,6 @@ class ClassificationTrainer(Trainer):
         self.optimizer.step()
         return {"loss": loss.item()}
 
-    def step_info(self, result: Dict[str, Any]) -> None:
-        self.logger.op(
-            "epoch",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
-            index=self.n_epochs,
-        )
-
-    def epoch_info(self) -> None:
-        self.logger.op(
-            "epoch",
-            lambda x: {"loss": x.get("loss", 0) / len(self.data_loader)},
-            index=self.n_epochs,
-        )
-        print(
-            f"(Epoch {self.n_epochs}) "
-            + colored("loss", "yellow")
-            + f": {self.logger.content.epoch[f'{self.n_epochs}']['loss']:.4f}"
-        )
-
     def validate(self) -> None:
         self.model.eval()
         total = 0
@@ -110,15 +91,3 @@ class ClassificationFinetuner(ClassificationTrainer):
         valid_ds: Optional[Any] = None,
     ) -> None:
         super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
-
-    def step_info(self, result: Dict[str, Any]) -> None:
-        self.logger.op(
-            "step",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
-            index=self.n_steps,
-        )
-        self.logger.op(
-            "epoch",
-            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
-            index=self.n_epochs,
-        )
