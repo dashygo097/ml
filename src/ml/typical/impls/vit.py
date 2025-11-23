@@ -126,14 +126,11 @@ class ViTMLPDepthEstimator(nn.Module):
             d_model=config.d_model,
             dropout=config.dropout,
         )
-        self.head = DepthEstimationMLPHead(
+        self.head = BaseDepthHead(
             embed_size=config.embed_size,
             patch_size=config.patch_size,
-            input_res = config.res,
-            hidden_features =config.head_hidden_features,
-            use_bilinear=config.head_use_bilinear,
-            act=nn.GELU,
-            out_act=nn.ReLU()
+            input_res=config.res,
+            decoder_channels=config.head_hidden_features,
         )
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.vit(x)

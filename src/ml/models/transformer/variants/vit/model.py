@@ -92,13 +92,10 @@ class ViTConfig:
                 "FPN-based change detection head is not implemented yet."
             )
 
-        elif self.task == "depth_estimation" and self.head_type == "mlp_1x1":
-
+        elif self.task == "depth_estimation" and self.head_type == "base_decoder":
             self.head_hidden_features: List[int] = self.head_args.get(
                 "hidden_features", []
             )
-            self.head_use_bilinear: bool = self.head_args.get("use_bilinear", True)
-
 
 class ViTBackbone(nn.Module):
     def __init__(
