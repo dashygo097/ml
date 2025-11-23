@@ -24,18 +24,11 @@ class ViTConfig:
         if self.task not in [
             "none",
             "classification",
-            "obb_detection",
             "change_detection",
             "depth_estimation"
         ]:
             raise ValueError(f"Unsupported task: {self.task}")
         elif self.task == "classification":
-            assert "num_classes" in self.args, "num_classes must be specified"
-            assert "head_type" in self.args, "head_type must be specified"
-            self.num_classes: int = self.args["num_classes"]
-            self.head_type: str = self.args["head_type"]
-            self.head_args: Dict[str, Any] = self.args.get("head", {})
-        elif self.task == "obb_detection":
             assert "num_classes" in self.args, "num_classes must be specified"
             assert "head_type" in self.args, "head_type must be specified"
             self.num_classes: int = self.args["num_classes"]
@@ -74,25 +67,15 @@ class ViTConfig:
                 "hidden_features", []
             )
 
-        elif self.task == "obb_detection" and self.head_type == "detr_obb":
-            self.head_num_queries: int = self.head_args.get("num_queries", 100)
-            self.head_n_heads: int = self.head_args.get("n_heads", 8)
-            self.head_d_model: int = self.head_args.get("d_model", self.d_model)
-            self.head_n_layers: int = self.head_args.get("n_layers", 6)
-
-        elif self.task == "change_detection" and self.head_type == "cnn_cd":
+        elif self.task == "change_detection" and self.head_type == "cnn":
             self.head_hidden_features: List[int] = self.head_args.get(
                 "hidden_features", []
             )
             self.head_kernel_sizes: int | List[int] = self.head_args.get(
                 "kernel_sizes", 3
             )
-        elif self.task == "change_detection" and self.head_type == "fpn_cd":
-            raise NotImplementedError(
-                "FPN-based change detection head is not implemented yet."
-            )
 
-        elif self.task == "depth_estimation" and self.head_type == "base_decoder":
+        elif self.task == "depth_estimation" and self.head_type == "cnn":
             self.head_hidden_features: List[int] = self.head_args.get(
                 "hidden_features", []
             )
