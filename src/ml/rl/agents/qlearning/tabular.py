@@ -7,11 +7,6 @@ from ...trainer import RLTrainArgs, RLTrainer
 from .model import QLearning
 
 
-class QLearningTrainArgs(RLTrainArgs):
-    def __init__(self, path_or_dict: str | Dict):
-        super().__init__(path_or_dict)
-
-
 class QLearningTrainer(RLTrainer):
     def __init__(
         self,
@@ -42,7 +37,7 @@ class QLearningTrainer(RLTrainer):
             error = target - self.agent.q_values[q_idx]
             loss = error * error
 
-            self.agent.q_values[q_idx] += self.args.lr * error
+            self.agent.q_values[q_idx] += self.args.optimizer.get("lr", 0.0) * error
 
         self._obs = next_obs
         self._info = info
@@ -56,13 +51,3 @@ class QLearningTrainer(RLTrainer):
             "reward": reward,
             "loss": loss.item(),
         }
-
-    def step_info(self, result: Dict[str, Any]) -> None:
-        self.logger.op(
-            "epoch",
-            lambda x: {
-                "loss": x.get("loss", 0) + result["loss"],
-                "reward": x.get("reward", 0) + result["reward"],
-            },
-            index=self.n_epochs,
-        )

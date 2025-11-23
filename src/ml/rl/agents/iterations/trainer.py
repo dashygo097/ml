@@ -8,16 +8,6 @@ from .policy_iter import PolicyIter
 from .value_iter import ValueIter
 
 
-class PolicyIterTrainArgs(RLTrainArgs):
-    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
-        super().__init__(path_or_dict)
-
-
-class ValueIterTrainArgs(RLTrainArgs):
-    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
-        super().__init__(path_or_dict)
-
-
 class PolicyIterTrainer(RLTrainer):
     def __init__(
         self,
@@ -46,12 +36,6 @@ class PolicyIterTrainer(RLTrainer):
 
         return {}
 
-    def step_info(self, result: Dict[str, Any]) -> None:
-        self.logger.op(
-            "epoch",
-            lambda x: {},
-            index=self.n_epochs,
-        )
 
 
 class ValueIterTrainer(RLTrainer):
@@ -79,10 +63,3 @@ class ValueIterTrainer(RLTrainer):
         with torch.no_grad():
             ...
         return {}
-
-    def step_info(self, result: Dict[str, Any]) -> None:
-        self.logger.op(
-            "epoch",
-            lambda x: {},
-            index=self.n_epochs,
-        )
