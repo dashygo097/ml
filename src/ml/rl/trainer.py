@@ -1,6 +1,7 @@
 import os
 import threading
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from typing import Any, Dict, Generic, List, Optional, TypeVar
 
 import gymnasium as gym
@@ -8,50 +9,42 @@ import torch
 from termcolor import colored
 from tqdm import tqdm
 
-from ..logger import TrainLogger
+from ..typical import TrainLogger
 from ..utils import load_yaml
 from .agents import RLAgent
 
 
+@dataclass
 class RLTrainArgs:
-    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
-        self.args: Dict[str, Any] = (
-            load_yaml(path_or_dict) if isinstance(path_or_dict, str) else path_or_dict
-        )
-        self.device: str = self.args["device"]
-        self.epochs: int = self.args["epochs"]
-
-        # agent/env reset options
-        self.env_options: Dict[str, Any] = self.args.get("env", {})
-        self.agent_options: Dict[str, Any] = self.args.get("agent", {})
-
-        # optimizer/scheduler options
-        assert "optimizer" in self.args.keys(), (
-            "Optimizer options must be specified in args."
-        )
-        self.optimizer_options: Dict[str, Any] = self.args.get("optimizer", {})
-        self.scheduler_options: Dict[str, Any] = self.args.get("scheduler", {})
-
-        # general training options
-        assert "lr" in self.optimizer_options.keys(), (
-            "Learning rate 'lr' must be specified in optimizer options."
-        )
-        self.lr: float = self.optimizer_options.get("lr", 0.0)
-        self.weight_decay: float = self.scheduler_options.get("weight_decay", 0.0)
-
-        self.save_dict: str = self.args.get("save_dict", "./checkpoints")
-
-        if "log_dict" not in self.args["info"].keys():
-            self.log_dict: str = "./train_logs"
-            if self.log_dict.endswith("/"):
-                self.log_dict = self.log_dict[:-1]
-
-        else:
-            self.log_dict: str = self.args["info"]["log_dict"]
-
-        self.epochs_per_log: int = self.args["info"].get("epochs_per_log", 10)
-        self.drawing_list: List[str] = self.args["info"].get("drawing_list", [])
-        self.is_draw: bool = self.args["info"].get("is_draw", False)
+    # Necessary arguments
+    device: str                                    # Device to use for training
+    epochs: int                                    # Number of epochs to train
+    
+    optimizer: Dict[str, Any]                      # Optimizer options
+    
+    # Environment and agent options
+    env: Dict[str, Any] = field(default_factory=dict)           # Environment options
+    agent: Dict[str, Any] = field(default_factory=dict)         # Agent options
+    
+    # Optional arguments with default values
+    scheduler: Dict[str, Any] = field(default_factory=dict)     # Scheduler options
+    
+    log_dict: str = "./train_logs"                 # Directory to save logs
+    epochs_per_log: int = 10                       # Epochs per log
+    
+    save_dict: str = "./checkpoints"               # Directory to save checkpoints
+    
+    is_draw: bool = False                          # Whether to draw logs
+    drawing_list: List[str] = field(default_factory=list)       # List of metrics to draw
+    
+    @classmethod
+    def from_yaml(cls, path: str) -> "RLTrainArgs":
+        data = load_yaml(path)
+        return cls(**data)
+    
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "RLTrainArgs":
+        return cls(**data)
 
 
 T_agent = TypeVar("T_agent", bound=RLAgent)
@@ -68,135 +61,340 @@ class RLTrainer(Generic[T_agent, T_env, T_args], ABC):
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
     ) -> None:
-        self.args: T_args = args
+        self.args = args
+        
+        # Setup components
+        self._setup_device()
+        self._setup_agent(agent)
+        self._setup_env(env)
+        self._setup_optimizer(optimizer)
+        self._setup_scheduler(scheduler)
+        self._setup_logging()
+        
+        # Training state
+        self.n_steps = 0
+        self.n_epochs = 0
+        self._stop_training = False
+        self._terminated = False
+        self._truncated = False
+        self.best_reward = float('-inf')
 
-        self.set_device(args.device)
-        self.set_agent(agent)
-        self.set_env(env)
-        self.set_optimizer(optimizer)
-        self.set_scheduler(scheduler)
+    def _setup_device(self) -> None:
+        try:
+            if self.args.device.lower() == "auto":
+                if torch.cuda.is_available():
+                    self.device = torch.device("cuda")
+                    self.args.device = "cuda"
+                elif torch.mps.is_available():
+                    self.device = torch.device("mps")
+                    self.args.device = "mps"
+                else:
+                    self.device = torch.device("cpu")
+                    self.args.device = "cpu"
+            else:
+                self.device = torch.device(self.args.device)
+            
+            print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+                  colored(f"Using device: {self.device}", "white", attrs=["dark"]))
+        except RuntimeError as e:
+            print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
+                  colored(f"Device error: {e}. Falling back to CPU.", "white"))
+            self.device = torch.device("cpu")
+            self.args.device = "cpu"
 
-        self.n_steps: int = 0
-        self.n_epochs: int = 0
-        self.logger: TrainLogger = TrainLogger(self.args.log_dict)
-
-        self._terminated: bool = False
-        self._truncated: bool = False
-
-    def set_device(self, device: str) -> None:
-        self.device = device
-
-    def set_agent(self, agent: T_agent) -> None:
+    def _setup_agent(self, agent: T_agent) -> None:
         self.agent = agent.to(self.device)
+        param_count = sum(p.numel() for p in self.agent.parameters())
+        trainable_count = sum(p.numel() for p in self.agent.parameters() if p.requires_grad)
+        print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+              colored(f"Agent parameters: {param_count:,} ({trainable_count:,} trainable)", "white", attrs=["dark"]))
 
-    def set_env(self, env: T_env) -> None:
+    def _setup_env(self, env: T_env) -> None:
         self.env = env
+        env_name = env.spec.id if env.spec else "Custom"
+        print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+              colored(f"Environment: {env_name}", "white", attrs=["dark"]))
 
-    def set_optimizer(self, optimizer: Optional[type]) -> None:
+    def _setup_optimizer(self, optimizer: Optional[type]) -> None:
         if optimizer is None:
             self.optimizer = None
+            print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+                  colored("No optimizer used", "white", attrs=["dark"]))
         else:
             self.optimizer = optimizer(
                 self.agent.parameters(),
-                **self.args.optimizer_options,
+                **self.args.optimizer,
             )
+            print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
+                  colored(f"Optimizer: {optimizer.__name__}", "white", attrs=["dark"]))
 
-    def set_scheduler(self, scheduler: Optional[type]) -> None:
+    def _setup_scheduler(self, scheduler: Optional[type]) -> None:
         if scheduler is None:
             self.scheduler = None
+            print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+                  colored("No scheduler used", "white", attrs=["dark"]))
         elif isinstance(scheduler, type) and self.optimizer is not None:
-            self.scheduler = scheduler(self.optimizer, **self.args.scheduler_options)
+            self.scheduler = scheduler(self.optimizer, **self.args.scheduler)
+            print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
+                  colored(f"Scheduler: {scheduler.__name__}", "white", attrs=["dark"]))
+        else:
+            self.scheduler = None
 
-    def save(self) -> None:
+    def _setup_logging(self) -> None:
+        os.makedirs(self.args.log_dict, exist_ok=True)
         os.makedirs(self.args.save_dict, exist_ok=True)
-        path = os.path.join(self.args.save_dict, f"checkpoint_{self.n_epochs}.pt")
-        torch.save(self.agent.state_dict(), path)
-        print(f"[INFO] agent saved at: {path}!")
-
-    def load(self, path: str) -> None:
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"Checkpoint file {path} does not exist.")
-        self.agent.load_state_dict(torch.load(path, map_location=self.device))
-        print(f"[INFO] agent loaded from: {path}!")
+        self.logger = TrainLogger(self.args.log_dict)
+        print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+              colored(f"Logs directory: {self.args.log_dict}", "white", attrs=["dark"]))
 
     @abstractmethod
-    def step(self) -> Dict[str, Any]: ...
-
-    def step_info(self, result: Dict[str, Any]) -> None:
-        # TODO: impl this function
+    def step(self) -> Dict[str, Any]:
         ...
 
-    def epoch_info(self) -> None:
-        # TODO: impl this function
-        ...
+    def _process_step_result(self, result: Dict[str, Any]) -> None:
+        for key, value in result.items():
+            self.logger.op(
+                "step",
+                lambda x, k=key, v=value: {**x, k: x.get(k, 0) + v},
+                index=self.n_steps,
+            )
+        
+        for key, value in result.items():
+            self.logger.op(
+                "epoch",
+                lambda x, k=key, v=value: {**x, k: x.get(k, 0) + v},
+                index=self.n_epochs,
+            )
 
-    def should_stop(self) -> None:
-        self._stop_training = True
+    def _finalize_epoch(self) -> None:
+        if str(self.n_epochs) in self.logger.content.epoch:
+            epoch_data = self.logger.content.epoch[str(self.n_epochs)]
+            
+            if self.n_epochs % self.args.epochs_per_log == 0:
+                metrics_parts = []
+                for key, value in epoch_data.items():
+                    metric_text = colored(f"{key}: ", color="yellow") + colored(f"{value:.4f}", "red", attrs=["dark"])
+                    metrics_parts.append(metric_text)
+                metrics_str = "  │ ".join(metrics_parts)
+                tqdm.write(colored(f"◆ EPOCH {self.n_epochs:03d}  │ ", "blue", attrs=["bold"]) + metrics_str)
+                
+                # Track best reward
+                if "reward" in epoch_data and epoch_data["reward"] > self.best_reward:
+                    best_marker = " " + colored("★ BEST ★", "red", attrs=["bold"])
+                    tqdm.write(colored(f"   ", "blue") + best_marker)
+                    self.best_reward = epoch_data["reward"]
 
-    def log2plot(self, key: str) -> None:
-        self.logger.plot(key)
+    def save_checkpoint(self, tag: str = "") -> str:
+        os.makedirs(self.args.save_dict, exist_ok=True)
+        
+        if tag:
+            filename = f"checkpoint_{tag}.pt"
+        else:
+            filename = f"checkpoint_epoch{self.n_epochs:03d}_step{self.n_steps:06d}.pt"
+        
+        path = os.path.join(self.args.save_dict, filename)
+        
+        checkpoint = {
+            "epoch": self.n_epochs,
+            "step": self.n_steps,
+            "agent_state": self.agent.state_dict(),
+            "args": self.args,
+        }
+        
+        if self.optimizer is not None:
+            checkpoint["optimizer_state"] = self.optimizer.state_dict()
+        
+        if self.scheduler is not None:
+            checkpoint["scheduler_state"] = self.scheduler.state_dict()
+        
+        torch.save(checkpoint, path)
+        print()
+        print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
+              colored(f"Checkpoint saved: {path}", "white", attrs=["bold"]))
+        
+        return path
 
-    def train(self) -> None:
-        # Initialization
+    def _save_checkpoint(self, best: bool = False) -> None:
+        tag = "best" if best else f"epoch{self.n_epochs:03d}"
+        self.save_checkpoint(tag=tag)
+
+    def load_checkpoint(self, path: str, load_optimizer: bool = True) -> None:
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Checkpoint not found: {path}")
+        
+        checkpoint = torch.load(path, map_location=self.device)
+        
+        self.agent.load_state_dict(checkpoint["agent_state"])
+        self.n_epochs = checkpoint.get("epoch", 0)
+        self.n_steps = checkpoint.get("step", 0)
+        
+        if load_optimizer and self.optimizer is not None:
+            if "optimizer_state" in checkpoint:
+                self.optimizer.load_state_dict(checkpoint["optimizer_state"])
+            if self.scheduler is not None and "scheduler_state" in checkpoint:
+                self.scheduler.load_state_dict(checkpoint["scheduler_state"])
+        
+        print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
+              colored(f"Checkpoint loaded: {path}", "white", attrs=["bold"]))
+
+    def train(self, resume_from: Optional[str] = None) -> None:
+        if resume_from is not None:
+            self.load_checkpoint(resume_from)
+        
+        listener_thread = threading.Thread(
+            target=self._keyboard_listener,
+            daemon=True,
+        )
+        listener_thread.start()
+        
+        if self.optimizer is None:
+            print(colored(
+                "│ WARN  │ ",
+                "red",
+                attrs=["bold"]
+            ) + colored(
+                "No optimizer provided",
+                "white",
+                attrs=["bold"]
+            ))
+        
+        print()
+        
+        try:
+            self.agent.train()
+            
+            for epoch in range(self.n_epochs, self.args.epochs):
+                self.n_epochs = epoch
+                
+                if self._stop_training:
+                    print(colored(
+                        "│ INFO  │ ",
+                        "magenta",
+                        attrs=["bold"]
+                    ) + colored(
+                        "Training stopped by user",
+                        "white",
+                        attrs=["bold"]
+                    ))
+                    break
+                
+                self._train_episode()
+                
+                if self.scheduler is not None:
+                    self.scheduler.step()
+                
+                self._finalize_epoch()
+                
+                if self.n_epochs % self.args.epochs_per_log == 0:
+                    self.logger.save_log(info=False)
+        
+        except KeyboardInterrupt:
+            print(colored(
+                "│ WARN  │ ",
+                "red",
+                attrs=["bold"]
+            ) + colored(
+                "Training interrupted by user",
+                "white",
+                attrs=["bold"]
+            ))
+        
+        finally:
+            # Finalization
+            self.agent.eval()
+            self.env.close()
+            self.save_checkpoint(tag="final")
+            self.logger.save_log(info=True)
+            
+            if self.args.is_draw:
+                for key in self.logger.content.__dict__.keys():
+                    try:
+                        self.logger.plot(key)
+                    except Exception as e:
+                        print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
+                              colored(f"Failed to plot {key}: {e}", "white"))
+            
+            print()
+            print(colored("  ✓ TRAINING COMPLETED SUCCESSFULLY", "green", attrs=["bold"]))
+            print()
+
+    def _train_episode(self) -> None:
         self.agent.train()
-        threading.Thread(target=self._keyboard_listener, daemon=True).start()
-
-        # Main training loop
-        self._stop_training = False
-        for _ in tqdm(
-            range(self.args.epochs),
-            desc=colored("Training", "light_red", attrs=["bold"]),
+        
+        pbar = tqdm(
+            total=1,
+            desc=colored(f"  ⟳ Epoch {self.n_epochs:03d}/{self.args.epochs:03d}", "red", attrs=["bold"]),
+            position=0,
             leave=False,
-        ):
+        )
+        
+        try:
+            # Reset environment and agent
             self._terminated = False
             self._truncated = False
-            self._obs, self._info = self.env.reset(options=self.args.env_options)
-            self.agent.reset(options=self.args.agent_options)
+            self._obs, self._info = self.env.reset(options=self.args.env)
+            self.agent.reset(options=self.args.agent)
+            
+            # Run episode
+            step_count = 0
             while not (self._terminated or self._truncated):
-                step_result = self.step()
-                self.step_info(step_result)
-                self.n_steps += 1
-
-            if self._stop_training:
-                print(
-                    colored(
-                        "Training stopped by user command.",
-                        "red",
-                        attrs=["bold"],
-                    )
-                )
-                break
-
-            if self.scheduler is not None:
-                self.scheduler.step()
-
-            self.epoch_info()
-
-            if self.n_epochs % self.args.epochs_per_log == 0:
-                self.logger.save_log(info=False)
-            self.n_epochs += 1
-
-        # Finalization
-        self.agent.eval()
-        self.env.close()
-        self.save()
-        self.logger.save_log(info=True)
-        if self.args.is_draw:
-            for key in self.logger.content.__dict__.keys():
-                self.logger.plot(key)
+                try:
+                    step_result = self.step()
+                    self._process_step_result(step_result)
+                    self.n_steps += 1
+                    step_count += 1
+                    
+                    if self._stop_training:
+                        break
+                
+                except Exception as e:
+                    print(colored(f"│ ERROR │ ", "red", attrs=["dark"]) + 
+                          colored(f"Step failed: {e}", "white"))
+                    raise
+            
+            pbar.update(1)
+        
+        finally:
+            pbar.close()
 
     def _keyboard_listener(self) -> None:
+        print(colored("│ INFO  │ ", "magenta", attrs=["dark"]) + 
+              colored("Press 's' to save, 'q' to quit", "white", attrs=["bold"]))
+        
         while True:
-            user_cmd = input()
-            if user_cmd.lower() == "q":
-                print(
-                    colored(
-                        "Keyboard interrupt detected, exiting...",
+            try:
+                cmd = input().strip().lower()
+                
+                if cmd == "q":
+                    print(colored(
+                        "│ INFO  │ ",
+                        "magenta",
+                        attrs=["bold"]
+                    ) + colored(
+                        "Quit signal received",
+                        "white",
+                        attrs=["bold"]
+                    ))
+                    self._stop_training = True
+                    break
+                
+                elif cmd == "s":
+                    print(colored("│ INFO  │ ", "magenta", attrs=["bold"]) + 
+                          colored("Save signal received", "white", attrs=["bold"]))
+                    self.save_checkpoint()
+                
+                elif cmd:
+                    print(colored(
+                        f"│ WARN  │ ",
                         "red",
-                        attrs=["bold"],
-                    )
-                )
-                os._exit(0)
-            elif user_cmd.lower() == "s":
-                print(colored("Saving agent...", "light_green"))
-                self.save()
+                        attrs=["bold"]
+                    ) + colored(
+                        f"Unknown command: {cmd} (valid: 's' or 'q')",
+                        "white"
+                    ))
+            
+            except EOFError:
+                break
+            except Exception as e:
+                print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
+                      colored(f"Keyboard listener error: {e}", "white"))

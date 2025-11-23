@@ -20,7 +20,7 @@ class TrainLogContent:
             return self.__dict__[key]
         except ValueError:
             print(
-                colored(f"│ ERROR  │ ", "red", attrs=["bold"]) +
+                colored(f"│ ERROR │ ", "red", attrs=["bold"]) +
                 colored(f"Invalid keys in {key}. Ensure keys are integers.", "white")
             )
             return {}
@@ -96,7 +96,7 @@ class TrainLogger:
             n_end = max(map(int, records.keys()))
         except ValueError:
             print(
-                colored(f"│ ERROR  │ ", "red", attrs=["bold"]) +
+                colored(f"│ ERROR │ ", "red", attrs=["bold"]) +
                 colored(f"Invalid keys in {key}. Ensure keys are integers.", "white")
             )
             return
