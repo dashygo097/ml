@@ -6,7 +6,7 @@ from torch import nn
 from ....models import MLP
 
 
-class MLPBasedObjDetectionHead2D(nn.Module):
+class MLPObjDetectionHead2D(nn.Module):
     def __init__(
         self,
         features: int | List[int],
