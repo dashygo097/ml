@@ -60,16 +60,16 @@ class DepthEstimationMLPHead(nn.Module):
                 bias=False
             )
     
-
-    
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size, num_patches, embed_size = x.shape
         
-        x = x.transpose(1, 2)  # [batch_size, embed_size, num_patches]
+        if num_patches == self.feat_h * self.feat_w + 1:
+            x = x[:, 1:, :] 
+        
+        x = x.transpose(1, 2)
         x = x.view(batch_size, embed_size, self.feat_h, self.feat_w)
         
         depth_low_res = self.mlp(x)
-        
         depth_map = self.upsample(depth_low_res)
         
         return depth_map

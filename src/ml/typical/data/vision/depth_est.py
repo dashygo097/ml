@@ -49,3 +49,20 @@ class DepthEstDataset(BaseDataset):
 
     def __len__(self) -> int:
         return len(self.label_paths)
+
+    def __getitem__(self, idx: int) -> Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]:
+        img_path = self.image_paths[idx]
+        label_path = self.label_paths[idx]
+        image = Image.open(img_path).convert("RGB")
+        label = Image.open(label_path).convert("L")
+
+        if self.transform:
+            image = self.transform(image)
+        else:
+            image = T.ToTensor()(image)
+        if self.label_transform:
+            label = self.label_transform(label)
+        else:
+            label = T.ToTensor()(label)
+
+        return (image, label), {}
