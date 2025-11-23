@@ -213,7 +213,7 @@ class Trainer(ABC, Generic[T_model, T_args]):
 
             # Check for stop command
             if self._stop_training:
-                print(
+                tqdm.write(
                     colored(
                         "Training stopped by user command.",
                         "red",
