@@ -74,4 +74,4 @@ class DepthEstimationMLPHead(nn.Module):
         depth_low_res = self.mlp(x)
         depth_map = self.upsample(depth_low_res)
         
-        return depth_map
+        return depth_map.sigmoid()
