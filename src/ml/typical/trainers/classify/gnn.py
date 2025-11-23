@@ -6,11 +6,11 @@ from torch import nn
 from torch_geometric.data import Data
 from torch_geometric.nn import global_mean_pool
 from torch_geometric.utils import dropout_edge
-from tqdm import tqdm
 
 from ....models import GNNEncoder
+from ...data import BaseIterator
 from ...heads import ClassifyHead
-from ..gnn import GNNTrainArgs, GNNTrainer
+from ..base import TrainArgs, Trainer
 
 
 class GNNClassifier(nn.Module):
@@ -77,37 +77,25 @@ class GNNClassifier(nn.Module):
                 )
             )
 
-
-class GNNClassifierTrainArgs(GNNTrainArgs):
-    def __init__(self, path_or_dict: str | Dict[str, Any]) -> None:
-        super().__init__(path_or_dict)
-        self.patience: int = self.args.get("patience", 10)
-        self.min_delta: float = self.args.get("min_delta", 0.001)
-        self.edge_dropout: float = self.args.get("edge_dropout", 0.0)
-
-
-class GNNClassifyTrainer(GNNTrainer):
+class GNNClassifyTrainer(Trainer):
     def __init__(
         self,
         model: GNNClassifier,
-        dataset,
+        train_ds: Any,
         loss_fn: Callable,
-        args: GNNClassifierTrainArgs,
+        args: TrainArgs,
         optimizer: Optional[type] = None,
         scheduler: Optional[type] = None,
         valid_ds: Optional[Any] = None,
     ) -> None:
-        super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
+        super().__init__(model, train_ds, loss_fn, args, optimizer, scheduler, valid_ds)
 
-        self._best_val_loss = float("inf")
-        self._no_improve_epochs = 0
+    def _setup_dataloaders(self, train_ds: Any, valid_ds: Optional[Any]) -> None:
+        self.train_loader = BaseIterator(train_ds)
+        self.val_loader = BaseIterator(valid_ds) if valid_ds else None
 
-    def step(self, batch) -> Dict[str, Any]:
+    def step(self, batch: Any) -> Dict[str, float]:
         self.optimizer.zero_grad()
-
-        batch.edge_index, _ = dropout_edge(
-            batch.edge_index, p=self.args.edge_dropout, training=self.model.training
-        )
 
         out = self.model(batch.to(self.device))
         if hasattr(batch, "train_mask"):
@@ -120,42 +108,12 @@ class GNNClassifyTrainer(GNNTrainer):
 
         return {"loss": loss.item()}
 
-    def validate(self) -> None:
-        self.model.eval()
-        total_loss, total_correct, total_val = 0, 0, 0
+    def validate_step(self, batch: Any) -> Dict[str, float]:
+        batch = batch.to(self.device)
+        out = self.model(batch)
+        loss = self.loss_fn(out[batch.val_mask], batch.y[batch.val_mask])
 
-        for data in self.valid_data_loader:
-            data = data.to(self.device)
-            out = self.model(data)
-            loss = self.loss_fn(out[data.val_mask], data.y[data.val_mask])
-            total_loss += loss.item() * data.val_mask.sum().item()
+        preds = out.argmax(dim=-1)
+        correct = (preds[batch.val_mask] == batch.y[batch.val_mask]).sum().item()
 
-            preds = out.argmax(dim=-1)
-            total_correct += (
-                (preds[data.val_mask] == data.y[data.val_mask]).sum().item()
-            )
-            total_val += data.val_mask.sum().item()
-
-        val_loss = total_loss / total_val
-        val_acc = total_correct / total_val
-
-        if val_loss < self._best_val_loss - self.args.min_delta:
-            self._best_val_loss = val_loss
-            self._no_improve_epochs = 0
-        else:
-            self._no_improve_epochs += 1
-
-        self.logger.log(
-            "valid", {"val_loss": val_loss, "val_acc": val_acc}, self.n_epochs
-        )
-        tqdm.write(
-            f"(Validation {self.n_epochs}) "
-            + f" {colored('loss', 'red')}: {val_loss:.4f} "
-            + f", {colored('accuracy', 'green')}: {val_acc:.4f}"
-        )
-
-        if self._no_improve_epochs >= self.args.patience:
-            tqdm.write(
-                f"Early stopping triggered after {self._no_improve_epochs} unimproved epochs."
-            )
-            self.should_stop()
+        return {"val_loss": loss.item(), "correct": correct}

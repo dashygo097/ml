@@ -20,3 +20,15 @@ class BaseDataset(ABC, Dataset):
     def __getitem__(
         self, idx: int
     ) -> Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]: ...
+
+class BaseIterator:
+    def __init__(self, dataset: Any) -> None:
+        self.dataset = dataset
+
+    def __len__(self) -> int:
+        return 1
+
+    def __iter__(self) -> Any:
+        while True:
+            yield self.dataset
+            break

@@ -6,7 +6,7 @@ import torchvision.transforms as T
 from PIL import Image
 from termcolor import colored
 
-from ....dataset import BaseDataset
+from ..base import BaseDataset
 
 
 class ImageClassificationDataset(BaseDataset):
