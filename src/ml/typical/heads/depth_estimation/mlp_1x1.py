@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from torch import nn
@@ -63,10 +63,12 @@ class DepthEstimationMLPHead(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         batch_size, num_patches, embed_size = x.shape
         
+        # Remove CLS token if present
         if num_patches == self.feat_h * self.feat_w + 1:
             x = x[:, 1:, :] 
         
-        x = x.transpose(1, 2)
+        # Transpose and make contiguous for MPS compatibility
+        x = x.transpose(1, 2).contiguous()  # [B, embed_size, num_patches]
         x = x.view(batch_size, embed_size, self.feat_h, self.feat_w)
         
         depth_low_res = self.mlp(x)

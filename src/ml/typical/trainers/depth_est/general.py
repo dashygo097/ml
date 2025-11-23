@@ -3,9 +3,9 @@ from typing import Any, Callable, Dict
 import torch
 from termcolor import colored
 from torch import nn
+from torch.utils.data import Dataset
 
 from ....trainer import TrainArgs, Trainer
-from ...data import DepthEstDataset
 
 
 class DepthEstTrainArgs(TrainArgs):
@@ -17,7 +17,7 @@ class DepthEstTrainer(Trainer):
     def __init__(
         self,
         model: nn.Module,
-        dataset: DepthEstDataset,
+        dataset: Dataset,
         loss_fn: Callable,
         args: DepthEstTrainArgs,
         optimizer=None,
