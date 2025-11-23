@@ -43,7 +43,7 @@ class DepthEstimationMLPHead(nn.Module):
         
         final_conv = nn.Conv2d(in_dim, 1, kernel_size=1, bias=True)
         nn.init.kaiming_normal_(final_conv.weight, mode='fan_out', nonlinearity='relu')
-        nn.init.constant_(final_conv.bias, -0.5) 
+        nn.init.constant_(final_conv.bias, 0) 
         layers.append(final_conv)
         
         self.mlp = nn.Sequential(*layers)
