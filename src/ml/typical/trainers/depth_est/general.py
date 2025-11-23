@@ -97,10 +97,15 @@ class DepthEstTrainer(Trainer):
                 imgs.to(self.device),
                 labels.to(self.device),
             )
+
             
             with torch.no_grad():
                 preds = self.model(imgs)  # [B, 1, H, W]
                 loss = self.loss_fn(preds, labels)
+                print(f"\n=== DEBUG INFO ===")
+                print(f"Predictions - Min: {preds.min():.4f}, Max: {preds.max():.4f}, Mean: {preds.mean():.4f}")
+                print(f"Labels      - Min: {labels.min():.4f}, Max: {labels.max():.4f}, Mean: {labels.mean():.4f}")
+                print(f"==================\n")
                 
                 batch_size = labels.size(0)
                 total_loss += loss.item() * batch_size
