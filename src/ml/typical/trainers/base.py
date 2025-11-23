@@ -100,10 +100,10 @@ class Trainer(ABC, Generic[T_model, T_args]):
             else:
                 self.device = torch.device(self.args.device)
             
-            print(colored(f"│ INFO │ ", "magenta", attrs=["bold"]) + 
-                  colored(f"Using device: {self.device}", "white", attrs=["bold"]))
+            print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+                  colored(f"Using device: {self.device}", "white", attrs=["dark"]))
         except RuntimeError as e:
-            print(colored(f"│ WARN │ ", "red", attrs=["bold"]) + 
+            print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
                   colored(f"Device error: {e}. Falling back to CPU.", "white"))
             self.device = torch.device("cpu")
             self.args.device = "cpu"
@@ -112,8 +112,8 @@ class Trainer(ABC, Generic[T_model, T_args]):
         self.model = self.model.to(self.device)
         param_count = sum(p.numel() for p in self.model.parameters())
         trainable_count = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(colored(f"│ INFO │ ", "magenta", attrs=["bold"]) + 
-              colored(f"Model parameters: {param_count:,} ({trainable_count:,} trainable)", "white", attrs=["bold"]))
+        print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+              colored(f"Model parameters: {param_count:,} ({trainable_count:,} trainable)", "white", attrs=["dark"]))
     
     def _setup_dataloaders(self, train_ds: Any, valid_ds: Optional[Any]) -> None:
         self.train_loader = torch.utils.data.DataLoader(
@@ -135,8 +135,8 @@ class Trainer(ABC, Generic[T_model, T_args]):
         else:
             self.val_loader = None
         
-        print(colored(f"│ INFO │ ", "magenta", attrs=["bold"]) + 
-              colored(f"Train samples: {len(train_ds):,} │ Valid samples: {len(valid_ds) if valid_ds else 'N/A'}", "white", attrs=["bold"]))
+        print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+              colored(f"Train samples: {len(train_ds):,}  │ Valid samples: {len(valid_ds) if valid_ds else 'N/A'}", "white", attrs=["dark"]))
     
     def _setup_optimizer(self, optimizer: Optional[type]) -> None:
         if optimizer is None:
@@ -146,18 +146,18 @@ class Trainer(ABC, Generic[T_model, T_args]):
             self.model.parameters(),
             **self.args.optimizer,
         )
-        print(colored(f"│ OK   │ ", "green", attrs=["bold"]) + 
-              colored(f"Optimizer: {optimizer.__name__}", "white", attrs=["bold"]))
+        print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
+              colored(f"Optimizer: {optimizer.__name__}", "white", attrs=["dark"]))
     
     def _setup_scheduler(self, scheduler: Optional[type]) -> None:
         if scheduler is None:
             self.scheduler = None
-            print(colored(f"│ INFO │ ", "magenta", attrs=["bold"]) + 
-                  colored("No scheduler used", "white", attrs=["bold"]))
+            print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+                  colored("No scheduler used", "white", attrs=["dark"]))
         else:
             self.scheduler = scheduler(self.optimizer, **self.args.scheduler)
-            print(colored(f"│ OK   │ ", "green", attrs=["bold"]) + 
-                  colored(f"Scheduler: {scheduler.__name__}", "white", attrs=["bold"]))
+            print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
+                  colored(f"Scheduler: {scheduler.__name__}", "white", attrs=["dark"]))
     
     def _setup_logging(self) -> None:
         os.makedirs(self.args.log_dict, exist_ok=True)
@@ -167,11 +167,11 @@ class Trainer(ABC, Generic[T_model, T_args]):
     def _setup_grad_scaler(self) -> None:
         try:
             self.scaler = GradScaler(self.args.device)
-            print(colored(f"│ OK   │ ", "green", attrs=["bold"]) + 
-                  colored("Gradient scaler enabled", "white", attrs=["bold"]))
+            print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
+                  colored("Gradient scaler enabled", "white", attrs=["dark"]))
         except Exception as e:
             self.scaler = None
-            print(colored(f"│ WARN │ ", "red", attrs=["bold"]) + 
+            print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
                   colored(f"Gradient scaler disabled: {e}", "white"))
     
     @abstractmethod
@@ -194,10 +194,10 @@ class Trainer(ABC, Generic[T_model, T_args]):
             step_data = self.logger.content.step[f'{self.n_steps}']
             metrics_parts = []
             for key, value in step_data.items():
-                metric_text = f"{key}: " + colored(f"{value:.4f}", "yellow", attrs=["bold"])
+                metric_text = f"{key}: " + colored(f"{value:.4f}", "yellow", attrs=["dark"])
                 metrics_parts.append(metric_text)
-            metrics_str = " │ ".join(metrics_parts)
-            tqdm.write(colored(f"✦ Step {self.n_steps:06d} │ ", "blue", attrs=["bold"]) + metrics_str)
+            metrics_str = "  │ ".join(metrics_parts)
+            tqdm.write(colored(f"✦ Step {self.n_steps:06d}  │ ", "blue", attrs=["bold"]) + metrics_str)
         
         for key, value in result.items():
             self.logger.op(
@@ -220,10 +220,10 @@ class Trainer(ABC, Generic[T_model, T_args]):
             epoch_data = self.logger.content.epoch[f'{self.n_epochs}']
             metrics_parts = []
             for key, value in epoch_data.items():
-                metric_text = f"{key}: " + colored(f"{value:.4f}", "cyan", attrs=["bold"])
+                metric_text = colored(f"{key}: ", color="yellow") + colored(f"{value:.4f}", "red", attrs=["dark"])
                 metrics_parts.append(metric_text)
-            metrics_str = " │ ".join(metrics_parts)
-            tqdm.write(colored(f"◆ EPOCH {self.n_epochs:03d}  │ ", "blue", attrs=["bold"]) + metrics_str)
+            metrics_str = "  │ ".join(metrics_parts)
+            tqdm.write(colored(f"◆ EPOCH {self.n_epochs:03d}   │ ", "blue", attrs=["bold"]) + metrics_str)
     
     def validate(self) -> None:
         if self.val_loader is None:
@@ -253,15 +253,15 @@ class Trainer(ABC, Generic[T_model, T_args]):
         
         metrics_parts = []
         for key, value in avg_metrics.items():
-            metric_text = f"{key}: " + colored(f"{value:.4f}", "green", attrs=["bold"])
+            metric_text = colored(f"{key}: ", color="yellow")+ colored(f"{value:.4f}", "green", attrs=["dark"])
             metrics_parts.append(metric_text)
-        metrics_str = " │ ".join(metrics_parts)
+        metrics_str = "  │ ".join(metrics_parts)
         
         best_marker = ""
         if "loss" in avg_metrics and avg_metrics["loss"] < self.best_val_loss:
             best_marker = " " + colored("★ BEST ★", "red", attrs=["bold"])
         
-        tqdm.write(colored(f"✓ VALIDATION │ ", "green", attrs=["bold"]) + metrics_str + best_marker)
+        tqdm.write(colored(f"✓ VALIDATION  │ ", "green", attrs=["bold"]) + metrics_str + best_marker)
         
         if "loss" in avg_metrics:
             if avg_metrics["loss"] < self.best_val_loss:
@@ -292,7 +292,8 @@ class Trainer(ABC, Generic[T_model, T_args]):
             checkpoint["scheduler_state"] = self.scheduler.state_dict()
         
         torch.save(checkpoint, path)
-        print(colored(f"│ OK   │ ", "green", attrs=["bold"]) + 
+        print()
+        print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
               colored(f"Checkpoint saved: {path}", "white", attrs=["bold"]))
         
         return path
@@ -316,13 +317,13 @@ class Trainer(ABC, Generic[T_model, T_args]):
             if self.scheduler is not None and "scheduler_state" in checkpoint:
                 self.scheduler.load_state_dict(checkpoint["scheduler_state"])
         
-        print(colored(f"│ OK   │ ", "green", attrs=["bold"]) + 
+        print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
               colored(f"Checkpoint loaded: {path}", "white", attrs=["bold"]))
     
     def unfreeze_backbone(self) -> None:
         for param in self.model.parameters():
             param.requires_grad = True
-        print(colored(f"│ WARN │ ", "red", attrs=["bold"]) + 
+        print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
               colored("Model unfrozen - all parameters trainable", "white", attrs=["bold"]))
     
     def train(self, resume_from: Optional[str] = None) -> None:
@@ -337,7 +338,7 @@ class Trainer(ABC, Generic[T_model, T_args]):
         
         if self.val_loader is None:
             print(colored(
-                "│ WARN │ ",
+                "│ WARN  │ ",
                 "red",
                 attrs=["bold"]
             ) + colored(
@@ -360,7 +361,7 @@ class Trainer(ABC, Generic[T_model, T_args]):
                 
                 if self._stop_training:
                     print(colored(
-                        "│ INFO │ ",
+                        "│ INFO  │ ",
                         "magenta",
                         attrs=["bold"]
                     ) + colored(
@@ -384,7 +385,7 @@ class Trainer(ABC, Generic[T_model, T_args]):
         
         except KeyboardInterrupt:
             print(colored(
-                "│ WARN │ ",
+                "│ WARN  │ ",
                 "red",
                 attrs=["bold"]
             ) + colored(
@@ -402,13 +403,11 @@ class Trainer(ABC, Generic[T_model, T_args]):
                     try:
                         self.logger.plot(key)
                     except Exception as e:
-                        print(colored(f"│ WARN │ ", "red", attrs=["bold"]) + 
+                        print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
                               colored(f"Failed to plot {key}: {e}", "white"))
             
             print()
-            print(colored("═" * 70, "yellow", attrs=["bold"]))
             print(colored("  ✓ TRAINING COMPLETED SUCCESSFULLY", "green", attrs=["bold"]))
-            print(colored("═" * 70, "yellow", attrs=["bold"]))
             print()
     
     def _train_epoch(self) -> None:
@@ -432,7 +431,7 @@ class Trainer(ABC, Generic[T_model, T_args]):
                         break
                 
                 except Exception as e:
-                    print(colored(f"│ ERROR │ ", "red", attrs=["bold"]) + 
+                    print(colored(f"│ ERROR  │ ", "red", attrs=["dark"]) + 
                           colored(f"Step failed: {e}", "white"))
                     raise
         
@@ -440,7 +439,7 @@ class Trainer(ABC, Generic[T_model, T_args]):
             pbar.close()
     
     def _keyboard_listener(self) -> None:
-        print(colored("│ INFO │ ", "magenta", attrs=["bold"]) + 
+        print(colored("│ INFO  │ ", "magenta", attrs=["dark"]) + 
               colored("Press 's' to save, 'q' to quit", "white", attrs=["bold"]))
         
         while True:
@@ -449,7 +448,7 @@ class Trainer(ABC, Generic[T_model, T_args]):
                 
                 if cmd == "q":
                     print(colored(
-                        "│ INFO │ ",
+                        "│ INFO  │ ",
                         "magenta",
                         attrs=["bold"]
                     ) + colored(
@@ -461,13 +460,13 @@ class Trainer(ABC, Generic[T_model, T_args]):
                     break
                 
                 elif cmd == "s":
-                    print(colored("│ INFO │ ", "magenta", attrs=["bold"]) + 
+                    print(colored("│ INFO  │ ", "magenta", attrs=["bold"]) + 
                           colored("Save signal received", "white", attrs=["bold"]))
                     self.save_checkpoint()
                 
                 elif cmd:
                     print(colored(
-                        f"│ WARN │ ",
+                        f"│ WARN  │ ",
                         "red",
                         attrs=["bold"]
                     ) + colored(
@@ -478,5 +477,5 @@ class Trainer(ABC, Generic[T_model, T_args]):
             except EOFError:
                 break
             except Exception as e:
-                print(colored(f"│ WARN │ ", "red", attrs=["bold"]) + 
+                print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
                       colored(f"Keyboard listener error: {e}", "white"))
