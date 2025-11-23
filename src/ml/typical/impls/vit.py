@@ -132,8 +132,7 @@ class ViTMLPDepthEstimator(nn.Module):
             input_res = config.res,
             hidden_features =config.head_hidden_features,
             use_bilinear=config.head_use_bilinear,
-            act=nn.GELU,
-            out_act=nn.Sigmoid()
+            act=nn.GELU
         )
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = self.vit(x)

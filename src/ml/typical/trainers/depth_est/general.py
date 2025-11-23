@@ -27,7 +27,7 @@ class DepthEstTrainer(Trainer):
         super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def step(self, batch) -> Dict[str, Any]:
-        (imgs, labels), info = batch
+        (imgs, labels), _ = batch
         imgs, labels = (
             imgs.to(self.device),
             labels.to(self.device),
@@ -41,17 +41,21 @@ class DepthEstTrainer(Trainer):
 
         return {"loss": loss.item()}
 
+
     def step_info(self, result: Dict[str, Any]) -> None:
+        self.logger.op(
+            "step",
+            lambda x: {"loss": x.get("loss", 0) + result["loss"]},
+            index=self.n_steps
+        )
+
         if self.n_steps % 10 == 0 and self.n_steps > 0:
-            self.logger.op(
-                "step",
-                lambda x: {"loss": x.get("loss", 0) + result["loss"]},
-                index=self.n_steps,
-            )
+            step_loss = self.logger.content.step[f'{self.n_steps}']['loss']
+            
             print(
                 f"(Step {self.n_steps}) "
                 + colored("loss", "yellow")
-                + f": {self.logger.content.step[f'{self.n_steps}']['loss']:.4f}"
+                + f": {step_loss:.4f}"
             )
 
         # epoch
