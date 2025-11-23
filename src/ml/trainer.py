@@ -48,7 +48,8 @@ class TrainArgs:
         else:
             self.log_dict: str = self.args["info"]["log_dict"]
 
-        self.epochs_per_log: int = self.args.get("epochs_per_log", 10)
+        self.steps_per_log: int = self.args.get("steps_per_log", 10)
+        self.epochs_per_log: int = self.args.get("epochs_per_log", 1)
         self.drawing_list: List[str] = self.args["info"].get("drawing_list", [])
         self.is_draw: bool = self.args["info"].get("is_draw", False)
 
@@ -172,12 +173,42 @@ class Trainer(ABC, Generic[T_model, T_args]):
         ...
 
     def step_info(self, result: Dict[str, Any]) -> None:
-        # TODO: impl this function
-        ...
+        if self.n_steps % self.args.steps_per_log == 0 and self.n_steps > 0:
+            for key, value in result.items():
+                self.logger.op(
+                    "step",
+                    lambda x, k=key, v=value: {**x, k: x.get(k, 0) + v},
+                    index=self.n_steps,
+                )
+            
+            step_data = self.logger.content.step[f'{self.n_steps}']
+            metrics_str = ", ".join([
+                f"{colored(key, 'yellow')}: {value:.4f}" 
+                for key, value in step_data.items()
+            ])
+            tqdm.write(f"(Step {self.n_steps}) {metrics_str}")
+
+        for key, value in result.items():
+            self.logger.op(
+                "epoch",
+                lambda x, k=key, v=value: {**x, k: x.get(k, 0) + v},
+                index=self.n_epochs,
+            )
 
     def epoch_info(self) -> None:
-        # TODO: impl this function
-        ...
+        for key in self.logger.content.epoch[f'{self.n_epochs}'].keys():
+            self.logger.op(
+                "epoch",
+                lambda x, k=key: {**x, k: x.get(k, 0) / len(self.data_loader)},
+                index=self.n_epochs,
+            )
+        
+        epoch_data = self.logger.content.epoch[f'{self.n_epochs}']
+        metrics_str = ", ".join([
+            f"{colored(key, 'yellow')}: {value:.4f}" 
+            for key, value in epoch_data.items()
+        ])
+        tqdm.write(f"(Epoch {self.n_epochs}) {metrics_str}")
 
     def validate(self) -> None:
         # TODO: impl this function
@@ -222,19 +253,24 @@ class Trainer(ABC, Generic[T_model, T_args]):
                 )
                 break
 
-            # Training
-            for batch in tqdm(
+            pbar = tqdm(
                 self.data_loader,
                 total=len(self.data_loader),
                 desc=colored(f"epoch: {epoch}", "light_red", attrs=["bold"]),
-                leave=False,
-            ):
+                position=0,
+                leave=True,
+            )
+
+            # Training
+            for batch in pbar:
                 step_result = self.step(batch)
                 self.step_info(step_result)
                 self.n_steps += 1
 
                 if self._stop_training:
                     break
+
+            pbar.close()
 
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -261,7 +297,7 @@ class Trainer(ABC, Generic[T_model, T_args]):
         while True:
             user_cmd = input()
             if user_cmd.lower() == "q":
-                print(
+                tqdm.write(
                     colored(
                         "Keyboard interrupt detected, exiting...",
                         "red",
@@ -270,5 +306,5 @@ class Trainer(ABC, Generic[T_model, T_args]):
                 )
                 os._exit(0)
             elif user_cmd.lower() == "s":
-                print(colored("Saving model...", "light_green"))
+                tqdm.write(colored("Saving model...", "light_green"))
                 self.save()

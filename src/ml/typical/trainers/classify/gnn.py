@@ -6,6 +6,7 @@ from torch import nn
 from torch_geometric.data import Data
 from torch_geometric.nn import global_mean_pool
 from torch_geometric.utils import dropout_edge
+from tqdm import tqdm
 
 from ....models import GNNEncoder
 from ...heads import ClassifyHead
@@ -147,14 +148,14 @@ class GNNClassifyTrainer(GNNTrainer):
         self.logger.log(
             "valid", {"val_loss": val_loss, "val_acc": val_acc}, self.n_epochs
         )
-        print(
+        tqdm.write(
             f"(Validation {self.n_epochs}) "
             + f" {colored('loss', 'red')}: {val_loss:.4f} "
             + f", {colored('accuracy', 'green')}: {val_acc:.4f}"
         )
 
         if self._no_improve_epochs >= self.args.patience:
-            print(
+            tqdm.write(
                 f"Early stopping triggered after {self._no_improve_epochs} unimproved epochs."
             )
             self.should_stop()
