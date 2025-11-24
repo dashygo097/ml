@@ -46,6 +46,7 @@ class ViTClassifier(nn.Module):
             self.head = ClassifyHead(
                 [config.embed_size] + self.config.head_hidden_features,
                 config.num_classes,
+                act=nn.GELU(),
                 dropout=config.dropout,
             )
         else:
