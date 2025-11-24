@@ -306,7 +306,18 @@ class Trainer(ABC, Generic[T_model, T_args]):
             param.requires_grad = True
         print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
               colored("Model unfrozen - all parameters trainable", "white", attrs=["bold"]))
-        self._setup_model()
+
+        trainable_count = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+        total_count = sum(p.numel() for p in self.model.parameters())
+        print(colored(f"│ INFO  │ ", "magenta", attrs=["bold"]) + 
+            colored(f"Trainable parameters: {trainable_count:,} / {total_count:,}", "white", attrs=["dark"]))
+
+        self.optimizer = type(self.optimizer)(
+            filter(lambda p: p.requires_grad, self.model.parameters()),
+            **self.args.optimizer
+        )
+        print(colored(f"│ OK    │ ", "green", attrs=["bold"]) + 
+          colored("Optimizer updated with unfrozen parameters", "white", attrs=["dark"]))
     
     def train(self, resume_from: Optional[str] = None) -> None:
         if resume_from is not None:
