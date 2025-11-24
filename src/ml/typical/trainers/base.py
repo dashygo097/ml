@@ -206,25 +206,6 @@ class Trainer(ABC, Generic[T_model, T_args]):
                 index=self.n_epochs,
             )
     
-    def _finalize_epoch(self) -> None:
-        num_batches = len(self.train_loader)
-        
-        for key in list(self.logger.content.epoch[f'{self.n_epochs}'].keys()):
-            self.logger.op(
-                "epoch",
-                lambda x, k=key: {**x, k: x.get(k, 0) / num_batches},
-                index=self.n_epochs,
-            )
-        
-        if self.n_epochs % self.args.epochs_per_log == 0:
-            epoch_data = self.logger.content.epoch[f'{self.n_epochs}']
-            metrics_parts = []
-            for key, value in epoch_data.items():
-                metric_text = colored(f"{key}: ", color="yellow") + colored(f"{value:.4f}", "red", attrs=["dark"])
-                metrics_parts.append(metric_text)
-            metrics_str = "  │ ".join(metrics_parts)
-            tqdm.write(colored(f"◆ EPOCH {self.n_epochs:03d}   │ ", "blue", attrs=["bold"]) + metrics_str)
-    
     def validate(self) -> None:
         if self.val_loader is None:
             return
@@ -325,6 +306,7 @@ class Trainer(ABC, Generic[T_model, T_args]):
             param.requires_grad = True
         print(colored(f"│ WARN  │ ", "red", attrs=["bold"]) + 
               colored("Model unfrozen - all parameters trainable", "white", attrs=["bold"]))
+        self._setup_model()
     
     def train(self, resume_from: Optional[str] = None) -> None:
         if resume_from is not None:
@@ -375,8 +357,6 @@ class Trainer(ABC, Generic[T_model, T_args]):
                 
                 if self.scheduler is not None:
                     self.scheduler.step()
-                
-                self._finalize_epoch()
                 
                 if epoch % self.args.epochs_per_validation == 0:
                     self.validate()
