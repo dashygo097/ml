@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Tuple
 
 import torch
 from torch.utils.data import Dataset
+from torchvision import transforms as T
 
 
 class BaseDataset(ABC, Dataset):
     def __init__(
-        self, root: str, split: str = "train", transform: Optional[Callable] = None
+        self, root: str, split: str = "train", transform: Callable = T.ToTensor()
     ):
         self.root = root
         self.split = split
@@ -20,6 +21,7 @@ class BaseDataset(ABC, Dataset):
     def __getitem__(
         self, idx: int
     ) -> Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]: ...
+
 
 class BaseIterator:
     def __init__(self, dataset: Any) -> None:

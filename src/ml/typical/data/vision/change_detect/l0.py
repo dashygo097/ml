@@ -1,21 +1,21 @@
 import os
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Tuple
 
 import torch
 import torchvision.transforms as T
 from PIL import Image
 from termcolor import colored
 
-from ..base import BaseDataset
+from ...base import BaseDataset
 
 
-class ChangeDetectionDataset(BaseDataset):
+class ChangeDetectionDatasetL0(BaseDataset):
     def __init__(
         self,
         root: str,
         split: str = "train",
-        transform: Optional[Callable] = None,
-        label_transform: Optional[Callable] = None,
+        transform: Callable = T.ToTensor(),
+        label_transform: Callable = T.ToTensor(),
     ):
         super().__init__(root, split, transform)
         self.label_transform = label_transform
@@ -76,15 +76,8 @@ class ChangeDetectionDataset(BaseDataset):
         image_time2 = Image.open(img_time2_path).convert("RGB")
         label = Image.open(label_path).convert("L")
 
-        if self.transform:
-            image_time1 = self.transform(image_time1)
-            image_time2 = self.transform(image_time2)
-        else:
-            image_time1 = T.ToTensor()(image_time1)
-            image_time2 = T.ToTensor()(image_time2)
-        if self.label_transform:
-            label = self.label_transform(label)
-        else:
-            label = T.ToTensor()(label)
+        image_time1 = self.transform(image_time1)
+        image_time2 = self.transform(image_time2)
+        label = self.label_transform(label)
 
         return (image_time1, image_time2, label), {}

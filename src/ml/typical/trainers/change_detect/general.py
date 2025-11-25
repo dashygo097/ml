@@ -3,7 +3,7 @@ from typing import Any, Callable, Dict, Tuple
 import torch
 from torch import nn
 
-from ...data import ChangeDetectionDataset
+from ...data import BaseDataset
 from ..base import TrainArgs, Trainer
 
 
@@ -11,7 +11,7 @@ class ChangeDetectionTrainer(Trainer):
     def __init__(
         self,
         model: nn.Module,
-        dataset: ChangeDetectionDataset,
+        dataset: BaseDataset,
         loss_fn: Callable,
         args: TrainArgs,
         optimizer=None,
@@ -20,7 +20,9 @@ class ChangeDetectionTrainer(Trainer):
     ) -> None:
         super().__init__(model, dataset, loss_fn, args, optimizer, scheduler, valid_ds)
 
-    def step(self, batch: Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]) -> Dict[str, Any]:
+    def step(
+        self, batch: Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]
+    ) -> Dict[str, Any]:
         self.optimizer.zero_grad()
 
         (imgs1, imgs2, labels), _ = batch
@@ -38,7 +40,9 @@ class ChangeDetectionTrainer(Trainer):
 
         return {"loss": loss.item()}
 
-    def validate_step(self, batch: Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]) -> Dict[str, Any]:
+    def validate_step(
+        self, batch: Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]
+    ) -> Dict[str, Any]:
         (imgs1, imgs2, labels), _ = batch
         imgs1, imgs2, labels = (
             imgs1.to(self.device),

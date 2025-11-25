@@ -20,8 +20,8 @@ class TrainLogContent:
             return self.__dict__[key]
         except ValueError:
             print(
-                colored(f"│ ERROR │ ", "red", attrs=["bold"]) +
-                colored(f"Invalid keys in {key}. Ensure keys are integers.", "white")
+                colored("│ ERROR │ ", "red", attrs=["bold"])
+                + colored(f"Invalid keys in {key}. Ensure keys are integers.", "white")
             )
             return {}
 
@@ -50,14 +50,14 @@ class TrainLogger:
         """Save training logs to JSON file"""
         os.makedirs(self.log_dict, exist_ok=True)
         path = os.path.join(self.log_dict, "datalogs.json")
-        
+
         with open(path, "w") as f:
             json.dump(self.content.__dict__, f, indent=2)
-        
+
         if info:
             print(
-                colored(f"│ OK    │ ", "green", attrs=["bold"]) +
-                colored(f"Log saved: {path}", "white", attrs=["bold"])
+                colored("│ OK    │ ", "green", attrs=["bold"])
+                + colored(f"Log saved: {path}", "white", attrs=["bold"])
             )
 
     def op(self, key: str, func: Callable, index: Optional[int] = None) -> None:
@@ -79,7 +79,7 @@ class TrainLogger:
             index_key = str(len(self.content[key]))
         else:
             index_key = str(index)
-        
+
         current_records = self.content[key]
         current_records[index_key] = value
         self.content[key] = current_records
@@ -96,8 +96,8 @@ class TrainLogger:
             n_end = max(map(int, records.keys()))
         except ValueError:
             print(
-                colored(f"│ ERROR │ ", "red", attrs=["bold"]) +
-                colored(f"Invalid keys in {key}. Ensure keys are integers.", "white")
+                colored("│ ERROR │ ", "red", attrs=["bold"])
+                + colored(f"Invalid keys in {key}. Ensure keys are integers.", "white")
             )
             return
 
@@ -110,10 +110,12 @@ class TrainLogger:
         for label in elements.keys():
             x = [item[0] for item in elements[label]]
             y = [item[1] for item in elements[label]]
-            
+
             plt.figure(figsize=(10, 6))
             plt.plot(x, y, linewidth=2.5, color="#FF6B6B", marker="o", markersize=4)
-            plt.title(f"{label.upper()} vs {key.upper()}s", fontsize=14, fontweight="bold")
+            plt.title(
+                f"{label.upper()} vs {key.upper()}s", fontsize=14, fontweight="bold"
+            )
             plt.xticks(
                 range(
                     n_begin,
@@ -125,13 +127,13 @@ class TrainLogger:
             plt.ylabel(label.upper(), fontsize=12, fontweight="bold")
             plt.grid(True, alpha=0.3)
             plt.tight_layout()
-            
+
             plot_path = os.path.join(self._log_dict, f"{label}-{key}.png")
             plt.savefig(plot_path, dpi=150, bbox_inches="tight")
             plt.clf()
             plt.close()
 
         print(
-            colored(f"│ OK    │ ", "green", attrs=["bold"]) +
-            colored(f"Plots saved: {self._log_dict}", "white", attrs=["bold"])
+            colored("│ OK    │ ", "green", attrs=["bold"])
+            + colored(f"Plots saved: {self._log_dict}", "white", attrs=["bold"])
         )
