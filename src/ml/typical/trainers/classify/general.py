@@ -20,7 +20,7 @@ class ClassificationTrainer(Trainer):
         super().__init__(model, train_ds, loss_fn, args, optimizer, scheduler, valid_ds)
 
     def step(
-        self, batch: Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]] 
+        self, batch: Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]
     ) -> Dict[str, Any]:
         self.optimizer.zero_grad()
 
@@ -36,7 +36,9 @@ class ClassificationTrainer(Trainer):
 
         return {"loss": loss.item()}
 
-    def validate_step(self, batch: Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]) -> Dict[str, Any]:
+    def validate_step(
+        self, batch: Tuple[Tuple[torch.Tensor, ...], Dict[str, Any]]
+    ) -> Dict[str, Any]:
         (inputs, targets), _ = batch
         inputs = inputs.to(self.device)
         targets = targets.to(self.device)

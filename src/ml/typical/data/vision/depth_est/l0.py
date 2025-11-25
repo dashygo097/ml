@@ -6,17 +6,17 @@ import torchvision.transforms as T
 from PIL import Image
 from termcolor import colored
 
-from ..base import BaseDataset
+from ...base import BaseDataset
 
 
-class ImageClassificationDataset(BaseDataset):
+class DepthEstDatasetL0(BaseDataset):
     def __init__(
         self,
         root: str,
         split: str = "train",
-        transform: Optional[Callable] = None,
-        label_transform: Optional[Callable] = None,
-    ):
+        transform: Callable = T.ToTensor(),
+        label_transform: Callable = T.ToTensor(),
+    ) -> None:
         super().__init__(root, split, transform)
         self.label_transform = label_transform
         self.image_dir = os.path.join(root, "images", split)
@@ -38,7 +38,7 @@ class ImageClassificationDataset(BaseDataset):
             [
                 os.path.join(self.label_dir, fname)
                 for fname in os.listdir(self.label_dir)
-                if fname.endswith(".txt")
+                if fname.endswith((".png", ".jpg", ".jpeg"))
             ]
         )
 
@@ -56,15 +56,9 @@ class ImageClassificationDataset(BaseDataset):
         img_path = self.image_paths[idx]
         label_path = self.label_paths[idx]
         image = Image.open(img_path).convert("RGB")
-        label = open(label_path, "r").read().strip()
+        label = Image.open(label_path).convert("L")
 
-        if self.transform:
-            image = self.transform(image)
-        else:
-            image = T.ToTensor()(image)
-        if self.label_transform:
-            label = self.label_transform(label)
-        else:
-            label = torch.tensor(label, dtype=torch.long)
+        image = self.transform(image)
+        label = self.label_transform(label)
 
         return (image, label), {}

@@ -77,6 +77,7 @@ class GNNClassifier(nn.Module):
                 )
             )
 
+
 class GNNClassifyTrainer(Trainer):
     def __init__(
         self,
