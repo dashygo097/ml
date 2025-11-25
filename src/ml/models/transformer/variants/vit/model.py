@@ -20,6 +20,8 @@ class ViTBackbone(nn.Module):
         d_model: Optional[int] = None,
         dropout: float = 0.0,
         use_cls_token: bool = True,
+        use_mask_token: bool = False,
+        use_layer_scaling: bool = False,
     ) -> None:
         super().__init__()
         # Model parameters
@@ -41,8 +43,9 @@ class ViTBackbone(nn.Module):
             res,
             patch_size,
             in_channels,
-            use_cls_token=use_cls_token,
             dropout=dropout,
+            use_cls_token=use_cls_token,
+            use_mask_token=use_mask_token,
         )
 
         module_list = []
@@ -60,6 +63,7 @@ class ViTBackbone(nn.Module):
                         enable_rope=False,
                         postnorm=False,
                         dropout=dropout,
+                        use_layer_scaling=use_layer_scaling,
                     )
                 ]
             )

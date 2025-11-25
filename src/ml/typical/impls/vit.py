@@ -21,6 +21,9 @@ class ViTRawModel(nn.Module):
             d_inner=config.d_inner,
             d_model=config.d_model,
             dropout=config.dropout,
+            use_cls_token=config.use_cls_token,
+            use_mask_token=config.use_mask_token,
+            use_layer_scaling=config.use_layer_scaling,
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -41,6 +44,9 @@ class ViTClassifier(nn.Module):
             d_inner=config.d_inner,
             d_model=config.d_model,
             dropout=config.dropout,
+            use_cls_token=config.use_cls_token,
+            use_mask_token=config.use_mask_token,
+            use_layer_scaling=config.use_layer_scaling,
         )
         if config.head_type == "mlp":
             self.head = ClassifyHead(
@@ -69,6 +75,9 @@ class ViTChangeDetector(nn.Module):
             d_inner=config.d_inner,
             d_model=config.d_model,
             dropout=config.dropout,
+            use_cls_token=config.use_cls_token,
+            use_mask_token=config.use_mask_token,
+            use_layer_scaling=config.use_layer_scaling,
         )
 
         if config.head_type == "cnn":
@@ -106,6 +115,8 @@ class ViTDepthEstimator(nn.Module):
             d_model=config.d_model,
             dropout=config.dropout,
             use_cls_token=config.use_cls_token,
+            use_mask_token=config.use_mask_token,
+            use_layer_scaling=config.use_layer_scaling,
         )
         if config.neck_type == "depth_anything":
             self.neck = DepthAnythingNeck(

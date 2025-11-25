@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from .attns import AttnModel, MulHeadAttn
-from .components import FFN, AddPostNorm, AddPreNorm
+from .components import FFN, AddPostNorm, AddPreNorm, LayerScaler
 
 
 class EncoderBlock(nn.Module):
@@ -21,6 +21,7 @@ class EncoderBlock(nn.Module):
         bias: bool = False,
         enable_rope: bool = True,
         postnorm: bool = True,
+        use_layer_scaling: bool = False,
         dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -31,6 +32,8 @@ class EncoderBlock(nn.Module):
         self.d_inner = d_inner if d_inner is not None else 4 * self.d_model
         self.bias = bias
         self.enable_rope = enable_rope
+        self.postnorm = postnorm
+        self.use_layer_scaling = use_layer_scaling
         self.dropout = dropout
 
         self.attn = (
@@ -55,14 +58,26 @@ class EncoderBlock(nn.Module):
             self.addnorm1 = AddPreNorm(self.d_model, norm=norm1, dropout=dropout)
             self.addnorm2 = AddPreNorm(self.d_model, norm=norm2, dropout=dropout)
 
+        if self.use_layer_scaling:
+            self.scaler1 = LayerScaler(self.d_model)
+            self.scaler2 = LayerScaler(self.d_model)
+        else:
+            self.scaler1 = nn.Identity()
+            self.scaler2 = nn.Identity()
+
+        self.scaled_attn = lambda x, mask, is_causal: self.scaler1(
+            self.attn(x, mask=mask, is_causal=is_causal)
+        )
+        self.scaled_ffn = lambda x: self.scaler2(self.ffn(x))
+
     def forward(
         self,
         x: torch.Tensor,
         mask: Optional[torch.Tensor] = None,
         is_causal: bool = False,
     ) -> torch.Tensor:
-        x = self.addnorm1(x, self.attn, mask=mask, is_causal=is_causal)
-        return self.addnorm2(x, self.ffn)
+        x = self.addnorm1(x, self.scaled_attn, mask=mask, is_causal=is_causal)
+        return self.addnorm2(x, self.scaled_ffn)
 
     def qkv(self, x: torch.Tensor) -> Tuple[torch.Tensor, ...]:
         return self.attn.qkv(x)

@@ -51,6 +51,8 @@ class ViTConfig:
         self.res: Tuple[int, int] = tuple(self.args["res"])
         self.in_channels: int = self.args["in_channels"]
         self.use_cls_token: bool = self.args.get("use_cls_token", True)
+        self.use_mask_token: bool = self.args.get("use_mask_token", False)
+        self.use_layer_scaling: bool = self.args.get("use_layer_scaling", False)
 
         if hasattr(self.args, "d_model"):
             self.d_model: int = self.args["d_model"]
