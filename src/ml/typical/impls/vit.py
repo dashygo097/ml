@@ -4,7 +4,7 @@ import torch
 from torch import nn
 
 from ...models import ViTBackbone, ViTConfig
-from ..heads import *
+from ..archs import *
 
 
 class ViTRawModel(nn.Module):

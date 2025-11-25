@@ -5,11 +5,10 @@ from termcolor import colored
 from torch import nn
 from torch_geometric.data import Data
 from torch_geometric.nn import global_mean_pool
-from torch_geometric.utils import dropout_edge
 
 from ....models import GNNEncoder
+from ...archs import ClassifyHead
 from ...data import BaseIterator
-from ...heads import ClassifyHead
 from ..base import TrainArgs, Trainer
 
 
