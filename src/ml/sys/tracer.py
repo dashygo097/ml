@@ -71,8 +71,12 @@ class Tracer:
                 num_params += param.numel()
 
         if info:
+            msg = "[TRACER] Model Parameter Count"
+            print(colored("\n" + msg, "magenta", attrs=["bold"]))
+
             print(
-                colored(f"Number of parameters: {num_params}", "blue", attrs=["bold"])
+                "Number of trainable parameters: "
+                + colored(f"{num_params}", "light_yellow", attrs=["dark"])
             )
         return num_params
 
@@ -95,8 +99,8 @@ class Tracer:
         if info:
             msg = "[TRACER] Model Complexity Details"
             print(colored("\n" + msg, "magenta", attrs=["bold"]))
-            print("MACs: " + colored(f"{macs}", "blue", attrs=["dark"]))
-            print("Parameters: " + colored(f"{params}", "magenta", attrs=["dark"]))
+            print("MACs: " + colored(f"{macs}", "light_yellow", attrs=["dark"]))
+            print("Parameters: " + colored(f"{params}", "light_yellow", attrs=["dark"]))
 
         return str(macs), str(params)
 

@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Callable, Dict
 
 import torch
 from termcolor import colored
@@ -13,6 +13,8 @@ class Comparator:
     def compare(
         self,
         input_tensor: torch.Tensor,
+        unpack_dut: Callable = lambda x: x,
+        unpack_ref: Callable = lambda x: x,
         device: str = "cpu",
         info: bool = True,
     ) -> Dict[str, float]:
@@ -27,8 +29,8 @@ class Comparator:
             main_output = self.main_model(input_tensor)
             ref_output = self.ref_model(input_tensor)
 
-        main_flat = main_output.flatten()
-        ref_flat = ref_output.flatten()
+        main_flat = unpack_dut(main_output).flatten()
+        ref_flat = unpack_ref(ref_output).flatten()
 
         mse = torch.mean((main_flat - ref_flat) ** 2).item()
         mae = torch.mean(torch.abs(main_flat - ref_flat)).item()

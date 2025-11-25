@@ -20,7 +20,7 @@ class ViTConfig:
             "none",
             "classification",
             "change_detection",
-            "depth_estimation"
+            "depth_estimation",
         ]:
             raise ValueError(f"Unsupported task: {self.task}")
         elif self.task == "classification":
@@ -36,8 +36,12 @@ class ViTConfig:
             self.head_type: str = self.args["head_type"]
             self.head_args: Dict[str, Any] = self.args.get("head", {})
         elif self.task == "depth_estimation":
-            assert "head_type" in self.args, "head_type must be specified"
-            self.head_type: str = self.args["head_type"]
+            assert "neck_type" in self.args, "neck_type must be specified"
+            assert "max_depth" in self.args, "max_depth must be specified"
+            self.max_depth: float = self.args["max_depth"]
+            self.neck_type: str = self.args["neck_type"]
+            self.neck_args: Dict[str, Any] = self.args.get("neck", {})
+            self.head_type: str = self.args.get("head_type", "metric")
             self.head_args: Dict[str, Any] = self.args.get("head", {})
 
         self.embed_size: int = self.args["embed_size"]
@@ -46,6 +50,7 @@ class ViTConfig:
         self.num_layers: int = self.args["num_layers"]
         self.res: Tuple[int, int] = tuple(self.args["res"])
         self.in_channels: int = self.args["in_channels"]
+        self.use_cls_token: bool = self.args.get("use_cls_token", True)
 
         if hasattr(self.args, "d_model"):
             self.d_model: int = self.args["d_model"]
@@ -70,7 +75,28 @@ class ViTConfig:
                 "kernel_sizes", 3
             )
 
-        elif self.task == "depth_estimation" and self.head_type == "cnn":
-            self.head_hidden_features: List[int] = self.head_args.get(
-                "hidden_features", []
+        elif self.task == "depth_estimation" and self.neck_type == "depth_anything":
+            assert "intermidiate_indices" in self.neck_args, (
+                "intermidiate_indices must be specified"
             )
+            assert "hidden_dims" in self.neck_args, "neck_hidden_dims must be specified"
+            assert "reassemble_factors" in self.neck_args, (
+                "reassemble_factors must be specified"
+            )
+            assert len(self.neck_args["intermidiate_indices"]) == len(
+                self.neck_args["hidden_dims"]
+            ), (
+                "The length of intermidiate_indices must be equal to the length of neck_hidden_dims"
+            )
+            assert len(self.neck_args["hidden_dims"]) == len(
+                self.neck_args["reassemble_factors"]
+            ), (
+                "The length of neck_hidden_dims must be equal to the length of reassemble_factors"
+            )
+            self.intermidiate_indices: List[int] = self.neck_args[
+                "intermidiate_indices"
+            ]
+            self.neck_hidden_dims: List[int] = self.neck_args["hidden_dims"]
+            self.reassemble_factors: List[int] = self.neck_args["reassemble_factors"]
+            self.fusion_hidden_dim: int = self.neck_args.get("fusion_hidden_dim", 64)
+            self.head_hidden_dim: int = self.head_args.get("head_hidden_dim", 32)
