@@ -26,11 +26,22 @@ class Comparator:
         input_tensor = input_tensor.to(device)
 
         with torch.no_grad():
-            main_output = self.main_model(input_tensor)
-            ref_output = self.ref_model(input_tensor)
+            main_output = unpack_dut(self.main_model(input_tensor))
+            ref_output = unpack_ref(self.ref_model(input_tensor))
 
-        main_flat = unpack_dut(main_output).flatten()
-        ref_flat = unpack_ref(ref_output).flatten()
+        if info:
+            print(colored("[COMPARATOR] Output Shape.", "green", attrs=["bold"]))
+            print(
+                "  Main Model: "
+                + colored(str(main_output.shape), "light_green", attrs=["dark"])
+            )
+            print(
+                "  Ref Model:  "
+                + colored(str(ref_output.shape), "light_yellow", attrs=["dark"])
+            )
+
+        main_flat = main_output.flatten()
+        ref_flat = ref_output.flatten()
 
         mse = torch.mean((main_flat - ref_flat) ** 2).item()
         mae = torch.mean(torch.abs(main_flat - ref_flat)).item()
