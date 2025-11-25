@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import List, Optional
 
 import torch
 from torch import nn
@@ -21,9 +21,7 @@ class DepthAnythingReassembler(nn.Module):
 
 
 class DepthAnythingReassembleStage(nn.Module):
-    def __init__(
-        self, hidden_dims: Tuple[int, ...], reassemble_factors: Tuple[int, ...]
-    ) -> None:
+    def __init__(self, hidden_dims: List[int], reassemble_factors: List[int]) -> None:
         super().__init__()
 
         self.layers = nn.ModuleList()
@@ -34,10 +32,10 @@ class DepthAnythingReassembleStage(nn.Module):
 
     def forward(
         self,
-        hidden_states: Tuple[torch.Tensor, ...],
+        hidden_states: List[torch.Tensor],
         patch_height: Optional[int] = None,
         patch_width: Optional[int] = None,
-    ) -> Tuple[torch.Tensor]:
+    ) -> List[torch.Tensor]:
         outs = []
 
         for idx, hidden_state in enumerate(hidden_states):
@@ -53,4 +51,4 @@ class DepthAnythingReassembleStage(nn.Module):
             hidden_state = self.layers[idx](hidden_state)
             outs.append(hidden_state)
 
-        return tuple(outs)
+        return outs

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import List, Optional
 
 import torch
 from torch import nn
@@ -6,6 +6,7 @@ from torch import nn
 
 class DepthAnythingPreActResidualLayer(nn.Module):
     def __init__(self, hidden_dim: int) -> None:
+        super().__init__()
         self.act1 = nn.ReLU()
         self.conv1 = nn.Conv2d(
             hidden_dim, hidden_dim, kernel_size=3, padding=1, bias=True
@@ -28,6 +29,7 @@ class DepthAnythingPreActResidualLayer(nn.Module):
 
 class DepthAnythingFusionLayer(nn.Module):
     def __init__(self, hidden_dim: int) -> None:
+        super().__init__()
         self.proj = nn.Conv2d(hidden_dim, hidden_dim, kernel_size=1, bias=True)
         self.res1 = DepthAnythingPreActResidualLayer(hidden_dim)
         self.res2 = DepthAnythingPreActResidualLayer(hidden_dim)
@@ -63,7 +65,7 @@ class DepthAnythingFusionLayer(nn.Module):
 
 
 class DepthAnythingFusionStage(nn.Module):
-    def __init__(self, hidden_dims: Tuple[int, ...]) -> None:
+    def __init__(self, hidden_dims: List[int]) -> None:
         super().__init__()
         self.layers = nn.ModuleList()
         for hidden_dim in hidden_dims:
@@ -71,9 +73,9 @@ class DepthAnythingFusionStage(nn.Module):
 
     def forward(
         self,
-        hidden_states: Tuple[torch.Tensor, ...],
+        hidden_states: List[torch.Tensor],
         size=None,
-    ) -> Tuple[torch.Tensor]:
+    ) -> List[torch.Tensor]:
         hidden_states = hidden_states[::-1]
         fused_hidden_states = []
         fused_hidden_state = None
@@ -90,4 +92,4 @@ class DepthAnythingFusionStage(nn.Module):
                 fused_hidden_state = layer(fused_hidden_state, hidden_state, size=size)
             fused_hidden_states.append(fused_hidden_state)
 
-        return tuple(fused_hidden_states)
+        return fused_hidden_states

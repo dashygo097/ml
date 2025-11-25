@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import List
 
 import torch
 from torch import nn
@@ -10,14 +10,14 @@ from .depth_anythingz_reassambler import DepthAnythingReassembleStage
 class DepthAnythingNeck(nn.Module):
     def __init__(
         self,
-        neck_hidden_dims: Tuple[int, ...],
-        reassemble_factors: Tuple[int, ...],
+        neck_hidden_dims: List[int],
+        reassemble_factors: List[int],
         fusion_hidden_dim: int,
     ):
+        super().__init__()
         self.neck_hidden_dims = neck_hidden_dims
         self.fusion_hidden_dim = fusion_hidden_dim
 
-        super().__init__()
         self.reassemble_stage = DepthAnythingReassembleStage(
             neck_hidden_dims, reassemble_factors
         )
@@ -38,10 +38,10 @@ class DepthAnythingNeck(nn.Module):
 
     def forward(
         self,
-        hidden_states: Tuple[torch.Tensor, ...],
+        hidden_states: List[torch.Tensor],
         patch_height=None,
         patch_width=None,
-    ) -> Tuple[torch.Tensor]:
+    ) -> List[torch.Tensor]:
         if len(hidden_states) != len(self.neck_hidden_dims):
             raise ValueError(
                 "The number of hidden states should be equal to the number of neck hidden dims."
@@ -96,7 +96,7 @@ class DepthAnythingDepthEstimationHead(nn.Module):
 
     def forward(
         self,
-        hidden_states: Tuple[torch.Tensor, ...],
+        hidden_states: List[torch.Tensor],
         patch_height: int,
         patch_width: int,
     ) -> torch.Tensor:

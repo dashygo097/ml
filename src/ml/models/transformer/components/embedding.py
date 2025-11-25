@@ -12,6 +12,7 @@ class PatchEmbedding(nn.Module):
         patch_size: int,
         in_channels: int,
         dropout: float = 0.0,
+        use_cls_token: bool = True,
     ) -> None:
         super().__init__()
         self.res = res
@@ -21,6 +22,7 @@ class PatchEmbedding(nn.Module):
         self.d_model = embed_size
         self.embed_size = embed_size
         self.dropout = dropout
+        self.use_cls_token = use_cls_token
 
         self.proj = nn.Conv2d(
             in_channels, self.d_model, kernel_size=patch_size, stride=patch_size
@@ -30,18 +32,17 @@ class PatchEmbedding(nn.Module):
         self.pos_embedding = nn.Parameter(
             torch.randn(1, self.num_patches + 1, self.d_model)
         )
-        self.cls_token = nn.Parameter(torch.randn(1, 1, self.d_model))
+        if use_cls_token:
+            self.cls_token = nn.Parameter(torch.randn(1, 1, self.d_model))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, C, H, W = x.shape
-        assert H == self.res[0] and W == self.res[1], (
-            f"[ERROR] img_size mismatch ({H}, {W}) != ({self.res[0]}, {self.res[1]})"
-        )
 
         x = self.proj(x)
         x = x.flatten(2).transpose(1, 2)
-        cls_tokens = self.cls_token.expand(B, -1, -1)
-        x = torch.cat([cls_tokens, x], dim=1)
+        if self.use_cls_token:
+            cls_tokens = self.cls_token.expand(B, -1, -1)
+            x = torch.cat([cls_tokens, x], dim=1)
         x += self.pos_embedding
 
         return self.out_dropout(x)

@@ -89,3 +89,43 @@ class ViTChangeDetector(nn.Module):
         x = torch.cat([x1, x2], dim=0)
         x1, x2 = self.vit(x).chunk(2, dim=0)
         return self.head(x1, x2)
+
+
+class ViTDepthEstimator(nn.Module):
+    def __init__(self, config: ViTConfig) -> None:
+        super().__init__()
+        self.config = config
+        self.vit = ViTBackbone(
+            embed_size=config.embed_size,
+            patch_size=config.patch_size,
+            n_heads=config.n_heads,
+            n_layers=config.num_layers,
+            res=config.res,
+            in_channels=config.in_channels,
+            d_inner=config.d_inner,
+            d_model=config.d_model,
+            dropout=config.dropout,
+            use_cls_token=config.use_cls_token,
+        )
+        if config.neck_type == "depth_anything":
+            self.neck = DepthAnythingNeck(
+                neck_hidden_dims=config.neck_hidden_dims,
+                reassemble_factors=config.reassemble_factors,
+                fusion_hidden_dim=config.fusion_hidden_dim,
+            )
+            self.head = DepthAnythingDepthEstimationHead(
+                head_in_index=-1,
+                head_type=config.head_type,
+                patch_size=config.patch_size,
+                fusion_hidden_dim=config.fusion_hidden_dim,
+                head_hidden_dim=config.head_hidden_dim,
+                max_depth=config.max_depth,
+            )
+        else:
+            raise ValueError(f"Unsupported head type: {config.head_type}")
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x, intermidiates = self.vit.forward_with_intermediates(
+            x, self.config.intermidiate_indices
+        )
+        return x
