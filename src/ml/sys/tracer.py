@@ -93,8 +93,10 @@ class Tracer:
         )
 
         if info:
-            print(colored(f"MACs: {macs}", "blue", attrs=["bold"]))
-            print(colored(f"Parameters: {params}", "blue", attrs=["bold"]))
+            msg = "[TRACER] Model Complexity Details"
+            print(colored("\n" + msg, "magenta", attrs=["bold"]))
+            print("MACs: " + colored(f"{macs}", "blue", attrs=["dark"]))
+            print("Parameters: " + colored(f"{params}", "magenta", attrs=["dark"]))
 
         return str(macs), str(params)
 
@@ -197,6 +199,8 @@ class Tracer:
 
         if info:
             sorted_records = sorted(records.items(), key=lambda x: x[1], reverse=True)
+            msg = "[TRACER] Layer-wise Latency Report"
+            print(colored("\n" + msg, "magenta", attrs=["bold"]))
             print("\nLayer Latencies (sorted by time):")
             print("-" * 50)
             for name, t in sorted_records:
@@ -206,9 +210,13 @@ class Tracer:
             print("-" * 50)
             print(
                 colored(
-                    f"Total Layer Time Elapsed: {total_time * 1e6:.3f} µs",
-                    "light_yellow",
-                    attrs=["bold"],
+                    "Total Layer Time Elapsed: "
+                    + colored(
+                        f"{total_time * 1e6:.3f}",
+                        "light_yellow",
+                        attrs=["dark"],
+                    )
+                    + " µs",
                 )
             )
 
@@ -241,12 +249,11 @@ class Tracer:
 
         perf_time = sum(times) / len(times)
         if info:
+            msg = "[TRACER] IO Latency Report"
+            print(colored("\n" + msg, "magenta", attrs=["bold"]))
             print(
-                colored(
-                    f"IO Latency: {perf_time * 1e3:.3f} ms",
-                    "light_yellow",
-                    attrs=["bold"],
-                )
+                "IO Latency: "
+                + colored(f"{perf_time * 1e3:.3f} ms", "light_yellow", attrs=["dark"])
             )
 
         model.to(curr_device)

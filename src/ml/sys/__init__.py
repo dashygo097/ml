@@ -1,3 +1,4 @@
+from .comparator import *
 from .compute_graph import *
 from .editor import *
 from .onnx_optimizer import *
