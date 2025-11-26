@@ -4,26 +4,28 @@ import torch
 from torch import nn
 
 from .depth_anything_fusion import DepthAnythingFusionStage
-from .depth_anythingz_reassambler import DepthAnythingReassembleStage
+from .depth_anything_reassambler import DepthAnythingReassembleStage
 
 
 class DepthAnythingNeck(nn.Module):
     def __init__(
         self,
-        neck_hidden_dims: List[int],
+        hidden_dims: List[int],
+        reassemble_dim: int,
         reassemble_factors: List[int],
         fusion_hidden_dim: int,
     ):
         super().__init__()
-        self.neck_hidden_dims = neck_hidden_dims
+        self.hidden_dims = hidden_dims
+        self.reassemble_dim = reassemble_dim
         self.fusion_hidden_dim = fusion_hidden_dim
 
         self.reassemble_stage = DepthAnythingReassembleStage(
-            neck_hidden_dims, reassemble_factors
+            hidden_dims, reassemble_dim, reassemble_factors
         )
 
         self.convs = nn.ModuleList()
-        for channel in neck_hidden_dims:
+        for channel in hidden_dims:
             self.convs.append(
                 nn.Conv2d(
                     channel,
@@ -34,7 +36,7 @@ class DepthAnythingNeck(nn.Module):
                 )
             )
 
-        self.fusion_stage = DepthAnythingFusionStage(neck_hidden_dims)
+        self.fusion_stage = DepthAnythingFusionStage(hidden_dims)
 
     def forward(
         self,
@@ -42,13 +44,13 @@ class DepthAnythingNeck(nn.Module):
         patch_height=None,
         patch_width=None,
     ) -> List[torch.Tensor]:
-        if len(hidden_states) != len(self.neck_hidden_dims):
+        if len(hidden_states) != len(self.hidden_dims):
             raise ValueError(
                 "The number of hidden states should be equal to the number of neck hidden dims."
             )
 
         hidden_states = self.reassemble_stage(hidden_states, patch_height, patch_width)
-        features = (self.convs[i](feature) for i, feature in enumerate(hidden_states))
+        features = [self.convs[i](feature) for i, feature in enumerate(hidden_states)]
         output = self.fusion_stage(features)
 
         return output

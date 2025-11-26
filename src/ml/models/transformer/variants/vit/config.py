@@ -82,6 +82,9 @@ class ViTConfig:
                 "intermidiate_indices must be specified"
             )
             assert "hidden_dims" in self.neck_args, "neck_hidden_dims must be specified"
+            assert "reassemble_dim" in self.neck_args, (
+                "reassemble_dim must be specified"
+            )
             assert "reassemble_factors" in self.neck_args, (
                 "reassemble_factors must be specified"
             )
@@ -99,6 +102,7 @@ class ViTConfig:
                 "intermidiate_indices"
             ]
             self.neck_hidden_dims: List[int] = self.neck_args["hidden_dims"]
+            self.reassemble_dim: int = self.neck_args["reassemble_dim"]
             self.reassemble_factors: List[int] = self.neck_args["reassemble_factors"]
             self.fusion_hidden_dim: int = self.neck_args.get("fusion_hidden_dim", 64)
             self.head_hidden_dim: int = self.head_args.get("head_hidden_dim", 32)

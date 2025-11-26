@@ -120,7 +120,8 @@ class ViTDepthEstimator(nn.Module):
         )
         if config.neck_type == "depth_anything":
             self.neck = DepthAnythingNeck(
-                neck_hidden_dims=config.neck_hidden_dims,
+                hidden_dims=config.neck_hidden_dims,
+                reassemble_dim=config.reassemble_dim,
                 reassemble_factors=config.reassemble_factors,
                 fusion_hidden_dim=config.fusion_hidden_dim,
             )
@@ -136,7 +137,16 @@ class ViTDepthEstimator(nn.Module):
             raise ValueError(f"Unsupported head type: {config.head_type}")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x, intermidiates = self.vit.forward_with_intermediates(
+        _, hidden_states = self.vit.forward_with_intermediates(
             x, self.config.intermidiate_indices
         )
-        return x
+
+        _, _, height, width = x.shape
+        patch_size = self.config.patch_size
+        patch_height = height // patch_size
+        patch_width = width // patch_size
+
+        hidden_states = self.neck(hidden_states, patch_height, patch_width)
+        predicted_depth = self.head(hidden_states, patch_height, patch_width)
+
+        return predicted_depth
