@@ -7,27 +7,38 @@ from torch import nn
 class DepthAnythingReassembler(nn.Module):
     def __init__(self, hidden_dim: int, channels: int, factor: int) -> None:
         super().__init__()
-        self.conv = nn.Conv2d(hidden_dim, channels, kernel_size=1)
+        self.proj = nn.Conv2d(hidden_dim, channels, kernel_size=1)
         if factor > 1:
-            self.upsample = nn.ConvTranspose2d(
+            self.resizer = nn.ConvTranspose2d(
                 channels, channels, kernel_size=factor, stride=factor
             )
         elif factor == 1:
-            self.upsample = nn.Identity()
+            self.resizer = nn.Identity()
         elif factor < 1:
-            self.upsample = nn.Conv2d(
+            self.resizer = nn.Conv2d(
                 channels, channels, kernel_size=3, stride=int(1 / factor), padding=1
             )
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.proj(x)
+        x = self.resizer(x)
+        return x
+
 
 class DepthAnythingReassembleStage(nn.Module):
-    def __init__(self, hidden_dims: List[int], reassemble_factors: List[int]) -> None:
+    def __init__(
+        self,
+        hidden_dims: List[int],
+        reassemble_dim: int,
+        reassemble_factors: List[int],
+    ) -> None:
         super().__init__()
-
         self.layers = nn.ModuleList()
-        for channels, factor in zip(hidden_dims, reassemble_factors):
+        for hidden_dim, factor in zip(hidden_dims, reassemble_factors):
             self.layers.append(
-                DepthAnythingReassembler(channels, channels=channels, factor=factor)
+                DepthAnythingReassembler(
+                    reassemble_dim, channels=hidden_dim, factor=factor
+                )
             )
 
     def forward(
