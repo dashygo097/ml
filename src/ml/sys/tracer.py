@@ -1,3 +1,4 @@
+import json
 import os
 import time
 import warnings
@@ -5,6 +6,7 @@ from collections import defaultdict
 from typing import Dict, List, Tuple, overload
 
 import matplotlib.pyplot as plt
+import numpy as np
 import torch
 from ptflops import get_model_complexity_info
 from termcolor import colored
@@ -27,14 +29,166 @@ class Tracer:
             + "!"
         )
 
-    def fuzzt_load(self, path: str, device: str = "cpu") -> None: ...
-
     def summary(self) -> None:
         print(self.model)
         self.numal(info=True)
 
     def state_dict(self) -> Dict[str, torch.Tensor]:
         return self.model.state_dict()
+
+    def export_all_bins(
+        self,
+        output_dir: str = "./exported",
+        dtype: str = "float32",
+        prefix: str = "",
+        include_metadata: bool = True,
+        verbose: bool = True,
+    ) -> Dict[str, str]:
+        os.makedirs(output_dir, exist_ok=True)
+
+        dtype_map = {
+            "float32": np.float32,
+            "float16": np.float16,
+        }
+
+        if dtype not in dtype_map:
+            raise ValueError(
+                f"Unsupported dtype: {dtype}. Choose from {list(dtype_map.keys())}"
+            )
+
+        np_dtype = dtype_map[dtype]
+        state_dict = self.model.state_dict()
+
+        metadata = {"dtype": dtype, "parameters": {}}
+        file_paths = {}
+        total_params = 0
+
+        if verbose:
+            print(
+                colored(
+                    "\n[TRACER] Exporting Model Weights to Binary",
+                    "magenta",
+                    attrs=["bold"],
+                )
+            )
+            print(f"Output directory: {colored(output_dir, 'cyan')}")
+            print(f"Data type: {colored(dtype, 'cyan')}")
+            print("-" * 60)
+
+        for name, tensor in state_dict.items():
+            safe_name = name.replace(".", "_").replace("/", "_")
+            filename = f"{prefix}_{safe_name}.bin" if prefix else f"{safe_name}.bin"
+            filepath = os.path.join(output_dir, filename)
+
+            data = tensor.detach().cpu().numpy()
+            original_shape = data.shape
+            original_dtype = str(data.dtype)
+
+            data = data.astype(np_dtype)
+
+            with open(filepath, "wb") as f:
+                f.write(data.tobytes())
+
+            file_paths[name] = filepath
+            total_params += data.size
+
+            metadata["parameters"][name] = {
+                "filename": filename,
+                "shape": list(original_shape),
+                "original_dtype": original_dtype,
+                "export_dtype": dtype,
+                "size": int(data.size),
+                "size_bytes": int(data.nbytes),
+            }
+
+            if verbose:
+                shape_str = "x".join(map(str, original_shape))
+                size_kb = data.nbytes / 1024
+                print(f"✓ {name:40s} | {shape_str:20s} | {size_kb:8.2f} KB")
+
+        if include_metadata:
+            meta_file = f"{prefix}_metadata.json" if prefix else "metadata.json"
+            metadata_path = os.path.join(output_dir, meta_file)
+            with open(metadata_path, "w") as f:
+                json.dump(metadata, f, indent=2)
+
+            if verbose:
+                print("-" * 60)
+                print(f"✓ Metadata: {colored(metadata_path, 'green')}")
+
+        if verbose:
+            total_mb = sum(m["size_bytes"] for m in metadata["parameters"].values()) / (
+                1024 * 1024
+            )
+            print("-" * 60)
+            print(f"Total parameters: {colored(f'{total_params:,}', 'yellow')}")
+            print(f"Total size: {colored(f'{total_mb:.2f} MB', 'yellow')}")
+
+        return file_paths
+
+    def export_layer_bins(
+        self,
+        layer_name: str,
+        output_dir: str = "./exported",
+        dtype: str = "float32",
+        save_text: bool = False,
+        verbose: bool = True,
+    ) -> Dict[str, str]:
+        state_dict = self.model.state_dict()
+
+        layer_params = {k: v for k, v in state_dict.items() if k.startswith(layer_name)}
+
+        if not layer_params:
+            raise ValueError(f"No parameters found for layer: {layer_name}")
+
+        os.makedirs(output_dir, exist_ok=True)
+
+        if verbose:
+            print(
+                colored(
+                    f"\n[TRACER] Exporting Layer: {layer_name}",
+                    "magenta",
+                    attrs=["bold"],
+                )
+            )
+            print(f"Found {len(layer_params)} parameter tensors")
+            print("-" * 60)
+
+        dtype_map = {
+            "float32": np.float32,
+            "float16": np.float16,
+        }
+        np_dtype = dtype_map[dtype]
+
+        file_paths = {}
+
+        for name, tensor in layer_params.items():
+            param_type = name.split(".")[-1]
+            filename = f"{param_type}.bin"
+            filepath = os.path.join(output_dir, filename)
+
+            data = tensor.detach().cpu().numpy().astype(np_dtype)
+
+            with open(filepath, "wb") as f:
+                f.write(data.tobytes())
+
+            file_paths[name] = filepath
+
+            if save_text:
+                text_path = filepath.replace(".bin", ".txt")
+                np.savetxt(text_path, data.flatten(), fmt="%.8f")
+
+            if verbose:
+                shape_str = "x".join(map(str, data.shape))
+                print(f"✓ {param_type:15s} | {shape_str:20s} | {filepath}")
+
+        if verbose:
+            print("-" * 60)
+            print(
+                f"Files saved in: {colored(output_dir, 'green', attrs=['underline'])}"
+            )
+
+        return file_paths
 
     def fuzzy_fetch(self, target: str) -> nn.Module:
         fetched_module = []
