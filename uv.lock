@@ -2390,7 +2390,7 @@ wheels = [
 [[package]]
 name = "pycd"
 version = "0.1.0"
-source = { git = "https://github.com/dashygo097/pycdAlg.git#ee3b9dd3bd95a62e82685bd8f8028db325be0004" }
+source = { git = "https://github.com/dashygo097/pycdAlg.git#71ef814169ffc472a89c84cf7f374d3334c0032b" }
 dependencies = [
     { name = "matplotlib" },
     { name = "networkx" },
@@ -3239,7 +3239,7 @@ wheels = [
 [[package]]
 name = "trtrt"
 version = "0.1.0"
-source = { git = "https://github.com/dashygo097/trtrt.git#ffa047f87420c9f1aadc00b2525c05da7648bb8a" }
+source = { git = "https://github.com/dashygo097/trtrt.git#a584f90b78c6511786cf394d336ed755860a4317" }
 dependencies = [
     { name = "pillow" },
     { name = "taichi" },
