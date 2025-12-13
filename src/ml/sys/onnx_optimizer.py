@@ -1,8 +1,7 @@
 import os
-from typing import List, Optional, Tuple
+from typing import Tuple
 
 import onnx
-import onnxoptimizer
 import torch
 from termcolor import colored
 from torch import nn
@@ -30,27 +29,6 @@ class OnnxOptimizer(Editor):
             )
         )
 
-    def optimize(
-        self,
-        passes: Optional[List[str]] = [
-            "eliminate_identity",
-            "eliminate_deadend",
-            "eliminate_nop_dropout",
-            "eliminate_nop_transpose",
-        ],
-    ) -> None:
-        if self.onnx_model is None:
-            raise ValueError(
-                "[ERROR] ONNX model is not loaded. Please load an ONNX model first."
-            )
-        self.onnx_model = onnxoptimizer.optimize(self.onnx_model, passes)
-        print(
-            colored(
-                "[INFO] ONNX model optimization completed.",
-                color="blue",
-            )
-        )
-
     def load_onnx(self, onnx_model_path: str) -> None:
         if not os.path.exists(onnx_model_path):
             raise FileNotFoundError(f"Model file {onnx_model_path} does not exist.")
@@ -72,13 +50,12 @@ class OnnxOptimizer(Editor):
         device: str = "cpu",
     ) -> None:
         os.makedirs(save_dir, exist_ok=True)
-        input_tensor = torch.randn(input_shape).to(device)
         path = f"{save_dir}/{name}" + ".onnx"
         self.model.to(device)
         self.model.eval()
         torch.onnx.export(
             self.model,
-            input_tensor,
+            input_shape,
             path,
             opset_version=opset,
             input_names=["input"],
